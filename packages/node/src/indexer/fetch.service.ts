@@ -359,7 +359,7 @@ export class FetchService implements OnApplicationShutdown {
     }
     if (metaData.lastProcessedHeight < startBlockHeight) {
       logger.warn(
-        `Dictionary indexed block is behind current indexing block height`,
+        `Your current project indexing block height is ahead of the dictionary - skipping dictionary`,
       );
       this.eventEmitter.emit(IndexerEvent.SkipDictionary);
       return false;
