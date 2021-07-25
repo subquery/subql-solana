@@ -20,6 +20,13 @@ module.exports = {
     sidebar: [
       {
         title: 'Welcome to SubQuery',
+        path: '/welcome/welcome',
+        children: [
+          '/welcome/welcome.md',
+        ]
+      },
+      {
+        title: 'Welcome to SubQuery',
         path: '/',
       },
       {
@@ -30,6 +37,13 @@ module.exports = {
           '/quickstart/helloworld-localhost.md',
           '/quickstart/understanding-helloworld.md',
           '/quickstart/helloworld-hosted.md',
+        ]
+      },
+      {
+        title: 'Installation',
+        path: '/install/install',
+        children: [
+          '/install/install.md'
         ]
       },
       {
@@ -70,7 +84,9 @@ module.exports = {
       {
         title: 'Tutorials & Examples',
         path: '/tutorials_examples/introduction',
-        children: []
+        children: [
+          '/tutorials_examples/terminology.md',
+        ]
       }
     ],
   },
