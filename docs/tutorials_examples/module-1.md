@@ -1,35 +1,42 @@
-# Hello World (SubQuery hosted)
+# Module 1: Getting started
 
-The aim of this quick start is to show how you can get the default starter project running in SubQuery Projects (our managed service) in a few easy steps.
+Welcome to these series of learning modules designed to give new developers with some programming experience the ability to create SubQuery projects. This module introduces the pre-requisites developers need to get started along with getting a very simple Hello World up and running locally with Docker, as well has the same project hosted in SubQuery Projects.
 
-We will take the simple starter project (and everything we've learned thus far) but instead of running it locally within Docker, we'll take advantage of SubQuery's managed hosting infrastructure. In other words, we let SubQuery do all the heavy lifting, running and managing production infrastructure.
+## 1.1 - Pre-requisites
 
-## Learning objectives
+For this section, please see the pre-requisite section of the quick start guide [here](https://doc.subquery.network/quickstart/helloworld-localhost/#pre-requisites)
+
+## 1.2 - Hello World with Docker
+
+For this section, please see the [Hello World (localhost + Docker)](https://doc.subquery.network/quickstart/helloworld-localhost/)
+
+## 1.3 - Hello World with SubQuery Projects
+The aim of this lesson is to show how you can get the default starter project running in SubQuery Projects (our managed service) in a few easy steps.
+
+We will take the simple starter project but instead of running it locally within Docker, we'll take advantage of SubQuery's managed hosting infrastructure. 
+
+### Learning objectives
 
 At the end of this quick start, you should:
 
 - understand the required pre-requisites
 - be able host a project in [SubQuery Projects](https://project.subquery.network/)
-- run a simple query to get the block height of the Polkadot mainnet using the playground
+- run a simple query to get the block height of Polkadot mainnet using the playground
 - run a simple GET query to get the block height of the Polkadot mainnet using cURL
 
-## Intended audience
-
-This guide is geared towards new developers who have some development experience and are interested in learning more about SubQuery.
-
-## Video guide
+### Video guide
 
 <figure class="video_container">
   <iframe src="https://www.youtube.com/embed/b-ba8-zPOoo" frameborder="0" allowfullscreen="true"></iframe>
 </figure>
 
-## Pre-requisites
+### Pre-requisites
 
 You will need:
 
 - a GitHub account
 
-## 1. Create your project
+### Create your project
 
 Let's create a project called subql_hellowworld and run the obligatory install, codegen and build with your favourite package manager.
 
@@ -42,7 +49,7 @@ yarn build
 
 Do NOT run the docker commands though.
 
-## 2. Create a GitHub repo
+### Create a GitHub repo
 
 In GitHub, create a new public repository. Provide a name and set your visibility to public. Here, everything is kept as the default for now.
 
@@ -52,7 +59,7 @@ Take note of your GitHub URL, this must be public for SubQuery to access it.
 
 ![create github repo](/assets/img/github_repo_url.png)
 
-## 3. Push to GitHub
+### Push to GitHub
 
 Back in your project directory, initialise it as a git directory. Otherwise, you might get the error "fatal: not a git repository (or any of the parent directories): .git"
 
@@ -103,7 +110,7 @@ The push command means "please push my code TO the origin repo FROM my master lo
 
 Now that you have got your code into GitHub, let's look at how we can host it in SubQuery Projects.
 
-## 4. Create your project
+### Create your project
 
 Navigate to [https://project.subquery.network](https://project.subquery.network) and log in with your GitHub account.
 
@@ -130,7 +137,7 @@ When you click create, you'll be taken to your dashboard.
 
 The dashboard contains lots of useful information such as the network it is using, the GitHub repository URL of the source code it is running, when it was created and last updated, and in particular the deployment details.
 
-## 5. Deploy your project
+### Deploy your project
 
 Now that you have created your project within SubQuery Projects, setting up the display behaviour, the next step is to deploy your project making it operational. Deploying a version triggers a new SubQuery indexing operation to start, and sets up the required query service to start accepting GraphQL requests. You can also deploy new versions to existing projects here.
 
@@ -152,7 +159,7 @@ The deployment is now running.
 
 ![Deployment running](/assets/img/deployment_running.png)
 
-## 6. Testing your project
+### Testing your project
 
 To test your project, click on the 3 ellipsis and select "View on SubQuery Explorer".
 
@@ -162,7 +169,7 @@ This will take you to the ever familiar "Playground" where you can click the pla
 
 ![Subquery playground](/assets/img/subquery_playground.png)
 
-## 7. Bonus step
+### Bonus step
 
 For the astute amongst us, you will recall that in the learning objectives, the last point was to run a simple GET query. To do this, we will need to grab the "Query Endpoint" displayed in the deployment details.
 
@@ -185,6 +192,6 @@ giving the results of:
 
 Readability is not a concern here as you will probably have some front end code to consume and parse this JSON response.
 
-## Summary
+### Summary
 
-In this SubQuery hosted quick start we showed how quick and easy it was to take a Subql project and deploy it to [SubQuery Projects](https://project.subquery.network) where all the infrastructure is provided for your convenience. There is an inbuilt playground for running various queries as well as an API endpoint for your code to integrate with.
+In this SubQuery hosted module we showed how quick and easy it was to take a SubQuery project and deploy it to [SubQuery Projects](https://project.subquery.network) where all the infrastructure is provided for your convenience. There is an inbuilt playground for running various queries as well as an API endpoint for your code to integrate with.

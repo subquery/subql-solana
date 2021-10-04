@@ -111,7 +111,6 @@ module.exports = config({
           '/quickstart/quickstart.md',
           '/quickstart/helloworld-localhost.md',
           '/quickstart/understanding-helloworld.md',
-          '/quickstart/helloworld-hosted.md',
         ]
       },
       {
@@ -163,10 +162,12 @@ module.exports = config({
       },
       {
         title: 'Tutorials & Examples',
-        path: '/tutorials_examples/introduction',
+        path: '/tutorials_examples/examples',
         collapsable: true,
         children: [
-          '/tutorials_examples/introduction',
+          '/tutorials_examples/module-1.md',
+          '/tutorials_examples/module-2.md',
+          '/tutorials_examples/examples.md',
           '/tutorials_examples/block-height.md',
           '/tutorials_examples/batch-size.md',
           '/tutorials_examples/run-indexer.md',
