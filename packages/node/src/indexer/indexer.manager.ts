@@ -235,32 +235,49 @@ export class IndexerManager {
     }
   }
 
-  private async createProjectSchema(name: string): Promise<SubqueryModel> {
-    let projectSchema: string;
-    const { chain, genesisHash } = this.apiService.networkMeta;
-    if (this.nodeConfig.localMode) {
-      // create tables in default schema if local mode is enabled
-      projectSchema = DEFAULT_DB_SCHEMA;
-    } else {
-      const suffix = await this.nextSubquerySchemaSuffix();
-      projectSchema = `subquery_${suffix}`;
-      const schemas = await this.sequelize.showAllSchemas(undefined);
-      if (!(schemas as unknown as string[]).includes(projectSchema)) {
-        await this.sequelize.createSchema(projectSchema, undefined);
-      }
-    }
+  // private async createProjectSchema(name: string): Promise<SubqueryModel> {
+  //   let projectSchema: string;
+  //   const { chain, genesisHash } = this.apiService.networkMeta;
+  //   if (this.nodeConfig.localMode) {
+  //     // create tables in default schema if local mode is enabled
+  //     projectSchema = DEFAULT_DB_SCHEMA;
+  //   } else {
+  //     const suffix = await this.nextSubquerySchemaSuffix();
+  //     projectSchema = `subquery_${suffix}`;
+  //     const schemas = await this.sequelize.showAllSchemas(undefined);
+  //     if (!(schemas as unknown as string[]).includes(projectSchema)) {
+  //       await this.sequelize.createSchema(projectSchema, undefined);
+  //     }
+  //   }
+  //
+  //   return this.subqueryRepo.create({
+  //     name,
+  //     dbSchema: projectSchema,
+  //     hash: '0x',
+  //     nextBlockHeight: this.getStartBlockFromDataSources(),
+  //     network: chain,
+  //     networkGenesis: genesisHash,
+  //   });
+  // }
 
-    return this.subqueryRepo.create({
-      name,
+  private async createProjectSchema(
+    projectSchema: string,
+  ): Promise<SubqueryModel> {
+    await this.sequelize.createSchema(projectSchema, undefined);
+    const { chain, genesisHash } = this.apiService.networkMeta;
+    //create metadata
+    return {
+      name: this.nodeConfig.subqueryName,
       dbSchema: projectSchema,
       hash: '0x',
       nextBlockHeight: this.getStartBlockFromDataSources(),
       network: chain,
       networkGenesis: genesisHash,
-    });
+    } as SubqueryModel;
   }
 
-  private async getProjectSchema(): Promise<string> {
+  //expect output: schema name, something like subquery_200 or hello-world
+  private async getProjectSchemaName(): Promise<string> {
     let schema = argv.schema;
     if (!schema) {
       schema = this.nodeConfig.subqueryName;
@@ -277,7 +294,7 @@ export class IndexerManager {
         },
       );
       if (!result.length) {
-        schema = undefined;
+        schema = this.nodeConfig.subqueryName;
       } else {
         schema = (result[0] as any).db_schema;
       }
@@ -286,49 +303,70 @@ export class IndexerManager {
   }
 
   private async ensureProject(name: string): Promise<SubqueryModel> {
-    const schema = await this.getProjectSchema();
+    const schema = await this.getProjectSchemaName();
     // XXX: how do I recreate this to be independent of the subqueryRepo (which is dependent on the subqueries table) I don't know how to fetch a metadataRepo as an object in the same manner
-    // let project = await this.subqueryRepo.findOne({
-    //   where: { name: this.nodeConfig.subqueryName },
-    // });
-    if (!schema) {
-      project = await this.createProjectSchema(name);
-    } else {
-      if (argv['force-clean']) {
-        try {
-          // drop existing project schema
-          this.sequelize.dropSchema(project.dbSchema, {
-            logging: false,
-            benchmark: false,
-          });
+    const schemas = (await this.sequelize.showAllSchemas(
+      undefined,
+    )) as unknown as string[];
 
-          // remove schema from project table
-          await this.sequelize.query(
-            ` DELETE
+    let project: SubqueryModel;
+
+    if (schemas.includes(schema)) {
+      //1. use query to get this schema.
+      //2. Get the _metadata table and merge into SubqueryModel
+      project = {
+        name: this.nodeConfig.subqueryName,
+        dbSchema: schema,
+        hash: '0x',
+        nextBlockHeight: this.getStartBlockFromDataSources(), //3. this should be matched from metadata, lastProcessed+1
+        network: 'polkadot',
+        networkGenesis:
+          '0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3',
+      } as SubqueryModel;
+    } else {
+      let project = await this.subqueryRepo.findOne({
+        where: { dbSchema: schema },
+      });
+      const { chain, genesisHash } = this.apiService.networkMeta;
+      if (!project) {
+        project = await this.createProjectSchema(name);
+      } else {
+        if (argv['force-clean']) {
+          try {
+            // drop existing project schema
+            this.sequelize.dropSchema(project.dbSchema, {
+              logging: false,
+              benchmark: false,
+            });
+
+            // remove schema from project table
+            await this.sequelize.query(
+              ` DELETE
               FROM public.subqueries
               where db_schema = :subquerySchema`,
-            {
-              replacements: { subquerySchema: project.dbSchema },
-              type: QueryTypes.DELETE,
-            },
-          );
+              {
+                replacements: { subquerySchema: project.dbSchema },
+                type: QueryTypes.DELETE,
+              },
+            );
 
-          logger.info('force cleaned schema and tables');
-        } catch (err) {
-          logger.error(err, 'failed to force clean schema and tables');
+            logger.info('force cleaned schema and tables');
+          } catch (err) {
+            logger.error(err, 'failed to force clean schema and tables');
+          }
+          project = await this.createProjectSchema(name);
         }
-        project = await this.createProjectSchema(name);
-      }
-      if (!project.networkGenesis || !project.network) {
-        const { chain, genesisHash } = this.apiService.networkMeta;
-        project.network = chain;
-        project.networkGenesis = genesisHash;
-        await project.save();
-      } else if (project.networkGenesis !== genesisHash) {
-        logger.error(
-          `Not same network: genesisHash different. expected="${project.networkGenesis}"" actual="${genesisHash}"`,
-        );
-        process.exit(1);
+        if (!project.networkGenesis || !project.network) {
+          const { chain, genesisHash } = this.apiService.networkMeta;
+          project.network = chain;
+          project.networkGenesis = genesisHash;
+          await project.save();
+        } else if (project.networkGenesis !== genesisHash) {
+          logger.error(
+            `Not same network: genesisHash different. expected="${project.networkGenesis}"" actual="${genesisHash}"`,
+          );
+          process.exit(1);
+        }
       }
     }
     return project;
