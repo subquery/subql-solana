@@ -9,17 +9,10 @@ import {ProjectManifestV0_0_1, ProjectManifestV0_2_0} from '@subql/common';
 import {Template, downloadTemplate} from '@subql/templates';
 import yaml from 'js-yaml';
 import rimraf from 'rimraf';
-import simpleGit from 'simple-git';
 import {isProjectSpecV0_2_0, ProjectSpecBase} from '../types';
-
-const STARTER_PATH = 'https://github.com/subquery/subql-starter';
 
 export async function createProject(localPath: string, template: Template, project: ProjectSpecBase): Promise<string> {
   const projectPath = path.join(localPath, template.name);
-
-  const cloneArgs = isProjectSpecV0_2_0(project)
-    ? ['-b', 'v0.2.0', '--single-branch']
-    : ['-b', 'v0.0.1', '--single-branch'];
 
   try {
     await downloadTemplate(template, localPath);

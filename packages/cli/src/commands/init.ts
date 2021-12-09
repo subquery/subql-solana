@@ -12,6 +12,21 @@ import {createProject, installDependencies} from '../controller/init-controller'
 import {getGenesisHash} from '../jsonrpc';
 import {ProjectSpecBase, ProjectSpecV0_2_0} from '../types';
 
+function filterInput(arr: string[]) {
+  return (_: any, input: string) => {
+    input = input || '';
+    return new Promise((resolve) => {
+      resolve(
+        fuzzy.filter(input, arr).map((el) => {
+          return el.original;
+        })
+      );
+    });
+  };
+}
+
+const ENDPOINTS: Record<string, string> = {Polkadot: 'wss://polkadot.api.onfinality.io/public-ws'};
+
 export default class Init extends Command {
   static description = 'Initialize a scaffold subquery project';
 
@@ -66,7 +81,7 @@ export default class Init extends Command {
     // XXX: unsafe!
     const templates = (await fetchTemplates()) as Template[];
     const networks = templates
-      .map((t) => t.network)
+      .map(({network}) => network)
       .filter((n, i, self) => {
         return i === self.indexOf(n);
       });
@@ -77,36 +92,18 @@ export default class Init extends Command {
         name: 'network',
         message: 'Select a network',
         type: 'autocomplete',
-        source: (_: any, input: string) => {
-          input = input || '';
-          return new Promise((resolve) => {
-            resolve(
-              fuzzy.filter(input, networks).map((el) => {
-                return el.original;
-              })
-            );
-          });
-        },
+        source: filterInput(networks),
       },
     ]);
 
-    const names = templates.filter((t) => t.network === networkResponse.network).map((t) => t.name);
+    const names = templates.filter(({network}) => network === networkResponse.network).map((t) => t.name);
 
     const nameResponse: {name: string} = await inquirer.prompt([
       {
         name: 'name',
         message: 'Select a template',
         type: 'autocomplete',
-        source: (_: any, input: string) => {
-          input = input || '';
-          return new Promise((resolve) => {
-            resolve(
-              fuzzy.filter(input, names).map((el) => {
-                return el.original;
-              })
-            );
-          });
-        },
+        source: filterInput(names),
       },
     ]);
 
