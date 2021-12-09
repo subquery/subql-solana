@@ -44,7 +44,7 @@ async function createTestProject(projectSpec: ProjectSpecBase): Promise<string> 
   const tmpdir = await fs.promises.mkdtemp(`${os.tmpdir()}${path.sep}`);
   const projectDir = path.join(tmpdir, projectSpec.name);
 
-  await createProject(tmpdir, projectSpec);
+  // await createProject(tmpdir, projectSpec);
 
   // Install dependencies
   childProcess.execSync(`npm i`, {cwd: projectDir});

@@ -6,6 +6,7 @@ import fs from 'fs';
 import * as path from 'path';
 import {promisify} from 'util';
 import {ProjectManifestV0_0_1, ProjectManifestV0_2_0} from '@subql/common';
+import {Template, downloadTemplate} from '@subql/templates';
 import yaml from 'js-yaml';
 import rimraf from 'rimraf';
 import simpleGit from 'simple-git';
@@ -13,15 +14,15 @@ import {isProjectSpecV0_2_0, ProjectSpecBase} from '../types';
 
 const STARTER_PATH = 'https://github.com/subquery/subql-starter';
 
-export async function createProject(localPath: string, project: ProjectSpecBase): Promise<string> {
-  const projectPath = path.join(localPath, project.name);
+export async function createProject(localPath: string, template: Template, project: ProjectSpecBase): Promise<string> {
+  const projectPath = path.join(localPath, template.name);
 
   const cloneArgs = isProjectSpecV0_2_0(project)
     ? ['-b', 'v0.2.0', '--single-branch']
     : ['-b', 'v0.0.1', '--single-branch'];
 
   try {
-    await simpleGit().clone(STARTER_PATH, projectPath, cloneArgs);
+    await downloadTemplate(template, localPath);
   } catch (e) {
     throw new Error('Failed to clone starter template from git');
   }

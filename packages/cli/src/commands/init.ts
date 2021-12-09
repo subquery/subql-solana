@@ -4,7 +4,10 @@
 import fs from 'fs';
 import path from 'path';
 import {Command, flags} from '@oclif/command';
+import {fetchTemplates, Template} from '@subql/templates';
 import cli from 'cli-ux';
+import fuzzy from 'fuzzy';
+import * as inquirer from 'inquirer';
 import {createProject, installDependencies} from '../controller/init-controller';
 import {getGenesisHash} from '../jsonrpc';
 import {ProjectSpecBase, ProjectSpecV0_2_0} from '../types';
@@ -60,7 +63,55 @@ export default class Init extends Command {
       cli.action.stop();
     }
 
-    this.log('Prompting remaining details');
+    // XXX: unsafe!
+    const templates = (await fetchTemplates()) as Template[];
+    const networks = templates
+      .map((t) => t.network)
+      .filter((n, i, self) => {
+        return i === self.indexOf(n);
+      });
+
+    inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
+    const networkResponse: {network: string} = await inquirer.prompt([
+      {
+        name: 'network',
+        message: 'Select a network',
+        type: 'autocomplete',
+        source: (_: any, input: string) => {
+          input = input || '';
+          return new Promise((resolve) => {
+            resolve(
+              fuzzy.filter(input, networks).map((el) => {
+                return el.original;
+              })
+            );
+          });
+        },
+      },
+    ]);
+
+    const names = templates.filter((t) => t.network === networkResponse.network).map((t) => t.name);
+
+    const nameResponse: {name: string} = await inquirer.prompt([
+      {
+        name: 'name',
+        message: 'Select a template',
+        type: 'autocomplete',
+        source: (_: any, input: string) => {
+          input = input || '';
+          return new Promise((resolve) => {
+            resolve(
+              fuzzy.filter(input, names).map((el) => {
+                return el.original;
+              })
+            );
+          });
+        },
+      },
+    ]);
+
+    const template = templates.find((t) => t.name === nameResponse.name);
+
     project.author = await cli.prompt('Authors', {required: true});
     project.description = await cli.prompt('Description', {required: false});
     project.version = await cli.prompt('Version:', {default: '1.0.0', required: true});
@@ -69,7 +120,7 @@ export default class Init extends Command {
     if (flags.starter && project.name) {
       try {
         cli.action.start('Init the starter package');
-        const projectPath = await createProject(location, project);
+        const projectPath = await createProject(location, template, project);
         cli.action.stop();
 
         if (flags['install-dependencies']) {
