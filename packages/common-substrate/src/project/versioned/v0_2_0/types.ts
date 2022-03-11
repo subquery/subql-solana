@@ -1,6 +1,7 @@
 // Copyright 2020-2022 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import {ProjectManifestV0_2_0} from '@subql/common';
 import {
   SubqlCustomDatasource,
   SubqlCustomHandler,
@@ -12,7 +13,6 @@ import {
   SubqlRuntimeDatasource,
   SubqlRuntimeHandler,
 } from '@subql/types';
-import {ISubstrateProjectManifest} from '../../types';
 
 export interface SubqlMappingV0_2_0<T extends SubqlHandler> extends SubqlMapping<T> {
   file: string;
@@ -25,24 +25,7 @@ export type CustomDatasourceV0_2_0 = SubqlCustomDatasource<
   SubqlMappingV0_2_0<SubqlCustomHandler>
 >;
 
-export interface ProjectManifestV0_2_0 extends ISubstrateProjectManifest {
-  name: string;
-  version: string;
-  schema: {
-    file: string;
-  };
-
-  network: {
-    genesisHash: string;
-    endpoint?: string;
-    dictionary?: string;
-    chaintypes?: {
-      file: string;
-    };
-  };
-
-  dataSources: (RuntimeDataSourceV0_2_0 | CustomDatasourceV0_2_0)[];
-}
+export type SubstrateProjectManifestV0_2_0 = ProjectManifestV0_2_0<SubqlDatasource>;
 
 export function isDatasourceV0_2_0(
   dataSource: SubqlDatasource

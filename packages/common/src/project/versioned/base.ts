@@ -32,3 +32,21 @@ export abstract class ProjectManifestBaseImpl<D extends object> {
     }
   }
 }
+
+export interface baseDataSource {
+  name?: string;
+  kind: string;
+  startBlock?: number;
+  mapping: baseMapping;
+}
+
+export interface baseMapping {
+  file: string;
+  handlers: baseHandler;
+}
+
+export interface baseHandler {
+  handler: string;
+  kind: string;
+  // filter? will not include
+}

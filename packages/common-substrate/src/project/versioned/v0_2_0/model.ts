@@ -13,7 +13,12 @@ import {plainToClass, Type} from 'class-transformer';
 import {Equals, IsArray, IsObject, IsOptional, IsString, ValidateNested, validateSync} from 'class-validator';
 import yaml from 'js-yaml';
 import {CustomDataSourceBase, Mapping, RuntimeDataSourceBase} from '../../models';
-import {CustomDatasourceV0_2_0, ProjectManifestV0_2_0, RuntimeDataSourceV0_2_0, SubqlMappingV0_2_0} from './types';
+import {
+  CustomDatasourceV0_2_0,
+  SubstrateProjectManifestV0_2_0,
+  RuntimeDataSourceV0_2_0,
+  SubqlMappingV0_2_0,
+} from './types';
 
 export class FileType {
   @IsString()
@@ -102,7 +107,7 @@ export class DeploymentV0_2_0 {
 
 export class ProjectManifestV0_2_0Impl<D extends object = DeploymentV0_2_0>
   extends ProjectManifestBaseImpl<D>
-  implements ProjectManifestV0_2_0
+  implements SubstrateProjectManifestV0_2_0
 {
   @Equals('0.2.0')
   specVersion: string;

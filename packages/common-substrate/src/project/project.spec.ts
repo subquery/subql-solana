@@ -28,6 +28,10 @@ describe('project.yaml', () => {
     expect(() => loadSubstrateProjectManifest(path.join(projectsDir, 'project_0.2.0_custom_ds.yaml'))).not.toThrow();
   });
 
+  it('can validate a v0.2.1 project.yaml with templates', () => {
+    expect(() => loadSubstrateProjectManifest(path.join(projectsDir, 'project_0.2.1.yaml'))).not.toThrow();
+  });
+
   it('can fail validation if custom ds missing processor', () => {
     expect(() =>
       loadSubstrateProjectManifest(path.join(projectsDir, 'project_0.2.0_invalid_custom_ds.yaml'))
