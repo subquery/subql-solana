@@ -4,7 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 import {
-  ProjectManifestV0_2_0,
+  SubstrateProjectManifestV0_2_0,
   SubstrateProjectManifestVersioned,
   ProjectNetworkV0_0_1,
   ChainTypes,
@@ -87,7 +87,7 @@ export async function migrate(
   const manifestV0_2_0 = path.join(projectPath, MANIFEST_V_0_2_0);
 
   try {
-    const data = {} as ProjectManifestV0_2_0;
+    const data = {} as SubstrateProjectManifestV0_2_0;
     data.specVersion = '0.2.0';
     data.name = project.name;
     data.version = project.version;

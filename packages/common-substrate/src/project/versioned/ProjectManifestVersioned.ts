@@ -8,6 +8,7 @@ import {ProjectManifestV0_0_1Impl} from './v0_0_1';
 import {ProjectManifestV0_2_0Impl} from './v0_2_0';
 import {ProjectManifestV0_2_1Impl} from './v0_2_1';
 import {ProjectManifestV0_3_0Impl} from './v0_3_0';
+import {ProjectManifestV1_0_0Impl} from './v1_0_0';
 export type VersionedProjectManifest = {specVersion: string};
 
 const SUBSTRATE_SUPPORTED_VERSIONS = {
@@ -15,6 +16,7 @@ const SUBSTRATE_SUPPORTED_VERSIONS = {
   '0.2.0': ProjectManifestV0_2_0Impl,
   '0.2.1': ProjectManifestV0_2_1Impl,
   '0.3.0': ProjectManifestV0_3_0Impl,
+  '1.0.0': ProjectManifestV1_0_0Impl,
 };
 
 type Versions = keyof typeof SUBSTRATE_SUPPORTED_VERSIONS;
@@ -35,6 +37,10 @@ export function manifestIsV0_2_1(manifest: ISubstrateProjectManifest): manifest 
 
 export function manifestIsV0_3_0(manifest: ISubstrateProjectManifest): manifest is ProjectManifestV0_3_0Impl {
   return manifest.specVersion === '0.3.0';
+}
+
+export function manifestIsV1_0_0(manifest: ISubstrateProjectManifest): manifest is ProjectManifestV1_0_0Impl {
+  return manifest.specVersion === '1.0.0';
 }
 
 export class SubstrateProjectManifestVersioned implements ISubstrateProjectManifest {
@@ -83,6 +89,14 @@ export class SubstrateProjectManifestVersioned implements ISubstrateProjectManif
 
   get asV0_3_0(): ProjectManifestV0_3_0Impl {
     return this._impl as ProjectManifestV0_3_0Impl;
+  }
+
+  get isV1_0_0(): boolean {
+    return this.specVersion === '1.0.0';
+  }
+
+  get asV1_0_0(): ProjectManifestV1_0_0Impl {
+    return this._impl as ProjectManifestV1_0_0Impl;
   }
 
   toDeployment(): string | undefined {

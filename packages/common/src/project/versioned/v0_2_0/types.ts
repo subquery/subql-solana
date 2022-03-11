@@ -18,4 +18,7 @@ export interface ProjectManifestV0_2_0<D extends object = baseDataSource> {
     };
   };
   dataSources: D[];
+  specVersion?: string;
+  repository?: string;
+  description?: string;
 }

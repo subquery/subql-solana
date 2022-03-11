@@ -1,7 +1,7 @@
 // Copyright 2020-2022 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import {baseDataSource} from '@subql/common';
+import {baseDataSource} from '../base';
 import {ProjectManifestV0_2_1} from '../v0_2_1';
 
 export interface runnerSpecs {
