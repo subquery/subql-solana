@@ -10,4 +10,8 @@ describe('project.yaml', () => {
   it('can validate a v1.0.0 project.yaml', () => {
     expect(() => loadTerraProjectManifest(path.join(projectsDir, 'project_1.0.0.yaml'))).not.toThrow();
   });
+
+  it('can validate a v1.0.0 project.yaml with unsupported runner node', () => {
+    expect(() => loadTerraProjectManifest(path.join(projectsDir, 'project_1.0.0_bad_runner.yaml'))).toThrow();
+  });
 });

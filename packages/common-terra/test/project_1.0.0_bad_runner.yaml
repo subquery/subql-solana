@@ -6,7 +6,7 @@ description: ''
 repository: 'https://github.com/developerinprogress/subqlstarter-terra'
 runner:
   node:
-    name: '@subql/node-terra'
+    name: '@subql/node'
     version: 0.28.0
   query:
     name: '@subql/query'

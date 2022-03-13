@@ -36,6 +36,16 @@ describe('project.yaml', () => {
     expect(() => loadSubstrateProjectManifest(path.join(projectsDir, 'project_1.0.0.yaml'))).not.toThrow();
   });
 
+  it('can validate a v1.0.0 project.yaml with unsupported runner node', () => {
+    expect(() => loadSubstrateProjectManifest(path.join(projectsDir, 'project_1.0.0_bad_runner.yaml'))).toThrow();
+  });
+
+  it('can validate a v1.0.0 project.yaml runner and datasource mismatches', () => {
+    expect(() =>
+      loadSubstrateProjectManifest(path.join(projectsDir, 'project_1.0.0_runner_ds_mismatch.yaml'))
+    ).toThrow();
+  });
+
   it('can fail validation if custom ds missing processor', () => {
     expect(() =>
       loadSubstrateProjectManifest(path.join(projectsDir, 'project_0.2.0_invalid_custom_ds.yaml'))
