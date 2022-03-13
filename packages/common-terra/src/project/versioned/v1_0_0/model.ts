@@ -10,7 +10,7 @@ import {DeploymentV0_3_0, ProjectManifestV0_3_0Impl} from '../v0_3_0';
 const TERRA_NODE_NAME = `@subql/node-terra`;
 
 export class TerraRunnerNodeImpl implements NodeSpec {
-  @Equals('TERRA_NODE_NAME')
+  @Equals(TERRA_NODE_NAME)
   name: string;
   @Matches(RUNNER_REGEX)
   version: string;
