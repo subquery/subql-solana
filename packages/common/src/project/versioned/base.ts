@@ -33,20 +33,24 @@ export abstract class ProjectManifestBaseImpl<D extends object> {
   }
 }
 
-export interface baseDataSource {
+export interface BaseDataSource<
+  F = Record<string, unknown>,
+  H extends BaseHandler<F> = BaseHandler<F>,
+  T extends BaseMapping<F, H> = BaseMapping<F, H>
+> {
   name?: string;
   kind: string;
   startBlock?: number;
-  mapping: baseMapping;
+  mapping: T;
 }
 
-export interface baseMapping {
+export interface BaseMapping<F, T extends BaseHandler<F>> {
   file: string;
-  handlers: baseHandler;
+  handlers: T;
 }
 
-export interface baseHandler {
+export interface BaseHandler<T> {
   handler: string;
   kind: string;
-  // filter? will not include
+  filter?: T;
 }

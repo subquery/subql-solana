@@ -3,10 +3,10 @@
 
 import {Equals, IsString, Matches} from 'class-validator';
 import {RUNNER_REGEX} from '../../../constants';
-import {baseDataSource} from '../base';
-import {ProjectManifestV0_2_1} from '../v0_2_1';
+import {BaseDataSource} from '../base';
+import {ProjectManifestV0_2_1, TemplateBase} from '../v0_2_1';
 
-export interface runnerSpecs {
+export interface RunnerSpecs {
   node: NodeSpec;
   query: QuerySpec;
 }
@@ -29,10 +29,10 @@ export class RunnerQueryBaseImpl implements QuerySpec {
   version: string;
 }
 
-export interface ProjectManifestV1_0_0<T, D extends object = baseDataSource>
+export interface ProjectManifestV1_0_0<T extends object = TemplateBase, D extends object = BaseDataSource>
   extends Omit<ProjectManifestV0_2_1<T, D>, 'network'> {
   dataSources: D[];
-  runner: runnerSpecs;
+  runner: RunnerSpecs;
   templates?: T[];
   network: {
     genesisHash?: string;

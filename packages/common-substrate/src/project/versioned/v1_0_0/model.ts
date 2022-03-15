@@ -1,10 +1,9 @@
 // Copyright 2020-2022 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import {NodeSpec, QuerySpec, RUNNER_REGEX, RunnerQueryBaseImpl, runnerSpecs} from '@subql/common';
-import {CustomDataSourceV0_2_0Impl, RuntimeDataSourceV0_2_0Impl} from '@subql/common-substrate/project';
+import {NodeSpec, QuerySpec, RUNNER_REGEX, RunnerQueryBaseImpl, RunnerSpecs} from '@subql/common';
 import {plainToClass, Type} from 'class-transformer';
-import {Equals, IsArray, IsObject, IsString, Matches, ValidateNested, validateSync} from 'class-validator';
+import {Equals, IsObject, IsString, Matches, ValidateNested, validateSync} from 'class-validator';
 import {DeploymentV0_2_1, ProjectManifestV0_2_1Impl} from '../v0_2_1';
 import {SubstrateProjectManifestV1_0_0} from './types';
 
@@ -17,7 +16,7 @@ export class SubstrateRunnerNodeImpl implements NodeSpec {
   version: string;
 }
 
-export class SubstrateRunnerSpecsImpl implements runnerSpecs {
+export class SubstrateRunnerSpecsImpl implements RunnerSpecs {
   @IsObject()
   @ValidateNested()
   @Type(() => SubstrateRunnerNodeImpl)
@@ -35,14 +34,14 @@ export class DeploymentV1_0_0 extends DeploymentV0_2_1 {
   @IsObject()
   @ValidateNested()
   @Type(() => SubstrateRunnerSpecsImpl)
-  runner: runnerSpecs;
+  runner: RunnerSpecs;
 }
 
 export class ProjectManifestV1_0_0Impl extends ProjectManifestV0_2_1Impl implements SubstrateProjectManifestV1_0_0 {
   @IsObject()
   @ValidateNested()
   @Type(() => SubstrateRunnerSpecsImpl)
-  runner: runnerSpecs;
+  runner: RunnerSpecs;
   protected _deployment: DeploymentV1_0_0;
 
   get deployment(): DeploymentV1_0_0 {

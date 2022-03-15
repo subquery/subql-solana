@@ -3,12 +3,13 @@
 
 import fs from 'fs';
 import path from 'path';
+import {BaseDataSource, ProjectManifestV0_2_0} from '@subql/common';
 import {
-  SubstrateProjectManifestV0_2_0,
   SubstrateProjectManifestVersioned,
   ProjectNetworkV0_0_1,
   ChainTypes,
   loadSubstrateProjectManifest,
+  SubstrateProjectManifestV0_2_0,
 } from '@subql/common-substrate';
 import {cli} from 'cli-ux';
 import yaml from 'js-yaml';
@@ -87,7 +88,7 @@ export async function migrate(
   const manifestV0_2_0 = path.join(projectPath, MANIFEST_V_0_2_0);
 
   try {
-    const data = {} as SubstrateProjectManifestV0_2_0;
+    const data = {} as ProjectManifestV0_2_0<BaseDataSource>;
     data.specVersion = '0.2.0';
     data.name = project.name;
     data.version = project.version;
@@ -104,7 +105,7 @@ export async function migrate(
     if (chainTypes) {
       data.network.chaintypes = {file: chainTypes};
     }
-    data.dataSources = manifest.asV0_2_0.dataSources;
+    data.dataSources = manifest.asV0_2_0.dataSources as any; //TODO, fix this type as extend BaseDataSource
     const newYaml = yaml.dump(data);
     await fs.promises.writeFile(manifestV0_2_0, newYaml, 'utf8');
   } catch (e) {

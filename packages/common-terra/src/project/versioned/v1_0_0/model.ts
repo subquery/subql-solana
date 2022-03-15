@@ -1,7 +1,7 @@
 // Copyright 2020-2022 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import {NodeSpec, QuerySpec, RUNNER_REGEX, RunnerQueryBaseImpl, runnerSpecs} from '@subql/common';
+import {NodeSpec, QuerySpec, RUNNER_REGEX, RunnerQueryBaseImpl, RunnerSpecs} from '@subql/common';
 import {TerraProjectManifestV1_0_0} from '@subql/common-terra/project';
 import {plainToClass, Type} from 'class-transformer';
 import {Equals, IsObject, IsString, Matches, ValidateNested, validateSync} from 'class-validator';
@@ -16,7 +16,7 @@ export class TerraRunnerNodeImpl implements NodeSpec {
   version: string;
 }
 
-export class TerraRunnerSpecsImpl implements runnerSpecs {
+export class TerraRunnerSpecsImpl implements RunnerSpecs {
   @IsObject()
   @ValidateNested()
   @Type(() => TerraRunnerNodeImpl)
@@ -34,14 +34,14 @@ export class DeploymentV1_0_0 extends DeploymentV0_3_0 {
   @IsObject()
   @ValidateNested()
   @Type(() => TerraRunnerSpecsImpl)
-  runner: runnerSpecs;
+  runner: RunnerSpecs;
 }
 
 export class ProjectManifestV1_0_0Impl extends ProjectManifestV0_3_0Impl implements TerraProjectManifestV1_0_0 {
   @IsObject()
   @ValidateNested()
   @Type(() => TerraRunnerSpecsImpl)
-  runner: runnerSpecs;
+  runner: RunnerSpecs;
   protected _deployment: DeploymentV1_0_0;
 
   get deployment(): DeploymentV1_0_0 {
