@@ -46,7 +46,7 @@ export interface BaseDataSource<
 
 export interface BaseMapping<F, T extends BaseHandler<F>> {
   file: string;
-  handlers: T;
+  handlers: T[];
 }
 
 export interface BaseHandler<T> {

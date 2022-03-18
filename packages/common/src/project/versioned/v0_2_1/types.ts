@@ -1,7 +1,7 @@
 // Copyright 2020-2022 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import {BaseDataSource} from '@subql/common';
+import {BaseDataSource} from '../base';
 import {ProjectManifestV0_2_0} from '../v0_2_0';
 
 export interface TemplateBase {

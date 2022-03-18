@@ -1,9 +1,8 @@
 // Copyright 2020-2022 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import {SubqlDatasource} from '@subql/types';
 import {plainToClass} from 'class-transformer';
-import {ISubstrateProjectManifest} from '../types';
+import {ISubstrateProjectManifest, SubstrateDataSource} from '../types';
 import {ProjectManifestV0_0_1Impl} from './v0_0_1';
 import {ProjectManifestV0_2_0Impl} from './v0_2_0';
 import {ProjectManifestV0_2_1Impl} from './v0_2_1';
@@ -107,7 +106,7 @@ export class SubstrateProjectManifestVersioned implements ISubstrateProjectManif
     return this._impl.validate();
   }
 
-  get dataSources(): SubqlDatasource[] {
+  get dataSources(): SubstrateDataSource[] {
     return this._impl.dataSources;
   }
 

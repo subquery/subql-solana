@@ -15,16 +15,14 @@ import {
   isCustomDs,
   isRuntimeDs,
   SubstrateProjectNetworkConfig,
-} from '@subql/common-substrate';
-import {
-  RuntimeHandlerInputMap,
+  SubstrateCustomDataSource,
+  SubstrateCustomHandler,
+  SubstrateHandlerKind,
+  SubstrateNetworkFilter,
+  SubstrateRuntimeHandler,
+  SubstrateRuntimeHandlerInputMap,
   SecondLayerHandlerProcessor,
-  SubqlCustomDatasource,
-  SubqlCustomHandler,
-  SubqlHandlerKind,
-  SubqlNetworkFilter,
-  SubqlRuntimeHandler,
-} from '@subql/types';
+} from '@subql/common-substrate';
 import { QueryTypes, Sequelize, Transaction } from 'sequelize';
 import { NodeConfig } from '../configure/NodeConfig';
 import { SubqlProjectDs, SubqueryProject } from '../configure/SubqueryProject';
@@ -458,17 +456,17 @@ export class IndexerManager {
 
   private async indexBlockForRuntimeDs(
     vm: IndexerSandbox,
-    handlers: SubqlRuntimeHandler[],
+    handlers: SubstrateRuntimeHandler[],
     { block, events, extrinsics }: BlockContent,
   ): Promise<void> {
     for (const handler of handlers) {
       switch (handler.kind) {
-        case SubqlHandlerKind.Block:
+        case SubstrateHandlerKind.Block:
           if (SubstrateUtil.filterBlock(block, handler.filter)) {
             await vm.securedExec(handler.handler, [block]);
           }
           break;
-        case SubqlHandlerKind.Call: {
+        case SubstrateHandlerKind.Call: {
           const filteredExtrinsics = SubstrateUtil.filterExtrinsics(
             extrinsics,
             handler.filter,
@@ -478,7 +476,7 @@ export class IndexerManager {
           }
           break;
         }
-        case SubqlHandlerKind.Event: {
+        case SubstrateHandlerKind.Event: {
           const filteredEvents = SubstrateUtil.filterEvents(
             events,
             handler.filter,
@@ -494,17 +492,17 @@ export class IndexerManager {
   }
 
   private async indexBlockForCustomDs(
-    ds: SubqlCustomDatasource<string, SubqlNetworkFilter>,
+    ds: SubstrateCustomDataSource<string, SubstrateNetworkFilter>,
     vm: IndexerSandbox,
     { block, events, extrinsics }: BlockContent,
   ): Promise<void> {
     const plugin = this.dsProcessorService.getDsProcessor(ds);
     const assets = await this.dsProcessorService.getAssets(ds);
 
-    const processData = async <K extends SubqlHandlerKind>(
+    const processData = async <K extends SubstrateHandlerKind>(
       processor: SecondLayerHandlerProcessor<K, unknown, unknown>,
-      handler: SubqlCustomHandler<string, Record<string, unknown>>,
-      filteredData: RuntimeHandlerInputMap[K][],
+      handler: SubstrateCustomHandler,
+      filteredData: SubstrateRuntimeHandlerInputMap[K][],
     ): Promise<void> => {
       const transformedData = await Promise.all(
         filteredData

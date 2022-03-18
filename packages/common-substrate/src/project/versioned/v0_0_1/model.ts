@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {ProjectManifestBaseImpl} from '@subql/common';
-import {SubqlMapping, SubqlRuntimeHandler} from '@subql/types';
 import {Type} from 'class-transformer';
 import {Equals, IsArray, IsObject, IsOptional, IsString, ValidateNested, validateSync} from 'class-validator';
 import {RuntimeDataSourceBase, ChainTypes} from '../../models';
@@ -17,10 +16,7 @@ export class ProjectNetworkV0_0_1 extends ChainTypes implements SubstrateProject
   dictionary?: string;
 }
 
-export class RuntimeDataSourceV0_0_1Impl
-  extends RuntimeDataSourceBase<SubqlMapping<SubqlRuntimeHandler>>
-  implements RuntimeDataSourceV0_0_1
-{
+export class RuntimeDataSourceV0_0_1Impl extends RuntimeDataSourceBase implements RuntimeDataSourceV0_0_1 {
   @IsString()
   name: string;
 }

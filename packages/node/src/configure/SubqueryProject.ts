@@ -15,8 +15,8 @@ import {
   ProjectManifestV0_2_0Impl,
   ProjectManifestV0_2_1Impl,
   ProjectManifestV0_3_0Impl,
+  SubstrateDataSource,
 } from '@subql/common-substrate';
-import { SubqlDatasource } from '@subql/types';
 import { GraphQLSchema } from 'graphql';
 import { pick } from 'lodash';
 import {
@@ -26,8 +26,8 @@ import {
   updateDataSourcesV0_2_0,
 } from '../utils/project';
 
-export type SubqlProjectDs = SubqlDatasource & {
-  mapping: SubqlDatasource['mapping'] & { entryScript: string };
+export type SubqlProjectDs = SubstrateDataSource & {
+  mapping: SubstrateDataSource['mapping'] & { entryScript: string };
 };
 
 export type SubqlProjectDsTemplate = Omit<SubqlProjectDs, 'startBlock'> & {
