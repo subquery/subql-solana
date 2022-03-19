@@ -14,18 +14,18 @@ import {
   isEventHandlerProcessor,
   isCustomDs,
   isRuntimeDs,
-  SubstrateProjectNetworkConfig,
 } from '@subql/common-substrate';
 import {
   RuntimeHandlerInputMap,
-  SecondLayerHandlerProcessor,
   SubqlCustomDatasource,
   SubqlCustomHandler,
   SubqlHandlerKind,
   SubqlNetworkFilter,
-  SubqlRuntimeHandler,
+  SubstrateBlock,
+  SubstrateEvent,
+  SubstrateExtrinsic,
 } from '@subql/types';
-import { QueryTypes, Sequelize, Transaction } from 'sequelize';
+import { QueryTypes, Sequelize } from 'sequelize';
 import { NodeConfig } from '../configure/NodeConfig';
 import { SubqlProjectDs, SubqueryProject } from '../configure/SubqueryProject';
 import { SubqueryRepo } from '../entities';
@@ -44,7 +44,7 @@ import { PoiService } from './poi.service';
 import { PoiBlock } from './PoiBlock';
 import { IndexerSandbox, SandboxService } from './sandbox.service';
 import { StoreService } from './store.service';
-import { ApiAt, BlockContent } from './types';
+import { BlockContent } from './types';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { version: packageVersion } = require('../../package.json');
@@ -78,38 +78,6 @@ export class IndexerManager {
     private eventEmitter: EventEmitter2,
   ) {}
 
-  async indexBlockForDs(
-    ds: SubqlProjectDs,
-    blockContent: BlockContent,
-    apiAt: ApiAt,
-    blockHeight: number,
-    tx: Transaction,
-  ): Promise<void> {
-    const vm = this.sandboxService.getDsProcessor(ds, apiAt);
-
-    // Inject function to create ds into vm
-    vm.freeze(
-      (templateName: string, args?: Record<string, unknown>) =>
-        this.dynamicDsService.createDynamicDatasource(
-          {
-            templateName,
-            args,
-            startBlock: blockHeight,
-          },
-          tx,
-        ),
-      'createDynamicDatasource',
-    );
-
-    if (isRuntimeDs(ds)) {
-      await this.indexBlockForRuntimeDs(vm, ds.mapping.handlers, blockContent);
-    } else if (isCustomDs(ds)) {
-      await this.indexBlockForCustomDs(ds, vm, blockContent);
-    }
-
-    // TODO should we remove createDynamicDatasource from vm here?
-  }
-
   @profiler(argv.profiler)
   async indexBlock(blockContent: BlockContent): Promise<void> {
     const { block } = blockContent;
@@ -131,16 +99,37 @@ export class IndexerManager {
         isUpgraded ? block.block.header.parentHash : undefined,
       );
 
-      // Run predefined data sources
-      for (const ds of this.filteredDataSources) {
-        await this.indexBlockForDs(ds, blockContent, apiAt, blockHeight, tx);
-      }
+      // // Run dynamic data sources, must be after predefined datasources
+      // // FIXME if any new dynamic datasources are created here they wont be run for the current block
+      // for (const ds of await this.dynamicDsService.getDynamicDatasources()) {
+      //   await this.indexBlockForDs(ds, blockContent, apiAt, blockHeight, tx);
+      // }
 
-      // Run dynamic data sources, must be after predefined datasources
-      // FIXME if any new dynamic datasources are created here they wont be run for the current block
-      for (const ds of await this.dynamicDsService.getDynamicDatasources()) {
-        await this.indexBlockForDs(ds, blockContent, apiAt, blockHeight, tx);
-      }
+      await this.indexBlockData(
+        blockContent,
+        this.filteredDataSources,
+        (ds: SubqlProjectDs) => {
+          const vm = this.sandboxService.getDsProcessor(ds, apiAt);
+
+          // Inject function to create ds into vm
+          vm.freeze(
+            (templateName: string, args?: Record<string, unknown>) =>
+              this.dynamicDsService.createDynamicDatasource(
+                {
+                  templateName,
+                  args,
+                  startBlock: blockHeight,
+                },
+                tx,
+              ),
+            'createDynamicDatasource',
+          );
+
+          return vm;
+        },
+      );
+
+      // TODO how to handle dynamic data sources
 
       await this.storeService.setMetadataBatch(
         [
@@ -456,84 +445,171 @@ export class IndexerManager {
     );
   }
 
-  private async indexBlockForRuntimeDs(
-    vm: IndexerSandbox,
-    handlers: SubqlRuntimeHandler[],
+  private async indexBlockData(
     { block, events, extrinsics }: BlockContent,
+    dataSources: SubqlProjectDs[],
+    getVM: (d: SubqlProjectDs) => IndexerSandbox,
   ): Promise<void> {
-    for (const handler of handlers) {
-      switch (handler.kind) {
-        case SubqlHandlerKind.Block:
-          if (SubstrateUtil.filterBlock(block, handler.filter)) {
-            await vm.securedExec(handler.handler, [block]);
+    await this.indexBlockContent(block, dataSources, getVM);
+
+    for (const extrinsic of extrinsics) {
+      await this.indexExtrinsic(extrinsic, dataSources, getVM);
+
+      // Process extrinsic events
+      const extrinsicEvents = events
+        .filter((e) => e.extrinsic?.idx === extrinsic.idx)
+        .sort((a, b) => a.idx - b.idx);
+
+      for (const event of extrinsicEvents) {
+        await this.indexEvent(event, dataSources, getVM);
+      }
+    }
+
+    // Run handlers for events without extrinsics
+    const remainingEvents = events.filter((evt) => !evt.extrinsic);
+    for (const event of remainingEvents) {
+      await this.indexEvent(event, dataSources, getVM);
+    }
+  }
+
+  private async indexBlockContent(
+    block: SubstrateBlock,
+    dataSources: SubqlProjectDs[],
+    getVM: (d: SubqlProjectDs) => IndexerSandbox,
+  ): Promise<void> {
+    for (const ds of dataSources) {
+      await this.indexData(SubqlHandlerKind.Block, block, ds, getVM(ds));
+    }
+  }
+
+  private async indexExtrinsic(
+    extrinsic: SubstrateExtrinsic,
+    dataSources: SubqlProjectDs[],
+    getVM: (d: SubqlProjectDs) => IndexerSandbox,
+  ): Promise<void> {
+    for (const ds of dataSources) {
+      await this.indexData(SubqlHandlerKind.Call, extrinsic, ds, getVM(ds));
+    }
+  }
+
+  private async indexEvent(
+    event: SubstrateEvent,
+    dataSources: SubqlProjectDs[],
+    getVM: (d: SubqlProjectDs) => IndexerSandbox,
+  ): Promise<void> {
+    for (const ds of dataSources) {
+      await this.indexData(SubqlHandlerKind.Event, event, ds, getVM(ds));
+    }
+  }
+
+  private async indexData<K extends SubqlHandlerKind>(
+    kind: K,
+    data: RuntimeHandlerInputMap[K],
+    ds: SubqlProjectDs,
+    vm: IndexerSandbox,
+  ): Promise<void> {
+    if (isRuntimeDs(ds)) {
+      const handlers = ds.mapping.handlers.filter(
+        (h) => h.kind === kind && FilterTypeMap[kind](data as any, h.filter),
+      );
+
+      for (const handler of handlers) {
+        await vm.securedExec(handler.handler, [data]);
+      }
+    } else if (isCustomDs(ds)) {
+      const handlers = this.filterCustomDsHandlers<K>(
+        ds,
+        data,
+        ProcessorTypeMap[kind],
+        (data, baseFilter) => {
+          switch (kind) {
+            case SubqlHandlerKind.Block:
+              return !!SubstrateUtil.filterBlock(
+                data as SubstrateBlock,
+                baseFilter,
+              );
+            case SubqlHandlerKind.Call:
+              return !!SubstrateUtil.filterExtrinsics(
+                [data as SubstrateExtrinsic],
+                baseFilter,
+              ).length;
+            case SubqlHandlerKind.Event:
+              return !!SubstrateUtil.filterEvents(
+                [data as SubstrateEvent],
+                baseFilter,
+              ).length;
+            default:
+              throw new Error('Unsuported handler kind');
           }
-          break;
-        case SubqlHandlerKind.Call: {
-          const filteredExtrinsics = SubstrateUtil.filterExtrinsics(
-            extrinsics,
-            handler.filter,
-          );
-          for (const e of filteredExtrinsics) {
-            await vm.securedExec(handler.handler, [e]);
-          }
-          break;
-        }
-        case SubqlHandlerKind.Event: {
-          const filteredEvents = SubstrateUtil.filterEvents(
-            events,
-            handler.filter,
-          );
-          for (const e of filteredEvents) {
-            await vm.securedExec(handler.handler, [e]);
-          }
-          break;
-        }
-        default:
+        },
+      );
+
+      for (const handler of handlers) {
+        await this.transformAndExecuteCustomDs(ds, vm, handler, data);
       }
     }
   }
 
-  private async indexBlockForCustomDs(
+  private filterCustomDsHandlers<K extends SubqlHandlerKind>(
+    ds: SubqlCustomDatasource<string, SubqlNetworkFilter>,
+    data: RuntimeHandlerInputMap[K],
+    baseHandlerCheck: ProcessorTypeMap[K],
+    baseFilter: (data: RuntimeHandlerInputMap[K], baseFilter: any) => boolean,
+  ): SubqlCustomHandler<string, Record<string, unknown>>[] {
+    const plugin = this.dsProcessorService.getDsProcessor(ds);
+
+    return ds.mapping.handlers
+      .filter((handler) => {
+        const processor = plugin.handlerProcessors[handler.kind];
+        if (baseHandlerCheck(processor)) {
+          processor.baseFilter;
+          return baseFilter(data, processor.baseFilter);
+        }
+        return false;
+      })
+      .filter((handler) => {
+        const processor = plugin.handlerProcessors[handler.kind];
+
+        return processor.filterProcessor(handler.filter, data, ds);
+      });
+  }
+
+  private async transformAndExecuteCustomDs<K extends SubqlHandlerKind>(
     ds: SubqlCustomDatasource<string, SubqlNetworkFilter>,
     vm: IndexerSandbox,
-    { block, events, extrinsics }: BlockContent,
+    handler: SubqlCustomHandler<string, Record<string, unknown>>,
+    data: RuntimeHandlerInputMap[K],
   ): Promise<void> {
     const plugin = this.dsProcessorService.getDsProcessor(ds);
     const assets = await this.dsProcessorService.getAssets(ds);
 
-    const processData = async <K extends SubqlHandlerKind>(
-      processor: SecondLayerHandlerProcessor<K, unknown, unknown>,
-      handler: SubqlCustomHandler<string, Record<string, unknown>>,
-      filteredData: RuntimeHandlerInputMap[K][],
-    ): Promise<void> => {
-      const transformedData = await Promise.all(
-        filteredData
-          .filter((data) => processor.filterProcessor(handler.filter, data, ds))
-          .map((data) => processor.transformer(data, ds, this.api, assets)),
-      );
+    const processor = plugin.handlerProcessors[handler.kind];
+    const transformedExtrinsic = await processor.transformer(
+      data,
+      ds,
+      this.api,
+      assets,
+    );
 
-      for (const data of transformedData) {
-        await vm.securedExec(handler.handler, [data]);
-      }
-    };
-
-    for (const handler of ds.mapping.handlers) {
-      const processor = plugin.handlerProcessors[handler.kind];
-      if (isBlockHandlerProcessor(processor)) {
-        await processData(processor, handler, [block]);
-      } else if (isCallHandlerProcessor(processor)) {
-        const filteredExtrinsics = SubstrateUtil.filterExtrinsics(
-          extrinsics,
-          processor.baseFilter,
-        );
-        await processData(processor, handler, filteredExtrinsics);
-      } else if (isEventHandlerProcessor(processor)) {
-        const filteredEvents = SubstrateUtil.filterEvents(
-          events,
-          processor.baseFilter,
-        );
-        await processData(processor, handler, filteredEvents);
-      }
-    }
+    console.log('EXECUTING', handler.handler, (data as SubstrateEvent).idx);
+    return vm.securedExec(handler.handler, [transformedExtrinsic]);
   }
 }
+
+type ProcessorTypeMap = {
+  [SubqlHandlerKind.Block]: typeof isBlockHandlerProcessor;
+  [SubqlHandlerKind.Event]: typeof isEventHandlerProcessor;
+  [SubqlHandlerKind.Call]: typeof isCallHandlerProcessor;
+};
+
+const ProcessorTypeMap = {
+  [SubqlHandlerKind.Block]: isBlockHandlerProcessor,
+  [SubqlHandlerKind.Event]: isEventHandlerProcessor,
+  [SubqlHandlerKind.Call]: isCallHandlerProcessor,
+};
+
+const FilterTypeMap = {
+  [SubqlHandlerKind.Block]: SubstrateUtil.filterBlock,
+  [SubqlHandlerKind.Event]: SubstrateUtil.filterEvent,
+  [SubqlHandlerKind.Call]: SubstrateUtil.filterExtrinsic,
+};
