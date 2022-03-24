@@ -3,15 +3,11 @@
 
 import { ApiPromise } from '@polkadot/api';
 import { ApiDecoration } from '@polkadot/api/types';
-import {
-  Entity,
-  SubstrateBlock,
-  SubstrateEvent,
-  SubstrateExtrinsic,
-} from '@subql/types';
+import { Entity, SubstrateEvent, SubstrateExtrinsic } from '@subql/types';
+import { SolanaBlock } from '@subql/types-solana';
 
 export interface BlockContent {
-  block: SubstrateBlock;
+  block: SolanaBlock;
   extrinsics: SubstrateExtrinsic[];
   events: SubstrateEvent[];
 }

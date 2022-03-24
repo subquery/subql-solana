@@ -3,13 +3,14 @@
 
 import { Module } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SubquerySolanaProject } from '../configure/project.model';
 import { SubqueryProject } from '../configure/SubqueryProject';
 import { DbModule } from '../db/db.module';
 import { ApiService } from './api.service';
 import { BenchmarkService } from './benchmark.service';
 import { DictionaryService } from './dictionary.service';
 import { DsProcessorService } from './ds-processor.service';
-import { DynamicDsService } from './dynamic-ds.service';
+
 import { FetchService } from './fetch.service';
 import { IndexerManager } from './indexer.manager';
 import { MmrService } from './mmr.service';
@@ -25,7 +26,7 @@ import { StoreService } from './store.service';
     {
       provide: ApiService,
       useFactory: async (
-        project: SubqueryProject,
+        project: SubquerySolanaProject,
         eventEmitter: EventEmitter2,
       ) => {
         const apiService = new ApiService(project, eventEmitter);
@@ -39,7 +40,7 @@ import { StoreService } from './store.service';
     DictionaryService,
     SandboxService,
     DsProcessorService,
-    DynamicDsService,
+
     PoiService,
     MmrService,
   ],

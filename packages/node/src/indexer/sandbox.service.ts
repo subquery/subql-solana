@@ -4,25 +4,26 @@
 import path from 'path';
 import { Injectable } from '@nestjs/common';
 import { levelFilter } from '@subql/common';
-import { isDatasourceV0_2_0 } from '@subql/common-substrate';
-import { Store, SubqlDatasource } from '@subql/types';
+
+import { Store } from '@subql/types';
+import { SubqlSolanaDatasource } from '@subql/types-solana';
 import { NodeVM, NodeVMOptions, VMScript } from '@subql/x-vm2';
 import { merge } from 'lodash';
 import { NodeConfig } from '../configure/NodeConfig';
-import { SubqlProjectDs, SubqueryProject } from '../configure/SubqueryProject';
+
+import { SubquerySolanaProject } from '../configure/project.model';
 import { getLogger } from '../utils/logger';
-import { getProjectEntry } from '../utils/project';
+
 import { timeout } from '../utils/promise';
 import { getYargsOption } from '../yargs';
 import { ApiService } from './api.service';
 import { StoreService } from './store.service';
-import { ApiAt } from './types';
 
 const { argv } = getYargsOption();
 
 export interface SandboxOption {
   store?: Store;
-  script: string;
+
   root: string;
   entry: string;
 }
@@ -110,37 +111,32 @@ export class SandboxService {
     private readonly apiService: ApiService,
     private readonly storeService: StoreService,
     private readonly nodeConfig: NodeConfig,
-    private readonly project: SubqueryProject,
+    private readonly project: SubquerySolanaProject,
   ) {}
 
-  getDsProcessor(ds: SubqlProjectDs, api: ApiAt): IndexerSandbox {
+  getDsProcessor(ds: SubqlSolanaDatasource): IndexerSandbox {
     const entry = this.getDataSourceEntry(ds);
     let processor = this.processorCache[entry];
     if (!processor) {
       processor = new IndexerSandbox(
         {
           // api: await this.apiService.getPatchedApi(),
-          store: this.storeService.getStore(),
-          root: this.project.root,
-          script: ds.mapping.entryScript,
           entry,
+          root: this.project.path,
+          store: this.storeService.getStore(),
         },
         this.nodeConfig,
       );
       this.processorCache[entry] = processor;
     }
-    processor.freeze(api, 'api');
+    processor.freeze(this.apiService.getApi(), 'api');
     if (argv.unsafe) {
       processor.freeze(this.apiService.getApi(), 'unsafeApi');
     }
     return processor;
   }
 
-  private getDataSourceEntry(ds: SubqlDatasource): string {
-    if (isDatasourceV0_2_0(ds)) {
-      return ds.mapping.file;
-    } else {
-      return getProjectEntry(this.project.root);
-    }
+  private getDataSourceEntry(ds: SubqlSolanaDatasource): string {
+    return ds.mapping.file;
   }
 }

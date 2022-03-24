@@ -9,7 +9,14 @@ import {
   gql,
 } from '@apollo/client/core';
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
-import { buildQuery, GqlNode, GqlQuery, GqlVar, MetaData } from '@subql/common';
+import {
+  buildQuery,
+  GqlNode,
+  GqlQuery,
+  GqlVar,
+  MetaData,
+  SolanaMetaData,
+} from '@subql/common';
 import { DictionaryQueryCondition, DictionaryQueryEntry } from '@subql/types';
 import fetch from 'node-fetch';
 import { SubqueryProject } from '../configure/SubqueryProject';
@@ -23,6 +30,11 @@ export type Dictionary = {
   //TODO
   // specVersions: number[];
 };
+export type SolanaDictionary = {
+  _metadata: SolanaMetaData;
+  batchBlocks: number[];
+};
+
 const logger = getLogger('dictionary');
 const { argv } = getYargsOption();
 
@@ -134,7 +146,7 @@ export class DictionaryService implements OnApplicationShutdown {
     queryEndBlock: number,
     batchSize: number,
     conditions: DictionaryQueryEntry[],
-  ): Promise<Dictionary> {
+  ): Promise<SolanaDictionary> {
     const { query, variables } = this.dictionaryQuery(
       startBlock,
       queryEndBlock,

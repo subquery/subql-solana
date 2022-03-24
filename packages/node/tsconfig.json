@@ -10,7 +10,9 @@
   "references": [
     { "path": "../common" },
     { "path": "../common-substrate" },
-    { "path": "../types" }
+    { "path": "../types" },
+    { "path": "../types-solana" },
+    { "path": "../common-solana" }
   ],
   "include": ["src/**/*"]
 }

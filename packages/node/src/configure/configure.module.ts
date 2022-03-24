@@ -4,13 +4,13 @@
 import assert from 'assert';
 import path from 'path';
 import { DynamicModule, Global, Module } from '@nestjs/common';
-import { getProjectRootAndManifest, IPFS_REGEX } from '@subql/common';
-import { SubstrateProjectNetworkConfig } from '@subql/common-substrate';
-import { camelCase, last, omitBy, isNil } from 'lodash';
+
+import { camelCase, last } from 'lodash';
 import { getLogger, setLevel } from '../utils/logger';
 import { getYargsOption } from '../yargs';
 import { IConfig, MinConfig, NodeConfig } from './NodeConfig';
-import { SubqueryProject } from './SubqueryProject';
+
+import { SubquerySolanaProject } from './project.model';
 const logger = getLogger('configure');
 
 const YargsNameMapping = {
@@ -36,16 +36,11 @@ function yargsToIConfig(yargs: Args): Partial<IConfig> {
 }
 
 function defaultSubqueryName(config: Partial<IConfig>): MinConfig {
-  const ipfsMatch = config.subquery.match(IPFS_REGEX);
   return {
     ...config,
     subqueryName:
       config.subqueryName ??
-      (ipfsMatch
-        ? config.subquery.replace(IPFS_REGEX, '')
-        : last(
-            getProjectRootAndManifest(config.subquery).root.split(path.sep),
-          )),
+      last(path.resolve(config.subquery).split(path.sep)),
   } as MinConfig;
 }
 
@@ -116,24 +111,18 @@ export class ConfigureModule {
     if (config.debug) {
       setLevel('debug');
     }
-
+    const projectPath = config.ipfs
+      ? argv.subquery
+      : path.resolve(
+          config.configDir && !argv.subquery ? config.configDir : '.',
+          config.subquery,
+        );
     const project = async () => {
-      const p = await SubqueryProject.create(
-        argv.subquery,
-        omitBy<SubstrateProjectNetworkConfig>(
-          {
-            endpoint: config.networkEndpoint,
-            dictionary: config.networkDictionary,
-          },
-          isNil,
-        ),
-        {
-          ipfs: config.ipfs,
-        },
-      ).catch((err) => {
+      const p = await SubquerySolanaProject.create(projectPath).catch((err) => {
         logger.error(err, 'Create Subquery project from given path failed!');
         process.exit(1);
       });
+
       return p;
     };
 
@@ -145,11 +134,11 @@ export class ConfigureModule {
           useValue: config,
         },
         {
-          provide: SubqueryProject,
+          provide: SubquerySolanaProject,
           useFactory: project,
         },
       ],
-      exports: [NodeConfig, SubqueryProject],
+      exports: [NodeConfig, SubquerySolanaProject],
     };
   }
 }

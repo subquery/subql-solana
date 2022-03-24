@@ -21,6 +21,12 @@ import {
   SubqlHandler,
   SubqlHandlerKind,
 } from '@subql/types';
+import {
+  SubqlSolanaCustomHandler,
+  SubqlSolanaHandler,
+  SubqlSolanaHandlerKind,
+  SubqlSolanaRuntimeHandler,
+} from '@subql/types-solana';
 import yaml from 'js-yaml';
 import tar from 'tar';
 import { SubqlProjectDs } from '../configure/SubqueryProject';
@@ -237,4 +243,16 @@ export async function getProjectRoot(reader: Reader): Promise<string> {
   if (reader instanceof IPFSReader || reader instanceof GithubReader) {
     return makeTempDir();
   }
+}
+
+export function isBaseSolanaHandler(
+  handler: SubqlSolanaHandler,
+): handler is SubqlSolanaRuntimeHandler {
+  return Object.values<string>(SubqlSolanaHandlerKind).includes(handler.kind);
+}
+
+export function isCustomSolanaHandler<K extends string>(
+  handler: SubqlSolanaHandler,
+): handler is SubqlSolanaCustomHandler<K> {
+  return !isBaseSolanaHandler(handler);
 }
