@@ -4,7 +4,6 @@
 import { Module } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SubquerySolanaProject } from '../configure/project.model';
-import { SubqueryProject } from '../configure/SubqueryProject';
 import { DbModule } from '../db/db.module';
 import { ApiService } from './api.service';
 import { BenchmarkService } from './benchmark.service';
@@ -13,8 +12,7 @@ import { DsProcessorService } from './ds-processor.service';
 
 import { FetchService } from './fetch.service';
 import { IndexerManager } from './indexer.manager';
-import { MmrService } from './mmr.service';
-import { PoiService } from './poi.service';
+
 import { SandboxService } from './sandbox.service';
 import { StoreService } from './store.service';
 
@@ -33,16 +31,13 @@ import { StoreService } from './store.service';
         await apiService.init();
         return apiService;
       },
-      inject: [SubqueryProject, EventEmitter2],
+      inject: [SubquerySolanaProject, EventEmitter2],
     },
     FetchService,
     BenchmarkService,
     DictionaryService,
     SandboxService,
     DsProcessorService,
-
-    PoiService,
-    MmrService,
   ],
   exports: [StoreService],
 })

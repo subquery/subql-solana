@@ -4,9 +4,8 @@
 import fs from 'fs';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ApiPromise } from '@polkadot/api';
+import { Connection, TransactionResponse } from '@solana/web3.js';
 
-import { TransactionResponse } from '@solana/web3.js';
 import { getAllEntitiesRelations } from '@subql/common';
 
 import {
@@ -34,7 +33,6 @@ import { DsProcessorService } from './ds-processor.service';
 import { MetadataFactory, MetadataRepo } from './entities/Metadata.entity';
 import { IndexerEvent } from './events';
 import { FetchService } from './fetch.service';
-import { MmrService } from './mmr.service';
 
 import { IndexerSandbox, SandboxService } from './sandbox.service';
 import { StoreService } from './store.service';
@@ -54,7 +52,7 @@ const { argv } = getYargsOption();
 
 @Injectable()
 export class IndexerManager {
-  private api: ApiPromise;
+  private api: Connection;
   private prevSpecVersion?: number;
   protected metadataRepo: MetadataRepo;
   private filteredDataSources: SubqlSolanaDatasource[];
@@ -64,7 +62,6 @@ export class IndexerManager {
     private apiService: ApiService,
     private fetchService: FetchService,
 
-    protected mmrService: MmrService,
     private sequelize: Sequelize,
     private project: SubquerySolanaProject,
     private nodeConfig: NodeConfig,
@@ -74,38 +71,6 @@ export class IndexerManager {
     @Inject('Subquery') protected subqueryRepo: SubqueryRepo,
     private eventEmitter: EventEmitter2,
   ) {}
-
-  // async indexBlockForDs(
-  //   ds: SubqlSolanaDatasource,
-  //   blockContent: BlockContent,
-  //   apiAt: ApiAt,
-  //   blockHeight: number,
-  //   tx: Transaction,
-  // ): Promise<void> {
-  //   const vm = this.sandboxService.getDsProcessor(ds);
-
-  //   // Inject function to create ds into vm
-  //   vm.freeze(
-  //     (templateName: string, args?: Record<string, unknown>) =>
-  //       this.dynamicDsService.createDynamicDatasource(
-  //         {
-  //           templateName,
-  //           args,
-  //           startBlock: blockHeight,
-  //         },
-  //         tx,
-  //       ),
-  //     'createDynamicDatasource',
-  //   );
-
-  //   if (isRuntimeSolanaDs(ds)) {
-  //     await this.indexBlockForRuntimeDs(vm, ds.mapping.handlers, blockContent);
-  //   } else if (isCustomSolanaDs(ds)) {
-  //     await this.indexBlockForCustomDs(ds, vm, blockContent);
-  //   }
-
-  //   // TODO should we remove createDynamicDatasource from vm here?
-  // }
 
   @profiler(argv.profiler)
   async indexBlock(blockContent: BlockContent): Promise<void> {
@@ -146,52 +111,40 @@ export class IndexerManager {
 
   async start(): Promise<void> {
     await this.dsProcessorService.validateProjectCustomDatasources();
-    // await this.fetchService.init();
-    // this.api = this.apiService.getApi();
-    // const schema = await this.ensureProject();
-    // await this.initDbSchema(schema);
-    // this.metadataRepo = await this.ensureMetadata(schema);
-    // this.dynamicDsService.init(this.metadataRepo);
+    await this.fetchService.init();
+    this.api = this.apiService.getApi();
+    const schema = await this.ensureProject();
+    await this.initDbSchema(schema);
+    this.metadataRepo = await this.ensureMetadata(schema);
 
-    // if (this.nodeConfig.proofOfIndex) {
-    //   await Promise.all([
-    //     this.poiService.init(schema),
-    //     this.mmrService.init(schema),
-    //   ]);
-    // }
-
-    // let startHeight: number;
-    // const lastProcessedHeight = await this.metadataRepo.findOne({
-    //   where: { key: 'lastProcessedHeight' },
-    // });
-    // if (lastProcessedHeight !== null && lastProcessedHeight.value !== null) {
-    //   startHeight = Number(lastProcessedHeight.value) + 1;
-    // } else {
-    //   const project = await this.subqueryRepo.findOne({
-    //     where: { name: this.nodeConfig.subqueryName },
-    //   });
-    //   if (project !== null) {
-    //     startHeight = project.nextBlockHeight;
-    //   } else {
-    //     startHeight = this.getStartBlockFromDataSources();
-    //   }
-    // }
-
-    // void this.fetchService.startLoop(startHeight).catch((err) => {
-    //   logger.error(err, 'failed to fetch block');
-    //   // FIXME: retry before exit
-    //   process.exit(1);
-    // });
-    // this.filteredDataSources = this.filterDataSources(startHeight);
-    // this.fetchService.register((block) => this.indexBlock(block));
-
-    // if (this.nodeConfig.proofOfIndex) {
-    //   void this.mmrService.syncFileBaseFromPoi().catch((err) => {
-    //     logger.error(err, 'failed to sync poi to mmr');
-    //     process.exit(1);
-    //   });
-    // }
-    console.log('end');
+    // get current process block height
+    let startHeight: number;
+    const lastProcessedHeight = await this.metadataRepo.findOne({
+      where: { key: 'lastProcessedHeight' },
+    });
+    if (lastProcessedHeight !== null && lastProcessedHeight.value !== null) {
+      startHeight = Number(lastProcessedHeight.value) + 1;
+    } else {
+      const project = await this.subqueryRepo.findOne({
+        where: { name: this.nodeConfig.subqueryName },
+      });
+      if (project !== null) {
+        startHeight = project.nextBlockHeight;
+      } else {
+        startHeight = this.getStartBlockFromDataSources();
+      }
+    }
+    //TODO: implement POI
+    logger.info(`startHeight ${startHeight}`);
+    this.eventEmitter.emit(IndexerEvent.Started, { height: startHeight });
+    void this.fetchService.startLoop(startHeight).catch((err) => {
+      logger.error(err, 'failed to fetch block');
+      // FIXME: retry before exit
+      process.exit(1);
+    });
+    this.filteredDataSources = this.filterDataSources(startHeight);
+    this.fetchService.register((block) => this.indexBlock(block));
+    //TODO: implement POI
   }
 
   private async ensureProject(): Promise<string> {
@@ -393,6 +346,7 @@ export class IndexerManager {
             handler.filter,
           );
           const { blockHeight, parentSlot }: any = block.block;
+
           for (const tx of filteredTransactions as any) {
             tx.blockHeight = blockHeight;
             tx.slot = parentSlot + 1;
