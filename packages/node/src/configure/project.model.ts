@@ -1,6 +1,7 @@
 // Copyright 2020-2021 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { buildSchemaFromString, ReaderFactory } from '@subql/common';
 import {
   loadSolanaProjectManifest,
   SolanaProjectNetworkConfig,
@@ -8,24 +9,38 @@ import {
 import { ProjectManifestVersioned } from '@subql/common-solana/src/project/versioned';
 import { SolanaProjectNetworkV0_0_1 } from '@subql/common-solana/src/project/versioned/v0_0_1';
 import { SubqlSolanaDatasource } from '@subql/types-solana';
+import { GraphQLSchema } from 'graphql';
 import { getLogger } from '../utils/logger';
 import { prepareProjectDir } from '../utils/project';
-
 const logger = getLogger('configure');
 
 export class SubquerySolanaProject {
   private _path: string;
   private _projectManifest: ProjectManifestVersioned;
-
+  private _schema: GraphQLSchema;
   static async create(path: string): Promise<SubquerySolanaProject> {
     const projectPath = await prepareProjectDir(path);
     const projectManifest = loadSolanaProjectManifest(projectPath);
-    return new SubquerySolanaProject(projectManifest as any, projectPath);
+    // create GraphqlSchema from file.
+    const reader = await ReaderFactory.create(path);
+    const schemaString = await reader.getFile(projectManifest.schema);
+    const schema = buildSchemaFromString(schemaString);
+
+    return new SubquerySolanaProject(
+      projectManifest as any,
+      projectPath,
+      schema,
+    );
   }
 
-  constructor(manifest: ProjectManifestVersioned, path: string) {
+  constructor(
+    manifest: ProjectManifestVersioned,
+    path: string,
+    schema: GraphQLSchema,
+  ) {
     this._projectManifest = manifest;
     this._path = path;
+    this._schema = schema;
 
     console.log('manifest', manifest);
     console.log('manifest dataSources', manifest?.dataSources);
@@ -65,7 +80,7 @@ export class SubquerySolanaProject {
   get dataSources(): SubqlSolanaDatasource[] {
     return this._projectManifest.dataSources as SubqlSolanaDatasource[];
   }
-  get schema(): string {
-    return this._projectManifest.schema;
+  get schema(): GraphQLSchema {
+    return this._schema;
   }
 }
