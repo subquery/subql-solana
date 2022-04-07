@@ -1,21 +1,19 @@
-// Copyright 2020-2022 OnFinality Limited authors & contributors
+// Copyright 2020-2021 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
 import assert from 'assert';
 import { Injectable } from '@nestjs/common';
-import { hexToU8a, u8aToBuffer } from '@polkadot/util';
-import { blake2AsHex } from '@polkadot/util-crypto';
+// import { hexToU8a } from '@polkadot/util';
 import { GraphQLModelsRelationsEnums } from '@subql/common/graphql/types';
-import { Entity, Store } from '@subql/types';
+import { Entity, Store } from '@subql/types-solana';
 import { camelCase, flatten, upperFirst, isEqual } from 'lodash';
 import {
-  CreationAttributes,
-  Model,
   QueryTypes,
   Sequelize,
   Transaction,
-  UpsertOptions,
   Utils,
+  CreationAttributes,
+  Model,
 } from 'sequelize';
 import { NodeConfig } from '../configure/NodeConfig';
 import { modelsTypeToModelAttributes } from '../utils/graphql';
@@ -23,25 +21,18 @@ import { getLogger } from '../utils/logger';
 import { camelCaseObjectKey } from '../utils/object';
 import {
   commentConstraintQuery,
-  createNotifyTrigger,
-  createSendNotificationTriggerFunction,
   createUniqueIndexQuery,
   getFkConstraint,
   smartTags,
 } from '../utils/sync-helper';
-import { getYargsOption } from '../yargs';
-import {
-  Metadata,
-  MetadataFactory,
-  MetadataRepo,
-} from './entities/Metadata.entity';
-import { PoiFactory, PoiRepo, ProofOfIndex } from './entities/Poi.entity';
-import { PoiService } from './poi.service';
+import { MetadataFactory, MetadataRepo } from './entities/Metadata.entity';
+//import { PoiFactory, PoiRepo, ProofOfIndex } from './entities/Poi.entity';
+//import { PoiService } from './poi.service';
 import { StoreOperations } from './StoreOperations';
 import { OperationType } from './types';
+
 const logger = getLogger('store');
-const NULL_MERKEL_ROOT = hexToU8a('0x00');
-const { argv } = getYargsOption();
+// const NULL_MERKEL_ROOT = hexToU8a('0x00');
 
 interface IndexField {
   entityName: string;
@@ -56,14 +47,13 @@ export class StoreService {
   private modelIndexedFields: IndexField[];
   private schema: string;
   private modelsRelations: GraphQLModelsRelationsEnums;
-  private poiRepo: PoiRepo;
+  //private poiRepo: PoiRepo;
   private metaDataRepo: MetadataRepo;
   private operationStack: StoreOperations;
 
   constructor(
     private sequelize: Sequelize,
-    private config: NodeConfig,
-    private poiService: PoiService,
+    private config: NodeConfig, //private poiService: PoiService,
   ) {}
 
   async init(
@@ -89,23 +79,23 @@ export class StoreService {
   async syncSchema(schema: string): Promise<void> {
     const enumTypeMap = new Map<string, string>();
 
+    let i = 0;
     for (const e of this.modelsRelations.enums) {
       // We shouldn't set the typename to e.name because it could potentially create SQL injection,
       // using a replacement at the type name location doesn't work.
-      const enumTypeName = `${schema}_enum_${this.enumNameToHash(e.name)}`;
+      const enumTypeName = `${schema}_custom_enum_${i}`;
 
       const [results] = await this.sequelize.query(
         `select e.enumlabel as enum_value
          from pg_type t
          join pg_enum e on t.oid = e.enumtypid
-         where t.typname = ?
-         order by enumsortorder;`,
+         where t.typname = ?;`,
         { replacements: [enumTypeName] },
       );
 
       if (results.length === 0) {
         await this.sequelize.query(
-          `CREATE TYPE "${enumTypeName}" as ENUM (${e.values
+          `CREATE TYPE ${enumTypeName} as ENUM (${e.values
             .map(() => '?')
             .join(',')});`,
           {
@@ -134,14 +124,12 @@ export class StoreService {
         e.description ? `\\n ${e.description}` : ''
       }`;
 
-      await this.sequelize.query(`COMMENT ON TYPE "${enumTypeName}" IS E?`, {
+      await this.sequelize.query(`COMMENT ON TYPE ${enumTypeName} IS E?`, {
         replacements: [comment],
       });
-      enumTypeMap.set(e.name, `"${enumTypeName}"`);
-    }
-    const extraQueries = [];
-    if (argv.unsafe) {
-      extraQueries.push(createSendNotificationTriggerFunction);
+      enumTypeMap.set(e.name, enumTypeName);
+
+      i++;
     }
     for (const model of this.modelsRelations.models) {
       const attributes = modelsTypeToModelAttributes(model, enumTypeMap);
@@ -153,7 +141,7 @@ export class StoreService {
       if (indexes.length > this.config.indexCountLimit) {
         throw new Error(`too many indexes on entity ${model.name}`);
       }
-      const sequelizeModel = this.sequelize.define(model.name, attributes, {
+      this.sequelize.define(model.name, attributes, {
         underscored: true,
         comment: model.description,
         freezeTableName: false,
@@ -162,12 +150,8 @@ export class StoreService {
         schema,
         indexes,
       });
-      if (argv.unsafe) {
-        extraQueries.push(
-          createNotifyTrigger(schema, sequelizeModel.tableName),
-        );
-      }
     }
+    const extraQueries = [];
     for (const relation of this.modelsRelations.relations) {
       const model = this.sequelize.model(relation.from);
       const relatedModel = this.sequelize.model(relation.to);
@@ -189,7 +173,7 @@ export class StoreService {
           });
           extraQueries.push(
             commentConstraintQuery(
-              `"${schema}"."${rel.target.tableName}"`,
+              `${schema}.${rel.target.tableName}`,
               fkConstraint,
               tags,
             ),
@@ -214,7 +198,7 @@ export class StoreService {
           });
           extraQueries.push(
             commentConstraintQuery(
-              `"${schema}"."${rel.target.tableName}"`,
+              `${schema}.${rel.target.tableName}`,
               fkConstraint,
               tags,
             ),
@@ -226,9 +210,9 @@ export class StoreService {
           throw new Error('Relation type is not supported');
       }
     }
-    if (this.config.proofOfIndex) {
-      this.poiRepo = PoiFactory(this.sequelize, schema);
-    }
+    //if (this.config.proofOfIndex) {
+    //  this.poiRepo = PoiFactory(this.sequelize, schema);
+    //}
     this.metaDataRepo = MetadataFactory(this.sequelize, schema);
 
     await this.sequelize.sync();
@@ -237,45 +221,28 @@ export class StoreService {
     }
   }
 
-  enumNameToHash(enumName: string): string {
-    return blake2AsHex(enumName).substr(2, 10);
-  }
-
   setTransaction(tx: Transaction): void {
     this.tx = tx;
     tx.afterCommit(() => (this.tx = undefined));
-    if (this.config.proofOfIndex) {
-      this.operationStack = new StoreOperations(this.modelsRelations.models);
-    }
-  }
-
-  async setMetadataBatch(
-    metadata: Metadata[],
-    options?: UpsertOptions<Metadata>,
-  ): Promise<void> {
-    await Promise.all(
-      metadata.map(({ key, value }) => this.setMetadata(key, value, options)),
-    );
+    //if (this.config.proofOfIndex) {
+    //  this.operationStack = new StoreOperations(this.modelsRelations.models);
+    //}
   }
 
   async setMetadata(
     key: string,
     value: string | number | boolean,
-    options?: UpsertOptions<Metadata>,
   ): Promise<void> {
-    assert(this.metaDataRepo, `Model _metadata does not exist`);
-    await this.metaDataRepo.upsert({ key, value }, options);
+    assert(this.metaDataRepo, `model _metadata does not exist`);
+    await this.metaDataRepo.upsert({ key, value });
   }
-
-  async setPoi(
-    blockPoi: ProofOfIndex,
-    options?: UpsertOptions<ProofOfIndex>,
-  ): Promise<void> {
-    assert(this.poiRepo, `Model _poi does not exist`);
+  /*
+  async setPoi(tx: Transaction, blockPoi: ProofOfIndex): Promise<void> {
+    assert(this.poiRepo, `model _poi does not exist`);
     blockPoi.chainBlockHash = u8aToBuffer(blockPoi.chainBlockHash);
     blockPoi.hash = u8aToBuffer(blockPoi.hash);
     blockPoi.parentHash = u8aToBuffer(blockPoi.parentHash);
-    await this.poiRepo.upsert(blockPoi, options);
+    await this.poiRepo.upsert(blockPoi, { transaction: tx });
   }
 
   getOperationMerkleRoot(): Uint8Array {
@@ -286,7 +253,7 @@ export class StoreService {
     }
     return merkelRoot;
   }
-
+  */
   private async getAllIndexFields(schema: string) {
     const fields: IndexField[][] = [];
     for (const entity of this.modelsRelations.models) {
@@ -308,29 +275,29 @@ export class StoreService {
   ): Promise<IndexField[]> {
     const rows = await this.sequelize.query(
       `select
-    '${entity}' as entity_name,
-    a.attname as field_name,
-    idx.indisunique as is_unique,
-    am.amname as type
-from
-    pg_index idx
-    JOIN pg_class cls ON cls.oid=idx.indexrelid
-    JOIN pg_class tab ON tab.oid=idx.indrelid
-    JOIN pg_am am ON am.oid=cls.relam,
-    pg_namespace n,
-    pg_attribute a
-where
-  n.nspname = '${schema}'
-  and tab.relname = '${table}'
-  and a.attrelid = tab.oid
-  and a.attnum = ANY(idx.indkey)
-  and not idx.indisprimary
-group by
-    n.nspname,
-    a.attname,
-    tab.relname,
-    idx.indisunique,
-    am.amname`,
+         '${entity}' as entity_name,
+         a.attname as field_name,
+         idx.indisunique as is_unique,
+         am.amname as type
+       from
+         pg_index idx
+           JOIN pg_class cls ON cls.oid=idx.indexrelid
+           JOIN pg_class tab ON tab.oid=idx.indrelid
+           JOIN pg_am am ON am.oid=cls.relam,
+         pg_namespace n,
+         pg_attribute a
+       where
+         n.nspname = '${schema}'
+         and tab.relname = '${table}'
+         and a.attrelid = tab.oid
+         and a.attnum = ANY(idx.indkey)
+         and not idx.indisprimary
+       group by
+         n.nspname,
+         a.attname,
+         tab.relname,
+         idx.indisunique,
+         am.amname`,
       {
         type: QueryTypes.SELECT,
       },
@@ -403,9 +370,9 @@ group by
         await model.upsert(data as unknown as CreationAttributes<Model>, {
           transaction: this.tx,
         });
-        if (this.config.proofOfIndex) {
-          this.operationStack.put(OperationType.Set, entity, data);
-        }
+        //if (this.config.proofOfIndex) {
+        //this.operationStack.put(OperationType.Set, entity, data);
+        //}
       },
       bulkCreate: async (entity: string, data: Entity[]): Promise<void> => {
         const model = this.sequelize.model(entity);
@@ -423,9 +390,9 @@ group by
         const model = this.sequelize.model(entity);
         assert(model, `model ${entity} not exists`);
         await model.destroy({ where: { id }, transaction: this.tx });
-        if (this.config.proofOfIndex) {
-          this.operationStack.put(OperationType.Remove, entity, id);
-        }
+        //if (this.config.proofOfIndex) {
+        //  this.operationStack.put(OperationType.Remove, entity, id);
+        //}
       },
     };
   }

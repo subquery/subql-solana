@@ -1,4 +1,4 @@
-// Copyright 2020-2022 OnFinality Limited authors & contributors
+// Copyright 2020-2021 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
 import {
@@ -9,27 +9,41 @@ import {
   gql,
 } from '@apollo/client/core';
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
-import { buildQuery, GqlNode, GqlQuery, GqlVar, MetaData } from '@subql/common';
-import { DictionaryQueryCondition, DictionaryQueryEntry } from '@subql/types';
+import {
+  buildQuery,
+  GqlNode,
+  GqlQuery,
+  GqlVar,
+  SolanaMetaData,
+} from '@subql/common';
 import fetch from 'node-fetch';
-import { SubqueryProject } from '../configure/SubqueryProject';
+import { SubquerySolanaProject } from '../configure/project.model';
 import { getLogger } from '../utils/logger';
 import { profiler } from '../utils/profiler';
 import { getYargsOption } from '../yargs';
 
-export type Dictionary = {
-  _metadata: MetaData;
+export type SolanaDictionary = {
+  _metadata: SolanaMetaData;
   batchBlocks: number[];
-  //TODO
-  // specVersions: number[];
 };
+
 const logger = getLogger('dictionary');
 const { argv } = getYargsOption();
+
+interface DictionaryQueryCondition {
+  field: string;
+  value: string;
+}
+
+export interface DictionaryQueryEntry {
+  entity: string;
+  conditions: DictionaryQueryCondition[];
+}
 
 function extractVar(name: string, cond: DictionaryQueryCondition): GqlVar {
   return {
     name,
-    gqlType: 'String!',
+    gqlType: cond.field === 'programId' ? 'JSON' : 'String!',
     value: cond.value,
   };
 }
@@ -51,15 +65,26 @@ function extractVars(
         and: i.map((j, innerIdx) => {
           const v = extractVar(`${entity}_${outerIdx}_${innerIdx}`, j);
           gqlVars.push(v);
+          //The 'programId' field is an array, so we use the 'contains' in this case
+          if (j.field === 'programId') {
+            return { [sanitizeArgField(j.field)]: { contains: `$${v.name}` } };
+          }
           return { [sanitizeArgField(j.field)]: { equalTo: `$${v.name}` } };
         }),
       };
     } else if (i.length === 1) {
       const v = extractVar(`${entity}_${outerIdx}_0`, i[0]);
       gqlVars.push(v);
-      filter.or[outerIdx] = {
-        [sanitizeArgField(i[0].field)]: { equalTo: `$${v.name}` },
-      };
+      //The 'programId' field is an array, so we use the 'contains' in this case
+      if (i[0].field === 'programId') {
+        filter.or[outerIdx] = {
+          [sanitizeArgField(i[0].field)]: { contains: `$${v.name}` },
+        };
+      } else {
+        filter.or[outerIdx] = {
+          [sanitizeArgField(i[0].field)]: { equalTo: `$${v.name}` },
+        };
+      }
     }
   });
   return [gqlVars, filter];
@@ -78,13 +103,13 @@ function buildDictQueryFragment(
     project: [
       {
         entity: 'nodes',
-        project: ['blockHeight'],
+        project: ['slot blockHeight'],
       },
     ],
     args: {
       filter: {
         ...filter,
-        blockHeight: {
+        slot: {
           greaterThanOrEqualTo: `"${startBlock}"`,
           lessThan: `"${queryEndBlock}"`,
         },
@@ -101,7 +126,7 @@ export class DictionaryService implements OnApplicationShutdown {
   private client: ApolloClient<NormalizedCacheObject>;
   private isShutdown = false;
 
-  constructor(protected project: SubqueryProject) {
+  constructor(protected project: SubquerySolanaProject) {
     this.client = new ApolloClient({
       cache: new InMemoryCache({ resultCaching: true }),
       link: new HttpLink({ uri: this.project.network.dictionary, fetch }),
@@ -134,7 +159,7 @@ export class DictionaryService implements OnApplicationShutdown {
     queryEndBlock: number,
     batchSize: number,
     conditions: DictionaryQueryEntry[],
-  ): Promise<Dictionary> {
+  ): Promise<SolanaDictionary> {
     const { query, variables } = this.dictionaryQuery(
       startBlock,
       queryEndBlock,
@@ -143,30 +168,36 @@ export class DictionaryService implements OnApplicationShutdown {
     );
 
     try {
-      const resp = await this.client.query({
-        query: gql(query),
-        variables,
-      });
+      const resp = await this.client
+        .query({
+          query: gql(query),
+          variables,
+        })
+        .catch((err) => {
+          // console.log(`=====`, err.networkError.result.errors)
+          logger.warn(err, `failed to query dictionary`);
+          return undefined;
+        });
       const blockHeightSet = new Set<number>();
-      const specVersionBlockHeightSet = new Set<number>();
+      //const specVersionBlockHeightSet = new Set<number>();
       const entityEndBlock: { [entity: string]: number } = {};
       for (const entity of Object.keys(resp.data)) {
         if (
-          entity !== 'specVersions' &&
+          //entity !== 'specVersions' &&
           entity !== '_metadata' &&
           resp.data[entity].nodes.length >= 0
         ) {
           for (const node of resp.data[entity].nodes) {
-            blockHeightSet.add(Number(node.blockHeight));
-            entityEndBlock[entity] = Number(node.blockHeight); //last added event blockHeight
+            blockHeightSet.add(Number(node.slot));
+            entityEndBlock[entity] = Number(node.slot); //last added event blockHeight
           }
         }
       }
-      if (resp.data.specVersions && resp.data.specVersions.nodes.length >= 0) {
-        for (const node of resp.data.specVersions.nodes) {
-          specVersionBlockHeightSet.add(Number(node.blockHeight));
-        }
-      }
+      //if (resp.data.specVersions && resp.data.specVersions.nodes.length >= 0) {
+      //  for (const node of resp.data.specVersions.nodes) {
+      //    specVersionBlockHeightSet.add(Number(node.blockHeight));
+      //  }
+      //}
       const _metadata = resp.data._metadata;
       const endBlock = Math.min(
         ...Object.values(entityEndBlock).map((height) =>
@@ -207,17 +238,17 @@ export class DictionaryService implements OnApplicationShutdown {
     const nodes: GqlNode[] = [
       {
         entity: '_metadata',
-        project: ['lastProcessedHeight', 'genesisHash'],
+        project: ['lastProcessedHeight', 'targetHeight'],
       },
-      {
-        entity: 'specVersions',
-        project: [
-          {
-            entity: 'nodes',
-            project: ['id', 'blockHeight'],
-          },
-        ],
-      },
+      //{
+      //  entity: 'specVersions',
+      //  project: [
+      //    {
+      //      entity: 'nodes',
+      //      project: ['id', 'blockHeight'],
+      //    },
+      //  ],
+      //},
     ];
     for (const entity of Object.keys(mapped)) {
       const [pVars, node] = buildDictQueryFragment(

@@ -13,6 +13,7 @@ import { assign } from '../utils/object';
 const logger = getLogger('configure');
 
 export interface IConfig {
+  readonly configDir?: string;
   readonly subquery: string;
   readonly subqueryName?: string;
   readonly dbSchema?: string;
@@ -55,6 +56,7 @@ export class NodeConfig implements IConfig {
     filePath: string,
     configFromArgs?: Partial<IConfig>,
   ): NodeConfig {
+    const fileInfo = path.parse(filePath);
     if (!fs.existsSync(filePath)) {
       throw new Error(`Load config from file ${filePath} is not exist`);
     }
@@ -66,7 +68,9 @@ export class NodeConfig implements IConfig {
       throw e;
     }
 
-    const config = assign(configFromFile, configFromArgs) as IConfig;
+    const config = assign(configFromFile, configFromArgs, {
+      configDir: fileInfo.dir,
+    }) as IConfig;
     return new NodeConfig(config);
   }
 
@@ -83,7 +87,9 @@ export class NodeConfig implements IConfig {
     assert(this._config.subquery);
     return this._config.subqueryName ?? last(this.subquery.split(path.sep));
   }
-
+  get configDir(): string {
+    return this._config.configDir;
+  }
   get localMode(): boolean {
     return this._config.localMode;
   }

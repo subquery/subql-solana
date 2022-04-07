@@ -15,8 +15,15 @@ import {
   getAllEnums,
   loadFromJsonOrYaml,
 } from '@subql/common';
+
+import {loadSolanaProjectManifest} from '@subql/common-solana';
 import {loadSubstrateProjectManifest, SubstrateProjectManifestVersioned, isCustomDs} from '@subql/common-substrate';
-import {loadTerraProjectManifest, TerraProjectManifestVersioned} from '@subql/common-terra';
+
+import {loadTerraProjectManifest} from '@subql/common-terra';
+import {SubqlDatasourceKind} from '@subql/types';
+import {SubqlSolanaDatasourceKind} from '@subql/types-solana';
+import {SubqlTerraDatasourceKind} from '@subql/types-terra';
+
 import ejs from 'ejs';
 import {upperFirst, uniq} from 'lodash';
 import rimraf from 'rimraf';
@@ -184,24 +191,59 @@ async function prepareDirPath(path: string, recreate: boolean) {
   }
 }
 
+export function loadProjectKind(file: string): string {
+  try {
+    let manifestPath = file;
+    if (fs.existsSync(file) && fs.lstatSync(file).isDirectory()) {
+      const yamlFilePath = path.join(file, 'project.yaml');
+      const jsonFilePath = path.join(file, 'project.json');
+      if (fs.existsSync(yamlFilePath)) {
+        manifestPath = yamlFilePath;
+      } else if (fs.existsSync(jsonFilePath)) {
+        manifestPath = jsonFilePath;
+      } else {
+        throw new Error(`Could not find project manifest under dir ${file}`);
+      }
+    }
+
+    const doc = loadFromJsonOrYaml(manifestPath) as any;
+
+    return doc.dataSources[0].kind;
+  } catch (e) {
+    throw new Error('cannot inspect datasources!');
+  }
+}
+
 //1. Prepare models directory and load schema
+
 export async function codegen(projectPath: string): Promise<void> {
   const modelDir = path.join(projectPath, MODEL_ROOT_DIR);
   const interfacesPath = path.join(projectPath, TYPE_ROOT_DIR, `interfaces.ts`);
   await prepareDirPath(modelDir, true);
   await prepareDirPath(interfacesPath, false);
 
-  let manifest: SubstrateProjectManifestVersioned | TerraProjectManifestVersioned;
 
-  try {
-    console.log('Loading substrate manifest...');
-    manifest = loadSubstrateProjectManifest(projectPath);
-    await generateDatasourceTemplates(projectPath, manifest);
-  } catch (e) {
-    console.log('Loading substrate manifest failed');
-    console.log('Loading terra manifest...');
-    manifest = loadTerraProjectManifest(projectPath);
-    MODEL_TEMPLATE_PATH = path.resolve(__dirname, '../template/terramodel.ts.ejs');
+  let manifest;
+  const kind = loadProjectKind(projectPath);
+
+  switch (kind) {
+    case SubqlDatasourceKind.Runtime:
+      console.log('Loading substrate manifest...');
+      manifest = loadSubstrateProjectManifest(projectPath);
+      await generateDatasourceTemplates(projectPath, manifest);
+      break;
+    case SubqlSolanaDatasourceKind.Runtime:
+      console.log('loading solana manifest....');
+      manifest = loadSolanaProjectManifest(projectPath);
+      break;
+    case SubqlTerraDatasourceKind.Runtime:
+      console.log('Loading terra manifest...');
+      manifest = loadTerraProjectManifest(projectPath);
+      MODEL_TEMPLATE_PATH = path.resolve(__dirname, '../template/terramodel.ts.ejs');
+      break;
+    default:
+      throw new Error('unknown datasource kind!');
+
   }
 
   const schemaPath = path.join(projectPath, manifest.schema);
@@ -279,7 +321,7 @@ export async function generateModels(projectPath: string, schema: string): Promi
     console.log(`* Models index generated !`);
   }
 }
-
+//   ../subql/packages/cli/bin/run
 export async function generateDatasourceTemplates(
   projectPath: string,
   projectManifest: SubstrateProjectManifestVersioned

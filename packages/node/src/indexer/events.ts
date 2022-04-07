@@ -13,6 +13,7 @@ export enum IndexerEvent {
   UsingDictionary = 'using_dictionary',
   SkipDictionary = 'skip_dictionary',
   Ready = 'ready',
+  Started = 'indexer_started',
 }
 
 export interface ProcessBlockPayload {
@@ -32,7 +33,5 @@ export interface EventPayload<T> {
 }
 
 export interface NetworkMetadataPayload {
-  chain: string;
-  specName: string;
-  genesisHash: string;
+  chainId: string;
 }

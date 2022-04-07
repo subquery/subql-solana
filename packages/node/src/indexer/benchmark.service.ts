@@ -59,13 +59,20 @@ export class BenchmarkService {
   }
 
   @OnEvent(IndexerEvent.BlockProcessing)
-  handleProcessingBlock(blockPayload: ProcessBlockPayload) {
+  handleProcessingBlock(blockPayload: ProcessBlockPayload): void {
     this.currentProcessingHeight = blockPayload.height;
     this.currentProcessingTimestamp = blockPayload.timestamp;
   }
 
   @OnEvent(IndexerEvent.BlockTarget)
-  handleTargetBlock(blockPayload: TargetBlockPayload) {
+  handleTargetBlock(blockPayload: TargetBlockPayload): void {
     this.targetHeight = blockPayload.height;
+  }
+  @OnEvent(IndexerEvent.Started)
+  handleStartedIndexer(blockPayload: TargetBlockPayload): void {
+    if (!this.lastRegisteredHeight || !this.lastRegisteredTimestamp) {
+      this.lastRegisteredHeight = blockPayload.height - 1;
+      this.lastRegisteredTimestamp = Date.now();
+    }
   }
 }
