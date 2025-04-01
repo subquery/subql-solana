@@ -1,72 +1,65 @@
 {
-  "name": "@subql/node",
-  "version": "0.30.3-1",
+  "name": "@subql/node-solana",
+  "version": "5.5.0",
   "description": "",
   "author": "Ian He",
-  "license": "Apache-2.0",
+  "license": "GPL-3.0",
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "rm -rf dist && tsc -b",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
-    "start:dev": "nodemon",
-    "start:prod": "node dist/main"
+    "start:dev": "TZ=utc nodemon",
+    "start:prod": "TZ=utc node dist/main",
+    "changelog:release": "echo \"Updating changelog $npm_package_version\" && npx chan release $npm_package_version --git-url \"https://github.com/subquery/subql-solana\" --release-prefix=\"node-solana/\""
   },
-  "homepage": "https://github.com/subquery/subql",
-  "repository": "github:subquery/subql",
+  "homepage": "https://github.com/subquery/subql-solana",
+  "repository": "github:subquery/subql-solana",
   "bin": {
-    "subql-node": "./bin/run"
+    "subql-node-solana": "./bin/run"
   },
   "dependencies": {
-    "@apollo/client": "3.5.8",
-    "@nestjs/common": "^8.2.6",
-    "@nestjs/core": "^8.2.6",
-    "@nestjs/event-emitter": "^1.0.0",
-    "@nestjs/platform-express": "^8.2.6",
-    "@nestjs/schedule": "^1.0.2",
-    "@polkadot/api": "7.12.1",
-    "@subql/common": "workspace:*",
+    "@coral-xyz/anchor": "^0.31.0",
+    "@nestjs/common": "^11.0.8",
+    "@nestjs/core": "^11.0.8",
+    "@nestjs/event-emitter": "^2.0.0",
+    "@nestjs/platform-express": "^11.0.8",
+    "@nestjs/schedule": "^5.0.1",
+    "@solana/kit": "^2.1.0",
+    "@subql/common": "^5.4.0",
     "@subql/common-solana": "workspace:*",
-    "@subql/common-substrate": "workspace:*",
-    "@subql/types": "workspace:*",
+    "@subql/node-core": "^17.1.0",
+    "@subql/testing": "^2.2.1",
     "@subql/types-solana": "workspace:*",
-    "@subql/x-merkle-mountain-range": "2.0.0-0.1.1",
-    "@subql/x-vm2": "^3.9.3-0.1.0",
-    "@willsoto/nestjs-prometheus": "^4.4.0",
-    "app-module-path": "^2.2.0",
-    "dayjs": "^1.10.7",
+    "cacheable-lookup": "6",
+    "ethers": "^5.7.0",
     "eventemitter2": "^6.4.5",
+    "json5": "^2.2.3",
     "lodash": "^4.17.21",
-    "merkle-tools": "^1.4.1",
-    "parse-json": "^6.0.2",
-    "pg": "^8.7.1",
-    "prom-client": "^14.0.1",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
-    "rxjs": "^7.5.2",
-    "sequelize": "^6.15.0",
-    "tar": "^6.1.11",
-    "typescript": "^4.4.4",
     "yargs": "^16.2.0"
   },
+  "peerDependencies": {
+    "@subql/utils": "*"
+  },
   "devDependencies": {
-    "@nestjs/schematics": "^8.0.5",
-    "@nestjs/testing": "^8.2.6",
-    "@types/app-module-path": "^2.2.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.8",
     "@types/express": "^4.17.13",
     "@types/jest": "^27.4.0",
     "@types/lodash": "^4.14.178",
     "@types/pino": "^6.3.12",
-    "@types/supertest": "^2.0.11",
     "@types/tar": "^6.1.1",
     "@types/yargs": "^16.0.4",
     "dotenv": "^15.0.1",
-    "nodemon": "^2.0.15",
-    "supertest": "^6.2.2"
+    "nodemon": "^2.0.15"
+  },
+  "resolutions": {
+    "node-fetch": "2.6.7"
   },
   "files": [
     "/dist",
     "/bin"
-  ],
-  "stableVersion": "0.30.3-0"
+  ]
 }

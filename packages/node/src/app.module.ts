@@ -1,30 +1,30 @@
-// Copyright 2020-2022 OnFinality Limited authors & contributors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
+// SPDX-License-Identifier: GPL-3.0
 
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
+import { DbModule, CoreModule, MetaModule } from '@subql/node-core';
 import { ConfigureModule } from './configure/configure.module';
-import { DbModule } from './db/db.module';
-import { IndexerModule } from './indexer/indexer.module';
-import { MetaModule } from './meta/meta.module';
+import { FetchModule } from './indexer/fetch.module';
 
-export class NodeOption {}
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { version: ethersSdkVersion } = require('ethers/package.json');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { version: packageVersion } = require('../package.json');
 
 @Module({
   imports: [
-    DbModule.forRoot({
-      host: process.env.DB_HOST ?? '127.0.0.1',
-      port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
-      username: process.env.DB_USER ?? 'postgres',
-      password: process.env.DB_PASS ?? 'postgres',
-      database: process.env.DB_DATABASE ?? 'postgres',
-    }),
+    DbModule.forRoot(),
     EventEmitterModule.forRoot(),
     ConfigureModule.register(),
     ScheduleModule.forRoot(),
-    IndexerModule,
-    MetaModule,
+    CoreModule,
+    FetchModule,
+    MetaModule.forRoot({
+      version: packageVersion,
+      sdkVersion: { name: 'ethers.js', version: ethersSdkVersion },
+    }),
   ],
   controllers: [],
 })

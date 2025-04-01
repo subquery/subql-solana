@@ -1,26 +1,10 @@
-// Copyright 2020-2022 OnFinality Limited authors & contributors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
+// SPDX-License-Identifier: GPL-3.0
 
-import { ApiPromise } from '@polkadot/api';
-import { ApiDecoration } from '@polkadot/api/types';
-import { Entity, SubstrateEvent, SubstrateExtrinsic } from '@subql/types';
 import { SolanaBlock } from '@subql/types-solana';
 
-export interface BlockContent {
-  block: SolanaBlock;
-  extrinsics: SubstrateExtrinsic[];
-  events: SubstrateEvent[];
+export type BlockContent = SolanaBlock;
+
+export function getBlockSize(block: BlockContent): number {
+  throw new Error('Not implemented');
 }
-
-export enum OperationType {
-  Set = 'Set',
-  Remove = 'Remove',
-}
-
-export type OperationEntity = {
-  operation: OperationType;
-  entityType: string;
-  data: Entity | string;
-};
-
-export type ApiAt = ApiDecoration<'promise'> & { rpc: ApiPromise['rpc'] };

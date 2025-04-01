@@ -8,41 +8,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       #Check out
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 100
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: lts/*
 
       - run: yarn install
 
       #Create github releases
       - uses: ./.github/actions/create-release
         with:
-          package-path: packages/cli
-          repo-token: ${{ secrets.REPO_TOKEN }}
-
-      - uses: ./.github/actions/create-release
-        with:
-          package-path: packages/common
-          repo-token: ${{ secrets.REPO_TOKEN }}
-
-      - uses: ./.github/actions/create-release
-        with:
-          package-path: packages/common-substrate
-          repo-token: ${{ secrets.REPO_TOKEN }}
-
-      - uses: ./.github/actions/create-release
-        with:
-          package-path: packages/common-terra
-          repo-token: ${{ secrets.REPO_TOKEN }}
-
-      - uses: ./.github/actions/create-release
-        with:
-          package-path: packages/contract-processors
+          package-path: packages/common-solana
           repo-token: ${{ secrets.REPO_TOKEN }}
 
       - uses: ./.github/actions/create-release
@@ -52,25 +32,5 @@ jobs:
 
       - uses: ./.github/actions/create-release
         with:
-          package-path: packages/node-terra
-          repo-token: ${{ secrets.REPO_TOKEN }}
-
-      - uses: ./.github/actions/create-release
-        with:
-          package-path: packages/query
-          repo-token: ${{ secrets.REPO_TOKEN }}
-
-      - uses: ./.github/actions/create-release
-        with:
           package-path: packages/types
-          repo-token: ${{ secrets.REPO_TOKEN }}
-
-      - uses: ./.github/actions/create-release
-        with:
-          package-path: packages/types-terra
-          repo-token: ${{ secrets.REPO_TOKEN }}
-
-      - uses: ./.github/actions/create-release
-        with:
-          package-path: packages/validator
           repo-token: ${{ secrets.REPO_TOKEN }}

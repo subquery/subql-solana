@@ -1,49 +1,135 @@
-// Copyright 2020-2021 OnFinality Limited authors & contributors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
+// SPDX-License-Identifier: GPL-3.0
 
+import { BaseDataSource, BlockFilterImpl, forbidNonWhitelisted } from '@subql/common';
+import { FileReference } from '@subql/types-core';
 import {
-  SubqlSolanaHandlerKind,
-  SubqlSolanaCustomHandler,
-  SubqlSolanaMapping,
-  SubqlSolanaHandler,
-  SubqlSolanaRuntimeHandler,
-  SubqlSolanaRuntimeDatasource,
-  SubqlSolanaDatasourceKind,
-  SubqlSolanaCustomDatasource,
-  FileReference,
-  CustomDataSourceAsset,
+  SolanaHandlerKind,
+  SolanaDatasourceKind,
+  SolanaLogFilter,
+  SubqlCustomHandler,
+  SubqlMapping,
+  SubqlHandler,
+  SubqlRuntimeHandler,
+  SubqlRuntimeDatasource,
+  SubqlCustomDatasource,
+  SubqlBlockHandler,
+  SubqlTransactionHandler,
+  SolanaTransactionFilter,
+  SubqlSolanaProcessorOptions,
+  SolanaBlockFilter,
+  SolanaInstructionFilter,
+  SubqlInstructionHandler,
+  SubqlLogHandler,
 } from '@subql/types-solana';
+import { plainToClass, Transform, Type } from 'class-transformer';
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsObject,
+  ValidateNested,
+} from 'class-validator';
 
-import {plainToClass, Transform, Type} from 'class-transformer';
+export class BlockFilter extends BlockFilterImpl implements SolanaBlockFilter {
+}
 
-import {IsArray, IsEnum, IsInt, IsOptional, IsString, IsObject, ValidateNested} from 'class-validator';
-
-
-export class SolanaBlockHandler {
-  @IsEnum(SubqlSolanaHandlerKind, {groups: [SubqlSolanaHandlerKind.Block]})
-  kind: SubqlSolanaHandlerKind.Block;
+export class TransactionFilter implements SolanaTransactionFilter {
+  @IsOptional()
   @IsString()
-  handler: string;
+  signerAccountKey?: string;
+}
+
+export class InstructionFilter implements SolanaInstructionFilter {
+  @IsOptional()
+  @IsString()
+  programId?: string;
+
+  @IsOptional()
+  @IsString()
+  type?: string;
+
+  @IsOptional()
+  @IsObject()
+  data?: Record<string, unknown>;
+}
+
+export class LogFilter implements SolanaLogFilter {
+  // @IsOptional()
+  // @IsArray()
+  // topics?: string[];
 }
 
 
-export class SolanaCustomHandler implements SubqlSolanaCustomHandler {
+export class BlockHandler implements SubqlBlockHandler {
+  @IsObject()
+  @IsOptional()
+  @Type(() => BlockFilter)
+  filter?: BlockFilter;
+  @IsEnum(SolanaHandlerKind, { groups: [SolanaHandlerKind.Block] })
+  kind!: SolanaHandlerKind.Block;
   @IsString()
-  kind: string;
+  handler!: string;
+}
+
+export class TransactionHandler implements SubqlTransactionHandler {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TransactionFilter)
+  filter?: SolanaTransactionFilter;
+  @IsEnum(SolanaHandlerKind, { groups: [SolanaHandlerKind.Transaction] })
+  kind!: SolanaHandlerKind.Transaction;
   @IsString()
-  handler: string;
+  handler!: string;
+}
+
+export class InstructionHandler implements SubqlInstructionHandler {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => InstructionFilter)
+  filter?: SolanaInstructionFilter;
+  @IsEnum(SolanaHandlerKind, { groups: [SolanaHandlerKind.Instruction] })
+  kind!: SolanaHandlerKind.Instruction;
+  @IsString()
+  handler!: string;
+}
+
+export class LogHandler implements SubqlLogHandler {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LogFilter)
+  filter?: SolanaLogFilter;
+  @IsEnum(SolanaHandlerKind, { groups: [SolanaHandlerKind.Log] })
+  kind!: SolanaHandlerKind.Log;
+  @IsString()
+  handler!: string;
+}
+
+export class CustomHandler implements SubqlCustomHandler {
+  @IsString()
+  kind!: string;
+  @IsString()
+  handler!: string;
   @IsObject()
   @IsOptional()
   filter?: Record<string, unknown>;
 }
 
-export class SolanaMapping implements SubqlSolanaMapping {
+export class SolanaMapping implements SubqlMapping {
   @Transform((params) => {
-    const handlers: SubqlSolanaHandler[] = params.value;
+    const handlers: SubqlHandler[] = params.value;
     return handlers.map((handler) => {
       switch (handler.kind) {
-        case SubqlSolanaHandlerKind.Block:
-          return plainToClass(SolanaBlockHandler, handler);
+        case SolanaHandlerKind.Log:
+          return plainToClass(LogHandler, handler);
+        case SolanaHandlerKind.Instruction:
+          return plainToClass(InstructionHandler, handler);
+        case SolanaHandlerKind.Transaction:
+          return plainToClass(TransactionHandler, handler);
+        case SolanaHandlerKind.Block:
+          return plainToClass(BlockHandler, handler);
         default:
           throw new Error(`handler ${(handler as any).kind} not supported`);
       }
@@ -51,55 +137,69 @@ export class SolanaMapping implements SubqlSolanaMapping {
   })
   @IsArray()
   @ValidateNested()
-  handlers: SubqlSolanaHandler[];
+  handlers!: SubqlHandler[];
   @IsString()
-  file: string;
+  file!: string;
 }
 
-export class SolanaCustomMapping implements SubqlSolanaMapping<SubqlSolanaCustomHandler> {
+export class CustomMapping implements SubqlMapping<SubqlCustomHandler> {
   @IsArray()
-  @Type(() => SolanaCustomHandler)
+  @Type(() => CustomHandler)
   @ValidateNested()
-  handlers: SolanaCustomHandler[];
+  handlers!: CustomHandler[];
   @IsString()
-  file: string;
+  file!: string;
 }
 
-export class SolanaRuntimeDataSourceBase<M extends SubqlSolanaMapping<SubqlSolanaRuntimeHandler>>
-  implements SubqlSolanaRuntimeDatasource<M>
-{
-  @IsEnum(SubqlSolanaDatasourceKind, {groups: [SubqlSolanaDatasourceKind.Runtime]})
-  kind: SubqlSolanaDatasourceKind.Runtime;
+export class SolanaProcessorOptions implements SubqlSolanaProcessorOptions {
+  @IsOptional()
+  @IsString()
+  abi?: string;
+  @IsOptional()
+  // @IsEthereumOrZilliqaAddress() // TODO validate
+  address?: string;
+}
+
+export class RuntimeDataSourceBase<M extends SubqlMapping<SubqlRuntimeHandler>>
+  extends BaseDataSource
+  implements SubqlRuntimeDatasource<M> {
+  @IsEnum(SolanaDatasourceKind, {
+    groups: [SolanaDatasourceKind.Runtime],
+  })
+  kind!: SolanaDatasourceKind.Runtime;
   @Type(() => SolanaMapping)
   @ValidateNested()
-  mapping: M;
-  @IsInt()
-  startBlock: number;
-}
-
-export class SolanaFileReferenceImpl implements FileReference {
-  @IsString()
-  file: string;
-}
-
-export class SolanaCustomDataSourceBase<
-  K extends string,
-  M extends SubqlSolanaMapping = SubqlSolanaMapping<SubqlSolanaCustomHandler>,
-  O = any
-> implements SubqlSolanaCustomDatasource<K, M, O>
-{
-  @IsString()
-  kind: K;
-  @Type(() => SolanaCustomMapping)
-  @ValidateNested()
-  mapping: M;
+  mapping!: M;
+  @Type(() => FileReferenceImpl)
+  @ValidateNested({ each: true })
   @IsOptional()
-  @IsInt()
-  startBlock?: number;
-  @Type(() => SolanaFileReferenceImpl)
-  @ValidateNested({each: true})
-  assets: Map<string, CustomDataSourceAsset>;
-  @Type(() => SolanaFileReferenceImpl)
+  assets?: Map<string, FileReference>;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SolanaProcessorOptions)
+  options?: SolanaProcessorOptions;
+}
+
+export class FileReferenceImpl implements FileReference {
+  @IsString()
+  file!: string;
+}
+
+export class CustomDataSourceBase<K extends string, M extends SubqlMapping = SubqlMapping<SubqlCustomHandler>>
+  extends BaseDataSource
+  implements SubqlCustomDatasource<K, M> {
+  @IsString()
+  kind!: K;
+  @Type(() => CustomMapping)
+  @ValidateNested()
+  mapping!: M;
+  @Type(() => FileReferenceImpl)
+  @ValidateNested({ each: true })
+  assets!: Map<string, FileReference>;
+  @Type(() => FileReferenceImpl)
   @IsObject()
-  processor: FileReference;
+  processor!: FileReference;
+  @IsOptional()
+  @ValidateNested()
+  options?: SolanaProcessorOptions;
 }

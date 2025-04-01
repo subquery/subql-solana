@@ -1,16 +1,12 @@
-// Copyright 2020-2022 OnFinality Limited authors & contributors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
+// SPDX-License-Identifier: GPL-3.0
 
-import {ApiPromise} from '@polkadot/api';
-import {ApiDecoration} from '@polkadot/api/types';
-import Pino from 'pino';
-import {Store, DynamicDatasourceCreator} from './interfaces';
-
-type ApiAt = ApiDecoration<'promise'> & {rpc: ApiPromise['rpc']};
+// import {Provider} from '@ethersproject/abstract-provider';
+// import {JsonRpcProvider} from '@ethersproject/providers';
+import '@subql/types-core/dist/global';
+import { SolanaRpcApiMainnet } from '@solana/rpc-api';
 
 declare global {
-  const api: ApiAt;
-  const logger: Pino.Logger;
-  const store: Store;
-  const createDynamicDatasource: DynamicDatasourceCreator;
+  const api: unknown; // TODO
+  const unsafeApi: SolanaRpcApiMainnet;
 }

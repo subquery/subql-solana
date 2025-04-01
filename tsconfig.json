@@ -1,54 +1,61 @@
 {
   "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ],
     "module": "commonjs",
-    "target": "es2017",
     "noImplicitAny": false,
+    "noImplicitThis": true,
     "moduleResolution": "node",
     "outDir": "dist",
     "baseUrl": ".",
-    "types": ["node", "jest"],
+    "types": [
+      "node",
+      "jest"
+    ],
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "lib": ["ES2017"],
     "emitDecoratorMetadata": true,
     "declaration": true,
     "sourceMap": true,
     "inlineSources": true,
     "composite": true,
     "paths": {
-      "@subql/common": ["packages/common/src"],
-      "@subql/common/*": ["packages/common/src/*"],
-      "@subql/common-substrate": ["packages/common-substrate/src"],
-      "@subql/common-substrate/*": ["packages/common-substrate/src/*"],
-      "@subql/common-terra": ["packages/common-terra/src"],
-      "@subql/common-terra/*": ["packages/common-terra/src/*"],
-      "@subql/common-solana": ["packages/common-solana/src"],
-      "@subql/common-solana/*": ["packages/common-solana/src/*"],
-      "@subql/types": ["packages/types/src"],
-      "@subql/types/*": ["packages/types/src/*"],
-      "@subql/types-terra": ["packages/types-terra/src"],
-      "@subql/types-terra/*": ["packages/types-terra/src/*"],
-      "@subql/types-solana": ["packages/types-solana/src"],
-      "@subql/types-solana/*": ["packages/types-solana/src/*"],
-      "@subql/validator": ["packages/validator/src"],
-      "@subql/validator/*": ["packages/validator/src/*"]
+      "@subql/common-solana": [
+        "packages/common-solana/src"
+      ],
+      "@subql/common-solana/*": [
+        "packages/common-solana/src/*"
+      ],
+      "@subql/types-solana": [
+        "packages/types/src"
+      ],
+      "@subql/types-solana/*": [
+        "packages/types/src/*"
+      ]
     },
     "skipLibCheck": true
   },
   "references": [
-    {"path": "packages/cli"},
-    {"path": "packages/common"},
-    {"path": "packages/common-substrate"},
-    {"path": "packages/common-terra"},
-    {"path": "packages/common-solana"},
-    {"path": "packages/node"},
-    {"path": "packages/types"},
-    {"path": "packages/types-terra"},
-    {"path": "packages/types-solana"},
-    {"path": "packages/validator"}
+    {
+      "path": "packages/common-solana"
+    },
+    {
+      "path": "packages/node"
+    },
+    {
+      "path": "packages/types"
+    }
   ],
-  "include": ["packages/**/*"],
-  "exclude": ["**/node_modules/**"],
-  "typeRoots": ["./node_modules/@types"]
+  "include": [
+    "packages/**/*"
+  ],
+  "exclude": [
+    "**/node_modules/**"
+  ],
+  "typeRoots": [
+    "./node_modules/@types"
+  ]
 }

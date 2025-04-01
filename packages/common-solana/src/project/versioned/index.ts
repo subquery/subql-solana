@@ -1,5 +1,5 @@
-// Copyright 2020-2021 OnFinality Limited authors & contributors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
+// SPDX-License-Identifier: GPL-3.0
 
 export * from './ProjectManifestVersioned';
-export * from './v0_0_1';
+export * from './v1_0_0';

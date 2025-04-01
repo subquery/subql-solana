@@ -1,14 +1,47 @@
-# production images
-FROM node:16 as builder
-ARG RELEASE_VERSION
-ENTRYPOINT ["subql-node"]
-RUN npm i -g --unsafe-perm @subql/node@${RELEASE_VERSION}
+# Build stage
+FROM node:lts-alpine as builder
+# Set working directory
+WORKDIR /app
 
-FROM node:16-alpine
-ENV TZ utc
+# Copy all packages
+COPY ./packages ./packages
 
-RUN apk add --no-cache tini git curl
-COPY --from=builder /usr/local/lib/node_modules /usr/local/lib/node_modules
+# Copy tsconfig.json
+COPY ./tsconfig.json ./tsconfig.json
 
-ENTRYPOINT ["/sbin/tini", "--", "/usr/local/lib/node_modules/@subql/node/bin/run"]
+# Copy build script
+COPY ./scripts/build.sh ./scripts/build.sh
+
+# Install dependencies and build
+RUN ./scripts/build.sh packages/node
+
+# Production stage
+FROM node:lts-alpine
+
+# Copy .tgz file from builder
+COPY --from=builder /app/packages/node/app.tgz /app.tgz
+
+# Install production dependencies
+RUN apk add --no-cache tini curl git &&  \
+    apk add --no-cache python3 make g++ &&  \
+    npm install -g node-gyp
+
+# Install the app
+RUN npm i -g app.tgz
+
+# Clean up unused deps
+RUN rm /app.tgz && \
+    yarn cache clean && \
+    rm -rf /root/.npm /root/.cache
+
+# Create ./.monitor directory and set permissions
+RUN mkdir -p .monitor && \
+    chown 1000:1000 .monitor
+
+# Make the user not ROOT
+USER 1000
+ENV TZ=utc
+
+# Set Entry point and command
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/lib/node_modules/@subql/node-solana/bin/run"]
 CMD ["-f","/app"]

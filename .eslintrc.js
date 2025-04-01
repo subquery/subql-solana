@@ -29,6 +29,7 @@ module.exports = {
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:@typescript-eslint/recommended-requiring-type-checking',
+    'plugin:jest/recommended',
   ],
   rules: {
     // rules turned off in upstream project (also required when recommended-requiring-type-checking is extended)
@@ -84,9 +85,10 @@ module.exports = {
       2,
       'line',
       [
-        //Copyright 2020-2022 OnFinality Limited authors & contributors
-        {pattern: ' Copyright \\d{4}(-\\d{4})? OnFinality Limited authors & contributors'},
-        ' SPDX-License-Identifier: Apache-2.0',
+        // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
+        // SPDX-License-Identifier: GPL-3.0
+        {pattern: ' Copyright \\d{4}(-\\d{4})? SubQuery Pte Ltd authors & contributors'},
+        ' SPDX-License-Identifier: GPL-3.0',
       ],
       2,
     ],
@@ -110,4 +112,12 @@ module.exports = {
       '@typescript-eslint/parser': ['.ts', '.tsx'],
     },
   },
+  overrides: [
+    {
+      files: ['*.test.ts', '*.spec.ts'],
+      rules: {
+        '@typescript-eslint/no-non-null-assertion': 'off', // @typescript-eslint/no-non-null-assertion 
+      },
+    },
+  ],
 };
