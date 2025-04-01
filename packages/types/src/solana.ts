@@ -1,7 +1,7 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
-import type { Address } from '@solana/addresses';
+import type {Address} from '@solana/addresses';
 import type {
   TransactionForFullJson,
   UnixTimestamp,
@@ -13,10 +13,9 @@ import type {
   TransactionStatus,
   TokenBalance,
   Reward,
-  Base64EncodedDataResponse
+  Base64EncodedDataResponse,
 } from '@solana/rpc-types';
-import type { BlockFilter } from '@subql/types-core';
-
+import type {BlockFilter} from '@subql/types-core';
 
 type AddressTableLookup = Readonly<{
   /** public key for an address lookup table account. */
@@ -54,6 +53,24 @@ type ReturnData = {
   programId: Address;
 };
 
+export type DecodedData<T = any> = {
+  name: string;
+  data: T;
+};
+
+export type LogMessage<T = any> = {
+  /** The raw log message **/
+  message: string;
+  /** */
+  decodedMessage?: DecodedData<T>[];
+  /** The program address that emitted the message */
+  programId: string;
+  /** The original index of the unparsed log */
+  logIndex: number;
+
+  type: 'log' | 'data' | 'other';
+};
+
 type TransactionForFullMetaBase = Readonly<{
   /** number of compute units consumed by the transaction */
   computeUnitsConsumed?: bigint;
@@ -61,8 +78,8 @@ type TransactionForFullMetaBase = Readonly<{
   err: TransactionError | null;
   /** fee this transaction was charged */
   fee: Lamports;
-  /** array of string log messages or null if log message recording was not enabled during this transaction */
-  logMessages: readonly string[] | null;
+  /** parsed log messages, can be null if log recording was not enabled for the message. */
+  logs: LogMessage[] | null;
   /** array of account balances after the transaction was processed */
   postBalances: readonly Lamports[];
   /** List of token balances from after the transaction was processed or omitted if token balance recording was not yet enabled during this transaction */
@@ -100,13 +117,16 @@ export type TransactionForFullMetaInnerInstructionsUnparsed = Readonly<{
 }>;
 
 export type SolanaTransaction = {
-  meta: (TransactionForFullMetaBase & TransactionForFullMetaInnerInstructionsUnparsed) | null,
-  transaction: TransactionForFullTransactionAddressTableLookups & TransactionForFullTransactionJsonBase
+  meta: (TransactionForFullMetaBase & TransactionForFullMetaInnerInstructionsUnparsed) | null;
+  transaction: TransactionForFullTransactionAddressTableLookups & TransactionForFullTransactionJsonBase;
 };
 
-export type SolanaInstruction = Readonly<{
+export type SolanaInstruction<T = any> = Readonly<{
   accounts: readonly number[];
+  /* The raw instruction data, in base58 encoding */
   data: Base58EncodedBytes;
+  /* Decoded instruction data, only present if an IDL is provided or found on the network */
+  decodedData?: DecodedData<T>;
   programIdIndex: number;
   stackHeight?: number;
 
@@ -130,10 +150,12 @@ export type BaseSolanaBlock = Readonly<{
 }>;
 
 // Extracted equivalent https://github.com/anza-xyz/kit/blob/main/packages/rpc-api/src/getBlock.ts#L285
-export type SolanaBlock = Readonly<BaseSolanaBlock & {
-  // From GetBlockApiResponseWithTransactions
-  transactions: readonly SolanaTransaction[];
-}>;
+export type SolanaBlock = Readonly<
+  BaseSolanaBlock & {
+    // From GetBlockApiResponseWithTransactions
+    transactions: readonly SolanaTransaction[];
+  }
+>;
 
 export type SolanaBlockFilter = BlockFilter;
 
@@ -143,7 +165,6 @@ export type SolanaBlockFilter = BlockFilter;
  * @extends {SolanaTransactionFilter}
  */
 export interface SolanaTransactionFilter {
-
   // TODO could this be multiple addresses?
   /**
    *  The account key of the transaction signer.
@@ -157,7 +178,6 @@ export interface SolanaTransactionFilter {
  * @extends {SolanaInstructionFilter}
  */
 export interface SolanaInstructionFilter extends SolanaTransactionFilter {
-
   /**
    * The account key of the program that is interacted with.
    * @example
@@ -183,7 +203,7 @@ export interface SolanaInstructionFilter extends SolanaTransactionFilter {
  * @extends {SolanaLogFilter}
  */
 export interface SolanaLogFilter {
-  /* TODO */
+  programId?: string;
 }
 
 // export interface EthereumResult extends ReadonlyArray<any> {

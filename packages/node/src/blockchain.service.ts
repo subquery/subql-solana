@@ -25,26 +25,26 @@ import {
 import { plainToClass } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import { SubqueryProject } from './configure/SubqueryProject';
-import { SolanaSafeApi } from './solana/api.solana';
 import { BlockContent, getBlockSize } from './indexer/types';
 import { IIndexerWorker } from './indexer/worker/worker';
 import { SolanaApiService } from './solana';
-import { solanaBlockToHeader } from './solana/utils.solana';
+import { SolanaSafeApi } from './solana/api.solana';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { version: packageVersion } = require('../package.json');
 
 export class BlockchainService
   implements
-  IBlockchainService<
-    SubqlDatasource,
-    SubqlCustomDatasource<string, SubqlMapping<SubqlCustomHandler>>,
-    SubqueryProject,
-    SolanaSafeApi,
-    SolanaBlock, // No light block for Solana
-    SolanaBlock,
-    IIndexerWorker
-  > {
+    IBlockchainService<
+      SubqlDatasource,
+      SubqlCustomDatasource<string, SubqlMapping<SubqlCustomHandler>>,
+      SubqueryProject,
+      SolanaSafeApi,
+      SolanaBlock, // No light block for Solana
+      SolanaBlock,
+      IIndexerWorker
+    >
+{
   blockHandlerKind = SolanaHandlerKind.Block;
   isCustomDs = isCustomDs;
   isRuntimeDs = isRuntimeDs;
@@ -52,9 +52,7 @@ export class BlockchainService
 
   constructor(@Inject('APIService') private apiService: SolanaApiService) {}
 
-  async fetchBlocks(
-    blockNums: number[],
-  ): Promise<IBlock<SolanaBlock>[]> {
+  async fetchBlocks(blockNums: number[]): Promise<IBlock<SolanaBlock>[]> {
     return this.apiService.fetchBlocks(blockNums);
   }
 

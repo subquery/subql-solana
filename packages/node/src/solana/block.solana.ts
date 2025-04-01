@@ -1,10 +1,20 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
-import type { UnixTimestamp, Blockhash, Slot, TransactionForFullJson } from '@solana/rpc-types';
+import type {
+  UnixTimestamp,
+  Blockhash,
+  Slot,
+  TransactionForFullJson,
+} from '@solana/rpc-types';
 import type { Header, IBlock } from '@subql/node-core';
-import type { SolanaBlock, BaseSolanaBlock, SolanaInstruction } from '@subql/types-solana';
-
+import type {
+  SolanaBlock,
+  BaseSolanaBlock,
+  SolanaInstruction,
+  DecodedData,
+  LogMessage,
+} from '@subql/types-solana';
 
 type RawSolanaBlock = Readonly<{
   /** The number of blocks beneath this block */
@@ -18,18 +28,86 @@ type RawSolanaBlock = Readonly<{
   /** The blockhash of this block's parent */
   previousBlockhash: Blockhash;
 
-  transactions: readonly TransactionForFullJson<void>[]
+  transactions: readonly TransactionForFullJson<void>[];
 }>;
 
 function wrapInstruction(
-  instruction: Omit<SolanaInstruction, "transaction">,
-  transaction: TransactionForFullJson<void>
+  instruction: Omit<SolanaInstruction, 'transaction'>,
+  transaction: TransactionForFullJson<void>,
 ): SolanaInstruction {
   // XXX if we make this fully circular toJSON will need to be added to omit the transaction on the instruction
-  return ({
+  return {
     ...instruction,
     transaction,
-  })
+    get parseData(): DecodedData | undefined {
+      throw new Error('Not implemented');
+    },
+  };
+}
+
+function wrapLogs(logs: readonly string[] | null): LogMessage[] | null {
+  if (logs === null) {
+    return null;
+  }
+  const res: LogMessage[] = [];
+
+  // Keep a stack of the instruction programs
+  const instructionPath: string[] = [];
+
+  for (const [idx, log] of Object.entries(logs)) {
+    if (log.startsWith('Program log:')) {
+      res.push({
+        message: log,
+        programId: instructionPath[instructionPath.length - 1],
+        logIndex: parseInt(idx, 10),
+        type: 'log',
+      });
+    } else if (log.startsWith('Program data:')) {
+      res.push({
+        message: log,
+        programId: instructionPath[instructionPath.length - 1],
+        logIndex: parseInt(idx, 10),
+        type: 'data',
+        decodedMessage: undefined, // TODO getter function to parse
+      });
+    } else if (log.startsWith('Program return:')) {
+      res.push({
+        message: log,
+        programId: instructionPath[instructionPath.length - 1],
+        logIndex: parseInt(idx, 10),
+        type: 'other',
+        decodedMessage: undefined, // TODO getter function to parse, can return data be dcoded?
+      });
+    } else if (log.startsWith('Program consumption:')) {
+      // DO nothing
+    } else if (log.startsWith('Program')) {
+      const [, /* "Program"*/ programAddress, mode, ...rest] = log.split(' '); // TODO doesn't work with compute units
+      switch (mode) {
+        case 'invoke':
+          instructionPath.push(programAddress);
+          break;
+        case 'success':
+          // TODO need to check this is always the last item
+          instructionPath.pop();
+          break;
+        case 'consumed':
+          // Do nothing
+          break;
+        case 'failed:':
+          // TODO
+          instructionPath.pop();
+          break;
+        default:
+          throw new Error(`Unknown log mode: ${mode}, log: ${log}`);
+      }
+    } else if (log.startsWith('Transfer')) {
+      // Do nothing
+    } else {
+      throw new Error(`Unable to parse log message: ${log}`);
+    }
+  }
+
+  return res;
 }
 
 /**
@@ -37,30 +115,38 @@ function wrapInstruction(
 export function transformBlock(block: RawSolanaBlock): SolanaBlock {
   return {
     ...block,
-    transactions: block.transactions.map(tx => ({
+    transactions: block.transactions.map((tx) => ({
       ...tx,
       transaction: {
         ...tx.transaction,
         message: {
           ...tx.transaction.message,
-
-          instructions: tx.transaction.message.instructions.map(instruction => wrapInstruction(instruction, tx))
+          instructions: tx.transaction.message.instructions.map((instruction) =>
+            wrapInstruction(instruction, tx),
+          ),
         },
       },
-      meta: tx.meta ? {
-        ...tx.meta,
-        innerInstructions: tx.meta?.innerInstructions.map(innerInstruction => ({
-          ...innerInstruction,
-          instructions: innerInstruction.instructions.map(instruction => wrapInstruction(instruction, tx))
-        }))
-      } : null
-    }))
-  }
+      meta: tx.meta
+        ? {
+            ...tx.meta,
+            innerInstructions: tx.meta?.innerInstructions.map(
+              (innerInstruction) => ({
+                ...innerInstruction,
+                instructions: innerInstruction.instructions.map((instruction) =>
+                  wrapInstruction(instruction, tx),
+                ),
+              }),
+            ),
+            logs: wrapLogs(tx.meta.logMessages),
+          }
+        : null,
+    })),
+  };
 }
 
-export function formatBlockUtil<
-  B extends SolanaBlock = SolanaBlock,
->(block: B): IBlock<B> {
+export function formatBlockUtil<B extends SolanaBlock = SolanaBlock>(
+  block: B,
+): IBlock<B> {
   return {
     block,
     getHeader: () => solanaBlockToHeader(block),
@@ -75,4 +161,3 @@ export function solanaBlockToHeader(block: BaseSolanaBlock): Header {
     timestamp: new Date(Number(block.blockTime) * 1000), // TODO test
   };
 }
-

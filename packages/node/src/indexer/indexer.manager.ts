@@ -43,7 +43,7 @@ import {
   filterBlocksProcessor,
   filterInstructionsProcessor,
   filterTransactionsProcessor,
-} from '../solana/block.solana';
+} from '../solana/utils.solana';
 import { BlockContent } from './types';
 
 @Injectable()
@@ -119,14 +119,19 @@ export class IndexerManager extends BaseIndexerManager<
       await this.indexTransaction(tx, dataSources, getVM);
 
       // There is probably only one item per group but that could change based on the data structure
-      const innerInstructions = groupBy(tx.meta?.innerInstructions, (inner) => inner.index);
+      const innerInstructions = groupBy(
+        tx.meta?.innerInstructions,
+        (inner) => inner.index,
+      );
 
-      for (const [idx, instruction] of Object.entries(tx.transaction.message.instructions ?? [])) {
+      for (const [idx, instruction] of Object.entries(
+        tx.transaction.message.instructions ?? [],
+      )) {
         await this.indexInstruction(instruction, dataSources, getVM);
 
         for (const innerInstrutions1 of innerInstructions[idx]) {
           for (const innerInstrution of innerInstrutions1.instructions) {
-            await this.indexInstruction(innerInstrution, dataSources, getVM)
+            await this.indexInstruction(innerInstrution, dataSources, getVM);
           }
         }
       }
@@ -159,7 +164,12 @@ export class IndexerManager extends BaseIndexerManager<
     getVM: (d: SolanaProjectDs) => Promise<IndexerSandbox>,
   ): Promise<void> {
     for (const ds of dataSources) {
-      await this.indexData(SolanaHandlerKind.Instruction, instruction, ds, getVM);
+      await this.indexData(
+        SolanaHandlerKind.Instruction,
+        instruction,
+        ds,
+        getVM,
+      );
     }
   }
 
@@ -169,7 +179,7 @@ export class IndexerManager extends BaseIndexerManager<
     data: any,
     ds: SubqlRuntimeDatasource,
   ): Promise<any> {
-    return DataIDLParser[kind](data, ds)
+    return DataIDLParser[kind](data, ds);
   }
 }
 
@@ -200,6 +210,9 @@ const FilterTypeMap = {
 const DataIDLParser = {
   [SolanaHandlerKind.Block]: (data: SolanaBlock) => data,
   [SolanaHandlerKind.Transaction]: (data: SolanaTransaction) => data,
-  [SolanaHandlerKind.Instruction]: (data: SolanaInstruction, ds: SubqlRuntimeDatasource) => data, // TODO instruction will require parsing data with IDL
+  [SolanaHandlerKind.Instruction]: (
+    data: SolanaInstruction,
+    ds: SubqlRuntimeDatasource,
+  ) => data, // TODO instruction will require parsing data with IDL
   // [SolanaHandlerKind.Log]: (data: SolanaLog) => data,
-}
+};

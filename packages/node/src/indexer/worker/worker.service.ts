@@ -15,7 +15,7 @@ import {
 } from '@subql/node-core';
 import { SolanaProjectDs } from '../../configure/SubqueryProject';
 import { SolanaApi, SolanaSafeApi } from '../../solana';
-import { solanaBlockToHeader } from '../../solana/utils.solana';
+import { solanaBlockToHeader } from '../../solana/block.solana';
 import { IndexerManager } from '../indexer.manager';
 import { BlockContent, getBlockSize } from '../types';
 

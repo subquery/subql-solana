@@ -1,7 +1,12 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
-import { getDefaultResponseTransformerForSolanaRpc, innerInstructionsConfigs, KEYPATH_WILDCARD, messageConfig } from "@solana/rpc-transformers";
+import {
+  getDefaultResponseTransformerForSolanaRpc,
+  innerInstructionsConfigs,
+  KEYPATH_WILDCARD,
+  messageConfig,
+} from '@solana/rpc-transformers';
 import { NOT_NULL_FILTER } from '@subql/common-solana';
 import {
   NodeConfig,
@@ -26,7 +31,7 @@ import {
   SubqueryProject,
 } from '../../../configure/SubqueryProject';
 import { SolanaApi } from '../../../solana';
-import { formatBlockUtil, transformBlock } from '../../../solana/utils.solana';
+import { formatBlockUtil, transformBlock } from '../../../solana/block.solana';
 import { yargsOptions } from '../../../yargs';
 import { groupedDataSources, validAddresses } from '../utils';
 import {
@@ -36,7 +41,6 @@ import {
   SolanaDictionaryInstructionConditions,
   RawSolanaBlock,
 } from './types';
-
 
 const MIN_FETCH_LIMIT = 200;
 
@@ -265,7 +269,7 @@ export function buildDictionaryV2QueryEntry(
         break;
       }
       case SolanaHandlerKind.Log: {
-        throw new Error('Not implemented')
+        throw new Error('Not implemented');
         // if (
         //   handler.filter?.topics?.length ||
         //   validAddresses(addresses).length
@@ -286,14 +290,20 @@ export function buildDictionaryV2QueryEntry(
 }
 
 function parseBlock(block: RawSolanaBlock): SolanaBlock {
-
   const methodName = 'parseBlock';
 
   // This is based on https://github.com/anza-xyz/kit/blob/main/packages/rpc-api/src/index.ts#L257
   const transformer = getDefaultResponseTransformerForSolanaRpc({
     allowedNumericKeyPaths: {
       [methodName]: [
-        ['transactions', KEYPATH_WILDCARD, 'meta', 'preTokenBalances', KEYPATH_WILDCARD, 'accountIndex'],
+        [
+          'transactions',
+          KEYPATH_WILDCARD,
+          'meta',
+          'preTokenBalances',
+          KEYPATH_WILDCARD,
+          'accountIndex',
+        ],
         [
           'transactions',
           KEYPATH_WILDCARD,
@@ -303,7 +313,14 @@ function parseBlock(block: RawSolanaBlock): SolanaBlock {
           'uiTokenAmount',
           'decimals',
         ],
-        ['transactions', KEYPATH_WILDCARD, 'meta', 'postTokenBalances', KEYPATH_WILDCARD, 'accountIndex'],
+        [
+          'transactions',
+          KEYPATH_WILDCARD,
+          'meta',
+          'postTokenBalances',
+          KEYPATH_WILDCARD,
+          'accountIndex',
+        ],
         [
           'transactions',
           KEYPATH_WILDCARD,
@@ -313,8 +330,15 @@ function parseBlock(block: RawSolanaBlock): SolanaBlock {
           'uiTokenAmount',
           'decimals',
         ],
-        ['transactions', KEYPATH_WILDCARD, 'meta', 'rewards', KEYPATH_WILDCARD, 'commission'],
-        ...innerInstructionsConfigs.map(c => [
+        [
+          'transactions',
+          KEYPATH_WILDCARD,
+          'meta',
+          'rewards',
+          KEYPATH_WILDCARD,
+          'commission',
+        ],
+        ...innerInstructionsConfigs.map((c) => [
           'transactions',
           KEYPATH_WILDCARD,
           'meta',
@@ -322,13 +346,24 @@ function parseBlock(block: RawSolanaBlock): SolanaBlock {
           KEYPATH_WILDCARD,
           ...c,
         ]),
-        ...messageConfig.map(c => ['transactions', KEYPATH_WILDCARD, 'transaction', 'message', ...c] as const),
+        ...messageConfig.map(
+          (c) =>
+            [
+              'transactions',
+              KEYPATH_WILDCARD,
+              'transaction',
+              'message',
+              ...c,
+            ] as const,
+        ),
         ['rewards', KEYPATH_WILDCARD, 'commission'],
-      ]
-    }
-  })
+      ],
+    },
+  });
 
-  return transformBlock(transformer(block, { methodName, params: undefined }) as any);
+  return transformBlock(
+    transformer(block, { methodName, params: undefined }) as any,
+  );
 }
 
 export class SolanaDictionaryV2 extends DictionaryV2<
@@ -355,7 +390,12 @@ export class SolanaDictionaryV2 extends DictionaryV2<
     project: SubqueryProject,
     api: SolanaApi,
   ): Promise<SolanaDictionaryV2> {
-    const dictionary = new SolanaDictionaryV2(endpoint, nodeConfig, project, api);
+    const dictionary = new SolanaDictionaryV2(
+      endpoint,
+      nodeConfig,
+      project,
+      api,
+    );
     await dictionary.init();
     return dictionary;
   }
@@ -374,8 +414,8 @@ export class SolanaDictionaryV2 extends DictionaryV2<
   ): Promise<DictionaryResponse<IBlock<SolanaBlock> | number> | undefined> {
     return super.getData(startBlock, endBlock, limit, {
       blockHeader: true,
-      logs: { transaction: true/*!this.#skipTransactions*/ },
-      instructions: { transaction: true, },
+      logs: { transaction: true /*!this.#skipTransactions*/ },
+      instructions: { transaction: true },
       transactions: { log: true, instructions: true },
     });
   }
