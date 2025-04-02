@@ -86,12 +86,12 @@ export function filterInstructionsProcessor(
   }
 
   // This is only working with Anchor programs currently
-  if (filter.name) {
-    const discAnchor = getAnchorDiscriminator(filter.name);
+  if (filter.discriminator) {
+    const discAnchor = getAnchorDiscriminator(filter.discriminator);
     const dataDiscriminator = bs58.decode(instruction.data).subarray(0, 8);
     let b58disc: Buffer | undefined;
     try {
-      bs58.decode(filter.name);
+      bs58.decode(filter.discriminator);
     } catch (e) {
       // Do nothing
     }

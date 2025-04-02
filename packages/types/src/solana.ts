@@ -172,7 +172,7 @@ export interface SolanaTransactionFilter {
   signerAccountKey?: string;
 }
 
-type InstructionAccountFilter = null | string[];
+export type InstructionAccountFilter = null | string[];
 
 /**
  * Represents a filter for Solana instructions
@@ -188,16 +188,16 @@ export interface SolanaInstructionFilter extends SolanaTransactionFilter {
   programId?: string;
 
   /**
-   * The name of instruction, this can either be the Anchor instruction name or a hex representation of the discriminator
+   * The discriminator of the instruction data. This can be in hex, base58 or an Anchor program function name
    * @example
-   * name: "claim_token"
+   * discriminator: "claim_token"
    * @example
-   * name: "74ce1bbfa6130049"
+   * discriminator: "74ce1bbfa6130049"
    * */
-  name?: string;
+  discriminator?: string;
 
   /**
-   * Instruction accounts by their index, null to skip that index or an array of addresses to match one of.
+   * Instruction accounts by their index, null to skip that index or an array of addresses to match one of. This is limited to the first 9 accounts for performance optimisations.
    * @example
    * accounts: [null, null, ["GnjWvvFY1ZhWj5wJSZBxcpP6PqYmdXFaGgdgFKKYoZ1V"]] // Match instructions where the 3rd account is "GnjWvvFY1ZhWj5wJSZBxcpP6PqYmdXFaGgdgFKKYoZ1V"
    * */

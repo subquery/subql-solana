@@ -113,10 +113,11 @@ export class BlockchainService
       // TODO how to retain this functionality
       // await this.dsProcessorService.validateCustomDs([dsObj]);
     } else if (isRuntimeDs(dsObj)) {
-      dsObj.options = {
-        ...dsObj.options,
-        ...params.args,
-      };
+      // TODO appy options
+      // dsObj.options = {
+      //   ...dsObj.options,
+      //   ...params.args,
+      // };
 
       const parsedDs = plainToClass(SolanaRuntimeDataSourceImpl, dsObj);
 

@@ -116,10 +116,10 @@ describe('Api.solana', () => {
           '09', // Base58
         ];
 
-        for (const name of validNames) {
+        for (const discriminator of validNames) {
           expect(
             filterInstructionsProcessor(inst!, {
-              name,
+              discriminator,
             }),
           ).toBe(true);
         }
@@ -129,10 +129,10 @@ describe('Api.solana', () => {
           '74ce1bbfa6130049', // Hex
           // 'kPf6M86k1NDLT', // Base58
         ];
-        for (const name of invalidNames) {
+        for (const discriminator of invalidNames) {
           expect(
             filterInstructionsProcessor(inst!, {
-              name,
+              discriminator,
             }),
           ).toBe(false);
         }
