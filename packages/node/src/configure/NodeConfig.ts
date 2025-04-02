@@ -3,11 +3,8 @@
 
 import { IConfig, NodeConfig } from '@subql/node-core';
 
-export interface ISolanaConfig extends IConfig {
-  // skipTransactions: boolean;
-  // blockConfirmations: number;
-  // blockForkReindex: number;
-}
+// NOTE to extend IConfig, change the type to interface
+export type ISolanaConfig = IConfig;
 
 export class SolanaNodeConfig extends NodeConfig<ISolanaConfig> {
   /**

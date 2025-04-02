@@ -13,24 +13,20 @@ import {
   IApiConnectionSpecific,
   IBlock,
 } from '@subql/node-core';
-import {
-  ISolanaEndpointConfig,
-  SolanaBlock,
-} from '@subql/types-solana';
+import { ISolanaEndpointConfig, SolanaBlock } from '@subql/types-solana';
 import { SolanaApi } from './api.solana';
 
-export type FetchFunc = (api: SolanaApi, batch: number[]) => Promise<IBlock<SolanaBlock>[]>;
+export type FetchFunc = (
+  api: SolanaApi,
+  batch: number[],
+) => Promise<IBlock<SolanaBlock>[]>;
 
 // We use a function to get the fetch function because it can change depending on the skipBlocks feature
 export type GetFetchFunc = () => FetchFunc;
 
 export class SolanaApiConnection
-  implements
-  IApiConnectionSpecific<
-    SolanaApi,
-    never,
-    IBlock<SolanaBlock>[]
-  > {
+  implements IApiConnectionSpecific<SolanaApi, never, IBlock<SolanaBlock>[]>
+{
   readonly networkMeta: NetworkMetadataPayload;
 
   private constructor(
@@ -50,11 +46,7 @@ export class SolanaApiConnection
     eventEmitter: EventEmitter2,
     config?: ISolanaEndpointConfig,
   ): Promise<SolanaApiConnection> {
-    const api = await SolanaApi.create(
-      endpoint,
-      eventEmitter,
-      config,
-    );
+    const api = await SolanaApi.create(endpoint, eventEmitter, config);
 
     return new SolanaApiConnection(api, fetchBlocksBatches);
   }
@@ -71,9 +63,7 @@ export class SolanaApiConnection
     await this.unsafeApi.disconnect();
   }
 
-  async fetchBlocks(
-    heights: number[],
-  ): Promise<IBlock<SolanaBlock>[]> {
+  async fetchBlocks(heights: number[]): Promise<IBlock<SolanaBlock>[]> {
     const blocks = await this.fetchBlocksBatches()(this.unsafeApi, heights);
     return blocks;
   }
@@ -81,7 +71,7 @@ export class SolanaApiConnection
   handleError = SolanaApiConnection.handleError;
 
   static handleError(e: Error): ApiConnectionError {
-    let formatted_error: ApiConnectionError;
+    // let formatted_error: ApiConnectionError;
     // if (e.message.startsWith(`No response received from RPC endpoint in`)) {
     //   formatted_error = new TimeoutError(e);
     // } else if (e.message.startsWith(`disconnected from `)) {
@@ -91,7 +81,7 @@ export class SolanaApiConnection
     // } else if (e.message.includes(`Exceeded max limit of`)) {
     //   formatted_error = new LargeResponseError(e);
     // } else {
-    formatted_error = new ApiConnectionError(
+    const formatted_error = new ApiConnectionError(
       e.name,
       e.message,
       ApiErrorType.Default,

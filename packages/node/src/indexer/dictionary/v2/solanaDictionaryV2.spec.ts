@@ -1,5 +1,5 @@
-// // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
-// // SPDX-License-Identifier: GPL-3.0
+// Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
+// SPDX-License-Identifier: GPL-3.0
 
 // import { NOT_NULL_FILTER } from '@subql/common-solana';
 // import {
