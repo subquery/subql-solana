@@ -139,7 +139,11 @@ export interface SubqlCustomHandler<K extends string = string, F = Record<string
  * Represents a runtime handler for Solana, which can be a block handler, transaction handler, or log handler.
  * @type {SubqlBlockHandler | SubqlTransactionHandler }
  */
-export type SubqlRuntimeHandler = SubqlBlockHandler | SubqlTransactionHandler | SubqlInstructionHandler | SubqlLogHandler;
+export type SubqlRuntimeHandler =
+  | SubqlBlockHandler
+  | SubqlTransactionHandler
+  | SubqlInstructionHandler
+  | SubqlLogHandler;
 
 /**
  * Represents a handler for Solana, which can be a runtime handler or a custom handler with unknown filter type.
@@ -151,7 +155,11 @@ export type SubqlHandler = SubqlRuntimeHandler | SubqlCustomHandler<string, unkn
  * Represents a filter for Solana runtime handlers, which can be a block filter, call filter, or event filter.
  * @type {SolanaBlockFilter | SolanaTransactionFilter | SolanaInstructionFilter | SolanaLogFilter}
  */
-export type SubqlHandlerFilter = SolanaBlockFilter | SolanaTransactionFilter | SolanaInstructionFilter | SolanaLogFilter;
+export type SubqlHandlerFilter =
+  | SolanaBlockFilter
+  | SolanaTransactionFilter
+  | SolanaInstructionFilter
+  | SolanaLogFilter;
 
 /**
  * Represents a mapping for Solana handlers, extending FileReference.
@@ -167,28 +175,11 @@ export interface SubqlMapping<T extends SubqlHandler = SubqlHandler> extends Fil
         kind: SolanaHandlerKind.Transaction,
         handler: 'handleTransfer',
         filter: {
-          to: '0x220866B1A2219f40e72f5c628B65D54268cA3A9D',
+          programId: 'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',
         }
       }]
    */
   handlers: T[];
-}
-
-export interface SubqlSolanaProcessorOptions {
-  /**
-   * The name of the abi that is provided in the assets
-   * This is the abi that will be used to decode transaction or log arguments
-   * @example
-   * abi: 'erc20',
-   * */
-  abi?: string;
-  /**
-   * The specific contract that this datasource should filter.
-   * Alternatively this can be left blank and a transaction to filter can be used instead
-   * @example
-   * address: '0x220866B1A2219f40e72f5c628B65D54268cA3A9D',
-   * */
-  address?: string;
 }
 
 /**
@@ -204,24 +195,15 @@ export interface SubqlRuntimeDatasource<M extends SubqlMapping<SubqlRuntimeHandl
    */
   kind: SolanaDatasourceKind.Runtime;
   /**
-   * Options to specify details about the contract and its interface
-   * @example
-   * options: {
-   *   abi: 'erc20',
-   *   address: '0x220866B1A2219f40e72f5c628B65D54268cA3A9D',
-   * }
-   * */
-  options?: SubqlSolanaProcessorOptions;
-  /**
-   * ABI or contract artifact files that are used for decoding.
+   * A map of a program address to an IDL file
    * These are used for codegen to generate handler inputs and contract interfaces
    * @example
    * assets: new Map([
-   *  ['erc721', { file: "./abis/erc721.json" }],
-   *  ['erc1155', { file: "./abis/erc1155.json" }],
+   *  ['JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4', { file: "./idls/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4.idl.json" }],
+   *  ['swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW', { file: "./idls/swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW.idl.json" }],
    * ])
    * */
-  assets?: Map<string, FileReference>;
+  idls?: Map<string, FileReference>;
 }
 
 export type SubqlDatasource = SubqlRuntimeDatasource | SubqlCustomDatasource;
@@ -237,34 +219,25 @@ export interface SubqlCustomDatasource<
    */
   kind: K;
   /**
-   * Options to specify details about the contract and its interface
-   * @example
-   * options: {
-   *   abi: 'erc20',
-   *   address: '0x220866B1A2219f40e72f5c628B65D54268cA3A9D',
-   * }
-   * */
-  options?: SubqlSolanaProcessorOptions;
-  /**
-   * ABI or contract artifact files that are used for decoding.
+   * A map of a program address to an IDL file
    * These are used for codegen to generate handler inputs and contract interfaces
    * @example
    * assets: new Map([
-   *  ['erc721', { file: "./abis/erc721.json" }],
-   *  ['erc1155', { file: "./abis/erc1155.json" }],
+   *  ['JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4', { file: "./idls/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4.idl.json" }],
+   *  ['swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW', { file: "./idls/swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW.idl.json" }],
    * ])
    * */
-  assets?: Map<string, FileReference>;
-  /**
-   * @example
-   * processor: {
-   *    file: './node_modules/@subql/frontier-evm-processor/dist/bundle.js',
-   *    options: {
-   *      abi: 'erc20',
-   *      address: '0x322E86852e492a7Ee17f28a78c663da38FB33bfb',
-   *    }
-   *  }
-   */
+  idls?: Map<string, FileReference>;
+  // /**
+  //  * @example
+  //  * processor: {
+  //  *    file: './node_modules/@subql/frontier-evm-processor/dist/bundle.js',
+  //  *    options: {
+  //  *      abi: 'erc20',
+  //  *      address: '0x322E86852e492a7Ee17f28a78c663da38FB33bfb',
+  //  *    }
+  //  *  }
+  //  */
   processor: Processor<O>;
 }
 
@@ -275,15 +248,7 @@ export type SecondLayerHandlerProcessor<
   DS extends SubqlCustomDatasource = SubqlCustomDatasource
 > =
   | SecondLayerHandlerProcessor_0_0_0<K, SolanaRuntimeHandlerInputMap, SolanaRuntimeFilterMap, F, E, DS, ApiWrapper>
-  | SecondLayerHandlerProcessor_1_0_0<
-    K,
-    SolanaRuntimeHandlerInputMap,
-    SolanaRuntimeFilterMap,
-    F,
-    E,
-    DS,
-    ApiWrapper
-  >;
+  | SecondLayerHandlerProcessor_1_0_0<K, SolanaRuntimeHandlerInputMap, SolanaRuntimeFilterMap, F, E, DS, ApiWrapper>;
 
 export type SecondLayerHandlerProcessorArray<
   K extends string,
@@ -293,7 +258,8 @@ export type SecondLayerHandlerProcessorArray<
 > =
   | SecondLayerHandlerProcessor<SolanaHandlerKind.Block, F, T, DS>
   | SecondLayerHandlerProcessor<SolanaHandlerKind.Transaction, F, T, DS>
-  | SecondLayerHandlerProcessor<SolanaHandlerKind.Instruction, F, T, DS>;
+  | SecondLayerHandlerProcessor<SolanaHandlerKind.Instruction, F, T, DS>
+  | SecondLayerHandlerProcessor<SolanaHandlerKind.Log, F, T, DS>;
 
 export type SubqlDatasourceProcessor<
   K extends string,

@@ -13,9 +13,6 @@ import {
   SubqlMapping,
 } from '@subql/types-solana';
 
-// Todo, this aligns with cli/src/generate-controller, but we should move this to common in next version
-export const DEFAULT_ABI_DIR = '/abis';
-
 export const NOT_NULL_FILTER = '!null';
 
 type DefaultFilter = Record<string, unknown>;
@@ -36,6 +33,12 @@ export function isInstructionHandlerProcessor<E>(
   hp: SecondLayerHandlerProcessorArray<SolanaHandlerKind, DefaultFilter, unknown>
 ): hp is SecondLayerHandlerProcessor<SolanaHandlerKind.Instruction, DefaultFilter, E> {
   return hp.baseHandlerKind === SolanaHandlerKind.Instruction;
+}
+
+export function isLogHandlerProcessor<E>(
+  hp: SecondLayerHandlerProcessorArray<SolanaHandlerKind, DefaultFilter, unknown>
+): hp is SecondLayerHandlerProcessor<SolanaHandlerKind.Log, DefaultFilter, E> {
+  return hp.baseHandlerKind === SolanaHandlerKind.Log;
 }
 
 export function isCustomDs<F extends SubqlMapping<SubqlCustomHandler>>(

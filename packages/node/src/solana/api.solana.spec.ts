@@ -1,7 +1,6 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
-import path from 'path';
 import { translateAddress } from '@coral-xyz/anchor';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Connection } from '@solana/web3.js';
@@ -9,10 +8,7 @@ import { TransactionFilter } from '@subql/common-solana';
 import {
   SolanaBlock,
   SolanaBlockFilter,
-  SolanaDatasourceKind,
-  SolanaHandlerKind,
-  SolanaLogFilter,
-  SubqlRuntimeDatasource,
+  SolanaTransaction,
 } from '@subql/types-solana';
 import { SolanaApi } from './api.solana';
 import {
@@ -25,28 +21,6 @@ import {
 const HTTP_ENDPOINT =
   process.env.HTTP_ENDPOINT ?? 'https://solana.api.onfinality.io/public';
 
-const ds: SubqlRuntimeDatasource = {
-  mapping: {
-    file: '',
-    handlers: [
-      {
-        handler: 'test',
-        kind: SolanaHandlerKind.Transaction,
-        filter: {
-          /*function: '0x23b872dd'*/
-        },
-      },
-    ],
-  },
-  kind: SolanaDatasourceKind.Runtime,
-  startBlock: 16258633,
-  options: { abi: 'erc721' },
-  assets: new Map([
-    ['erc721', { file: path.join(__dirname, '../../test/erc721.json') }],
-  ]),
-};
-
-jest.setTimeout(90000);
 describe('Api.solana', () => {
   let solanaApi: SolanaApi;
   const eventEmitter = new EventEmitter2();
@@ -62,7 +36,17 @@ describe('Api.solana', () => {
     solanaApi = await SolanaApi.create(HTTP_ENDPOINT, eventEmitter);
     // https://solscan.io/block/325922873
     blockData = await fetchBlock(325_922_873);
-  });
+  }, 20_000);
+
+  function getTxBySig(sig: string): SolanaTransaction {
+    const tx = blockData.transactions.find((tx) =>
+      tx.transaction.signatures.find((s) => s === sig),
+    );
+    if (!tx) {
+      throw new Error(`Unable to find tx with signature ${sig}`);
+    }
+    return tx;
+  }
 
   describe('Filters', () => {
     it('Should run block filters correctly', () => {
@@ -81,14 +65,9 @@ describe('Api.solana', () => {
 
     it('Should run transaction filters correctly', () => {
       // https://solscan.io/tx/FQNxV3NQHf6JBzYkaaWaRVj3eAtdEVSsjdStXM9ciZmWfoeiABaG3dXqK612T3LMi3McP5hf967AgJByvRkkRJY
-      const tx = blockData.transactions.find((tx) =>
-        tx.transaction.signatures.find(
-          (s) =>
-            s ===
-            'FQNxV3NQHf6JBzYkaaWaRVj3eAtdEVSsjdStXM9ciZmWfoeiABaG3dXqK612T3LMi3McP5hf967AgJByvRkkRJY',
-        ),
+      const tx = getTxBySig(
+        'FQNxV3NQHf6JBzYkaaWaRVj3eAtdEVSsjdStXM9ciZmWfoeiABaG3dXqK612T3LMi3McP5hf967AgJByvRkkRJY',
       );
-      expect(tx).toBeDefined();
 
       const signerMatch: TransactionFilter = {
         signerAccountKey: '3j1iDNRseKJVEWAb62Xxn74mVjJ7sUTVJaaBNb3gKtUe',
@@ -101,48 +80,117 @@ describe('Api.solana', () => {
       expect(filterTransactionsProcessor(tx!, signerMismatch)).toBeFalsy();
     });
 
-    it('Should run instruction filters correctly', () => {
-      const tx = blockData.transactions.find((tx) =>
-        tx.transaction.signatures.find(
-          (s) =>
-            s ===
-            'FQNxV3NQHf6JBzYkaaWaRVj3eAtdEVSsjdStXM9ciZmWfoeiABaG3dXqK612T3LMi3McP5hf967AgJByvRkkRJY',
-        ),
-      );
+    describe('instructions', () => {
+      it('can filter programIds', () => {
+        const tx = getTxBySig(
+          '4V5S9ymSheic34SsHN9AHA86b41qXfA9JwdEra1UUgoNdvWFTMA5ueSCHn6nRTBDphMQFUFLPgU4N2QsG8En3J1d',
+        );
+        const inst = tx?.transaction.message.instructions[4];
 
-      const inst = tx?.transaction.message.instructions[1];
+        expect(inst).toBeDefined();
 
-      expect(inst).toBeDefined();
+        // A program called by this instruction
+        expect(
+          filterInstructionsProcessor(inst!, {
+            programId: '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8',
+          }),
+        ).toBe(true);
 
-      // A program called by this instruction
-      expect(
-        filterInstructionsProcessor(inst!, {
-          programId: 'SAGE2HAwep459SNq61LHvjxPk4pLPEJLoMETef7f7EE',
-        }),
-      ).toBe(true);
+        // A program not called by this instruction
+        expect(
+          filterInstructionsProcessor(inst!, {
+            programId: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+          }),
+        ).toBe(false);
+      });
 
-      // A program not called by this instruction
-      expect(
-        filterInstructionsProcessor(inst!, {
-          programId: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
-        }),
-      ).toBe(false);
+      it('can filter discriminators', () => {
+        const tx = getTxBySig(
+          '4V5S9ymSheic34SsHN9AHA86b41qXfA9JwdEra1UUgoNdvWFTMA5ueSCHn6nRTBDphMQFUFLPgU4N2QsG8En3J1d',
+        );
+        const inst = tx?.transaction.message.instructions[4];
+
+        const validNames = [
+          'raydium:swap', // Human
+          '09', // Hex
+          '09', // Base58
+        ];
+
+        for (const name of validNames) {
+          expect(
+            filterInstructionsProcessor(inst!, {
+              name,
+            }),
+          ).toBe(true);
+        }
+
+        const invalidNames = [
+          'claim_token', // Human
+          '74ce1bbfa6130049', // Hex
+          // 'kPf6M86k1NDLT', // Base58
+        ];
+        for (const name of invalidNames) {
+          expect(
+            filterInstructionsProcessor(inst!, {
+              name,
+            }),
+          ).toBe(false);
+        }
+      });
+
+      it('can filter accounts', () => {
+        const tx = getTxBySig(
+          '4V5S9ymSheic34SsHN9AHA86b41qXfA9JwdEra1UUgoNdvWFTMA5ueSCHn6nRTBDphMQFUFLPgU4N2QsG8En3J1d',
+        );
+        const inst = tx?.transaction.message.instructions[4];
+
+        expect(
+          filterInstructionsProcessor(inst!, {
+            accounts: [null, ['6fuLRV8aLJF96MaNi44bLJUhaSJu1yzc588kHM4DfG2W']],
+          }),
+        ).toBe(true);
+
+        expect(
+          filterInstructionsProcessor(inst!, {
+            accounts: [
+              null,
+              null,
+              ['6fuLRV8aLJF96MaNi44bLJUhaSJu1yzc588kHM4DfG2W'], // Out of position
+            ],
+          }),
+        ).toBe(false);
+
+        expect(
+          filterInstructionsProcessor(inst!, {
+            accounts: [null, null, []],
+          }),
+        ).toBe(false);
+
+        expect(
+          filterInstructionsProcessor(inst!, {
+            accounts: [
+              null,
+              [
+                '6fuLRV8aLJF96MaNi44bLJUhaSJu1yzc588kHM4DfG2W',
+                '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1',
+              ], // Out of position
+            ],
+          }),
+        ).toBe(true);
+      });
     });
 
-    it('Should run log filters correctly', () => {
-      // TODO write tests
-      throw new Error('Test not implemented');
+    describe('logs', () => {
+      it('should filter logs by program Id', () => {
+        throw new Error('Test not implemented');
+      });
     });
   });
 
   describe('Block parsing', () => {
     it('makes instructions that have a transaction property', () => {
-      const tx = blockData.transactions.find((tx) =>
-        tx.transaction.signatures.find(
-          (s) =>
-            s ===
-            'FQNxV3NQHf6JBzYkaaWaRVj3eAtdEVSsjdStXM9ciZmWfoeiABaG3dXqK612T3LMi3McP5hf967AgJByvRkkRJY',
-        ),
+      const tx = getTxBySig(
+        'FQNxV3NQHf6JBzYkaaWaRVj3eAtdEVSsjdStXM9ciZmWfoeiABaG3dXqK612T3LMi3McP5hf967AgJByvRkkRJY',
       );
 
       for (const instruction of tx!.transaction.message.instructions) {
@@ -161,35 +209,23 @@ describe('Api.solana', () => {
     });
 
     it('corretly parses logs', () => {
-      const tx = blockData.transactions.find((tx) =>
-        tx.transaction.signatures.find(
-          (s) =>
-            s ===
-            '4vGc5nP4W7VZe7SmSb2GsJMG3KJijZJ4KGHUCQ14FmqfPsyDotn7kwR5nA13PpzjwT732ggiLuDGs5PDpjRCKsC6',
-        ),
+      const tx = getTxBySig(
+        '4vGc5nP4W7VZe7SmSb2GsJMG3KJijZJ4KGHUCQ14FmqfPsyDotn7kwR5nA13PpzjwT732ggiLuDGs5PDpjRCKsC6',
       );
       expect(tx!.meta!.logs).toBeDefined();
       expect(tx!.meta!.logs!.length).toBeGreaterThan(0);
 
       // Tx with data logs
-      const txWData = blockData.transactions.find((tx) =>
-        tx.transaction.signatures.find(
-          (s) =>
-            s ===
-            'qtUujQqx16ChZRMG4TE9eNMp4th3GxLvuuCQBEXK4KYyjqfAAPbP6xejA2ZTUe7X1cZYiHCnJHpC5v6GRctYc8c',
-        ),
+      const txWData = getTxBySig(
+        'qtUujQqx16ChZRMG4TE9eNMp4th3GxLvuuCQBEXK4KYyjqfAAPbP6xejA2ZTUe7X1cZYiHCnJHpC5v6GRctYc8c',
       );
       // console.log('META LOGS', txWData.meta.logs);
       expect(txWData!.meta!.logs).toBeDefined();
       expect(txWData!.meta!.logs!.length).toBeGreaterThan(0);
 
       // Tx with a failure
-      const txWError = blockData.transactions.find((tx) =>
-        tx.transaction.signatures.find(
-          (s) =>
-            s ===
-            '8q3z3WoYUcA8UQLYgdgriGCZrGJUAYoeUwTJaVuuq43AmKLQxKLAMxuEAWXMquozVXEX4eL91r3jxKFVifmeXrv',
-        ),
+      const txWError = getTxBySig(
+        '8q3z3WoYUcA8UQLYgdgriGCZrGJUAYoeUwTJaVuuq43AmKLQxKLAMxuEAWXMquozVXEX4eL91r3jxKFVifmeXrv',
       );
       // console.log('ERROR LOGS', txWError.meta.logs);
       expect(txWError!.meta!.logs).toBeDefined();

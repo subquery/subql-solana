@@ -46,6 +46,7 @@
   "devDependencies": {
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.8",
+    "@types/bs58": "^4.0.4",
     "@types/express": "^4.17.13",
     "@types/jest": "^27.4.0",
     "@types/lodash": "^4.14.178",

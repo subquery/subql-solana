@@ -3722,6 +3722,7 @@ __metadata:
     "@subql/node-core": ^17.1.0
     "@subql/testing": ^2.2.1
     "@subql/types-solana": "workspace:*"
+    "@types/bs58": ^4.0.4
     "@types/express": ^4.17.13
     "@types/jest": ^27.4.0
     "@types/lodash": ^4.14.178
@@ -3994,6 +3995,16 @@ __metadata:
     "@types/connect": "*"
     "@types/node": "*"
   checksum: e17840c7d747a549f00aebe72c89313d09fbc4b632b949b2470c5cb3b1cb73863901ae84d9335b567a79ec5efcfb8a28ff8e3f36bc8748a9686756b6d5681f40
+  languageName: node
+  linkType: hard
+
+"@types/bs58@npm:^4.0.4":
+  version: 4.0.4
+  resolution: "@types/bs58@npm:4.0.4"
+  dependencies:
+    "@types/node": "*"
+    base-x: ^3.0.6
+  checksum: 9cac5a00343756f887ad906c10c71464620d352af40ff61373dcede434880a769be8b78380b890e9b13506851af4611ab59e7d4b7159af04f445e1fd5c34e3d0
   languageName: node
   linkType: hard
 
@@ -5285,6 +5296,15 @@ __metadata:
   dependencies:
     safe-buffer: ^5.0.1
   checksum: 957101d6fd09e1903e846fd8f69fd7e5e3e50254383e61ab667c725866bec54e5ece5ba49ce385128ae48f9ec93a26567d1d5ebb91f4d56ef4a9cc0d5a5481e8
+  languageName: node
+  linkType: hard
+
+"base-x@npm:^3.0.6":
+  version: 3.0.11
+  resolution: "base-x@npm:3.0.11"
+  dependencies:
+    safe-buffer: ^5.0.1
+  checksum: c2e3c443fd07cb9b9d3e179a9e9c581daa31881005841fe8d6a834e534505890fedf03465ccf14512da60e3f7be00fe66167806b159ba076d2c03952ae7460c4
   languageName: node
   linkType: hard
 

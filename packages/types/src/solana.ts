@@ -58,7 +58,7 @@ export type DecodedData<T = any> = {
   data: T;
 };
 
-export type LogMessage<T = any> = {
+export type SolanaLogMessage<T = any> = {
   /** The raw log message **/
   message: string;
   /** */
@@ -79,7 +79,7 @@ type TransactionForFullMetaBase = Readonly<{
   /** fee this transaction was charged */
   fee: Lamports;
   /** parsed log messages, can be null if log recording was not enabled for the message. */
-  logs: LogMessage[] | null;
+  logs: SolanaLogMessage[] | null;
   /** array of account balances after the transaction was processed */
   postBalances: readonly Lamports[];
   /** List of token balances from after the transaction was processed or omitted if token balance recording was not yet enabled during this transaction */
@@ -172,6 +172,8 @@ export interface SolanaTransactionFilter {
   signerAccountKey?: string;
 }
 
+type InstructionAccountFilter = null | string[];
+
 /**
  * Represents a filter for Solana instructions
  * @interface
@@ -181,20 +183,35 @@ export interface SolanaInstructionFilter extends SolanaTransactionFilter {
   /**
    * The account key of the program that is interacted with.
    * @example
-   * programId: "11111111111111111111111111111111"
+   * programId: "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
    * */
   programId?: string;
 
   /**
-   * The type of instruction
+   * The name of instruction, this can either be the Anchor instruction name or a hex representation of the discriminator
    * @example
-   * type: "transfer
+   * name: "claim_token"
+   * @example
+   * name: "74ce1bbfa6130049"
    * */
-  type?: string;
+  name?: string;
 
   /**
-   * Key/value pairs of parsed instruction information specific to the instruction type */
-  data?: Record<string, unknown>;
+   * Instruction accounts by their index, null to skip that index or an array of addresses to match one of.
+   * @example
+   * accounts: [null, null, ["GnjWvvFY1ZhWj5wJSZBxcpP6PqYmdXFaGgdgFKKYoZ1V"]] // Match instructions where the 3rd account is "GnjWvvFY1ZhWj5wJSZBxcpP6PqYmdXFaGgdgFKKYoZ1V"
+   * */
+  accounts?: [
+    InstructionAccountFilter,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?
+  ];
 }
 
 /**
@@ -203,110 +220,10 @@ export interface SolanaInstructionFilter extends SolanaTransactionFilter {
  * @extends {SolanaLogFilter}
  */
 export interface SolanaLogFilter {
+  /**
+   * The account key of the program that is interacted with.
+   * @example
+   * programId: "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
+   * */
   programId?: string;
 }
-
-// export interface EthereumResult extends ReadonlyArray<any> {
-//   readonly [key: string]: any;
-// }
-
-// export type EthereumBlock = {
-//   blockExtraData: string;
-//   difficulty: bigint;
-//   extDataGasUsed: string;
-//   extDataHash: string;
-//   gasLimit: bigint;
-//   gasUsed: bigint;
-//   hash: string;
-//   logs: EthereumLog[];
-//   logsBloom: string;
-//   miner: string;
-//   mixHash: string;
-//   nonce: string;
-//   number: number;
-//   parentHash: string;
-//   receiptsRoot: string;
-//   sha3Uncles: string;
-//   size: bigint;
-//   stateRoot: string;
-//   timestamp: bigint;
-//   totalDifficulty: bigint;
-//   transactions: EthereumTransaction[];
-//   transactionsRoot: string;
-//   uncles: string[];
-//   baseFeePerGas?: bigint;
-//   blockGasCost?: bigint;
-// };
-
-// export type EthereumTransaction<T extends EthereumResult = EthereumResult> = {
-//   blockHash: string;
-//   blockNumber: number;
-//   blockTimestamp: bigint;
-//   from: string;
-//   gas: bigint;
-//   gasPrice: bigint;
-//   hash: string;
-//   input: string;
-//   nonce: bigint;
-//   to?: string;
-//   transactionIndex: bigint;
-//   value: bigint;
-//   type: string;
-//   v: bigint;
-//   r: string;
-//   s: string;
-//   /**
-//    * @return {EthereumReceipt} This return type is generic because some networks may return more fields such as OP based networks. This allows your to override the type easily
-//    **/
-//   receipt: <R extends EthereumReceipt = EthereumReceipt>() => Promise<R>;
-//   logs?: EthereumLog[];
-//   accessList?: string[];
-//   chainId?: string; // Hex string , example: "0x1"
-//   maxFeePerGas?: bigint;
-//   maxPriorityFeePerGas?: bigint;
-//   args?: T;
-// };
-
-// export type EthereumReceipt = {
-//   blockHash: string;
-//   blockNumber: number;
-//   contractAddress: string;
-//   cumulativeGasUsed: bigint;
-//   effectiveGasPrice: bigint;
-//   from: string;
-//   gasUsed: bigint;
-//   logs: EthereumLog[];
-//   logsBloom: string;
-//   status: boolean;
-//   to: string;
-//   transactionHash: string;
-//   transactionIndex: number;
-//   type: string;
-// };
-
-// export type EthereumLog<T extends EthereumResult = EthereumResult> = {
-//   address: string;
-//   topics: string[];
-//   data: string;
-//   blockHash: string;
-//   blockNumber: number;
-//   transactionHash: string;
-//   transactionIndex: number;
-//   logIndex: number;
-//   removed: boolean;
-//   args?: T;
-//   block: EthereumBlock;
-//   transaction: EthereumTransaction;
-// };
-
-// export type LightEthereumLog<T extends EthereumResult = EthereumResult> = Omit<
-//   EthereumLog<T>,
-//   'transaction' | 'block'
-// > & {
-//   block: LightEthereumBlock;
-// };
-
-// export type LightEthereumBlock = Omit<EthereumBlock, 'transactions' | 'logs'> & {
-//   logs: LightEthereumLog[];
-//   transactions: string[];
-// };

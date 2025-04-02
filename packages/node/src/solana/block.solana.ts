@@ -13,7 +13,7 @@ import type {
   BaseSolanaBlock,
   SolanaInstruction,
   DecodedData,
-  LogMessage,
+  SolanaLogMessage,
 } from '@subql/types-solana';
 
 type RawSolanaBlock = Readonly<{
@@ -45,11 +45,11 @@ function wrapInstruction(
   };
 }
 
-function wrapLogs(logs: readonly string[] | null): LogMessage[] | null {
+function wrapLogs(logs: readonly string[] | null): SolanaLogMessage[] | null {
   if (logs === null) {
     return null;
   }
-  const res: LogMessage[] = [];
+  const res: SolanaLogMessage[] = [];
 
   // Keep a stack of the instruction programs
   const instructionPath: string[] = [];

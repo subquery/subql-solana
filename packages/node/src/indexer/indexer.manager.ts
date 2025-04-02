@@ -10,6 +10,7 @@ import {
   SubqlSolanaDataSource,
   isInstructionHandlerProcessor,
   isTransactionHandlerProcessor,
+  isLogHandlerProcessor,
 } from '@subql/common-solana';
 import {
   ApiService,
@@ -34,6 +35,8 @@ import {
   SolanaInstruction,
   SolanaInstructionFilter,
   SolanaRuntimeHandlerInputMap,
+  SolanaLogMessage,
+  SolanaLogFilter,
 } from '@subql/types-solana';
 import { groupBy } from 'lodash';
 import { BlockchainService } from '../blockchain.service';
@@ -42,6 +45,7 @@ import { SolanaApi } from '../solana';
 import {
   filterBlocksProcessor,
   filterInstructionsProcessor,
+  filterLogsProcessor,
   filterTransactionsProcessor,
 } from '../solana/utils.solana';
 import { BlockContent } from './types';
@@ -187,6 +191,7 @@ const ProcessorTypeMap = {
   [SolanaHandlerKind.Block]: isBlockHandlerProcessor,
   [SolanaHandlerKind.Transaction]: isTransactionHandlerProcessor,
   [SolanaHandlerKind.Instruction]: isInstructionHandlerProcessor,
+  [SolanaHandlerKind.Log]: isLogHandlerProcessor,
 };
 
 const FilterTypeMap = {
@@ -205,6 +210,11 @@ const FilterTypeMap = {
     filter: SolanaInstructionFilter,
     ds: SubqlSolanaDataSource,
   ) => filterInstructionsProcessor(data, filter),
+  [SolanaHandlerKind.Log]: (
+    data: SolanaLogMessage,
+    filter: SolanaLogFilter,
+    ds: SubqlSolanaDataSource,
+  ) => filterLogsProcessor(data, filter),
 };
 
 const DataIDLParser = {
@@ -214,5 +224,5 @@ const DataIDLParser = {
     data: SolanaInstruction,
     ds: SubqlRuntimeDatasource,
   ) => data, // TODO instruction will require parsing data with IDL
-  // [SolanaHandlerKind.Log]: (data: SolanaLog) => data,
+  [SolanaHandlerKind.Log]: (data: SolanaLogMessage) => data,
 };
