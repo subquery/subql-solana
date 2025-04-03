@@ -13,7 +13,6 @@ import {
   isLogHandlerProcessor,
 } from '@subql/common-solana';
 import {
-  ApiService,
   NodeConfig,
   profiler,
   IndexerSandbox,
@@ -41,7 +40,8 @@ import {
 import { groupBy } from 'lodash';
 import { BlockchainService } from '../blockchain.service';
 import { SolanaProjectDs } from '../configure/SubqueryProject';
-import { SolanaApi } from '../solana';
+import { SolanaApi, SolanaApiService, SolanaSafeApi } from '../solana';
+import { SolanaDecoder } from '../solana/decoder';
 import {
   filterBlocksProcessor,
   filterInstructionsProcessor,
@@ -53,9 +53,9 @@ import { BlockContent } from './types';
 @Injectable()
 export class IndexerManager extends BaseIndexerManager<
   SolanaApi,
-  unknown, // Safe Provider
+  SolanaSafeApi,
   BlockContent,
-  ApiService,
+  SolanaApiService,
   SubqlSolanaDataSource,
   SubqlSolanaCustomDataSource,
   typeof FilterTypeMap,
@@ -66,9 +66,9 @@ export class IndexerManager extends BaseIndexerManager<
   protected isCustomDs = isCustomDs;
 
   constructor(
-    @Inject('APIService') apiService: ApiService,
+    @Inject('APIService') apiService: SolanaApiService,
     nodeConfig: NodeConfig,
-    sandboxService: SandboxService<unknown, SolanaApi>,
+    sandboxService: SandboxService<SolanaSafeApi, SolanaApi>,
     dsProcessorService: DsProcessorService<
       SubqlSolanaDataSource,
       SubqlSolanaCustomDataSource
@@ -103,13 +103,9 @@ export class IndexerManager extends BaseIndexerManager<
 
   protected getDsProcessor(
     ds: SubqlSolanaDataSource,
-    safeApi: unknown,
+    safeApi: SolanaSafeApi,
   ): IndexerSandbox {
-    return this.sandboxService.getDsProcessor(
-      ds,
-      safeApi,
-      this.apiService.unsafeApi.api,
-    );
+    return this.sandboxService.getDsProcessor(ds, safeApi, this.apiService.api);
   }
 
   protected async indexBlockData(
@@ -183,7 +179,10 @@ export class IndexerManager extends BaseIndexerManager<
     data: any,
     ds: SubqlRuntimeDatasource,
   ): Promise<any> {
-    return DataIDLParser[kind](data, ds);
+    // Ensure any provided IDLs are available
+    await this.apiService.api.decoder.loadIdls(ds);
+
+    return DataIDLParser[kind](data);
   }
 }
 
@@ -220,9 +219,14 @@ const FilterTypeMap = {
 const DataIDLParser = {
   [SolanaHandlerKind.Block]: (data: SolanaBlock) => data,
   [SolanaHandlerKind.Transaction]: (data: SolanaTransaction) => data,
-  [SolanaHandlerKind.Instruction]: (
-    data: SolanaInstruction,
-    ds: SubqlRuntimeDatasource,
-  ) => data, // TODO instruction will require parsing data with IDL
-  [SolanaHandlerKind.Log]: (data: SolanaLogMessage) => data,
+  [SolanaHandlerKind.Instruction]: async (data: SolanaInstruction) => {
+    // Preload the decoded data
+    await data.decodedData;
+    return data;
+  },
+  [SolanaHandlerKind.Log]: async (data: SolanaLogMessage) => {
+    // Preload the decoded data
+    await data.decodedMessage;
+    return data;
+  },
 };

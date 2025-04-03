@@ -19,13 +19,8 @@ import {
   SolanaBlock,
 } from '@subql/types-solana';
 import { SubqueryProject } from '../configure/SubqueryProject';
-import {
-  SolanaApiConnection,
-  FetchFunc,
-  GetFetchFunc,
-} from './api.connection';
+import { SolanaApiConnection, FetchFunc, GetFetchFunc } from './api.connection';
 import { SolanaApi, SolanaSafeApi } from './api.solana';
-// import SafeEthProvider from './safe-api';
 
 const logger = getLogger('api');
 
@@ -106,32 +101,4 @@ export class SolanaApiService extends ApiService<
   safeApi(height: number): SolanaSafeApi {
     throw new Error('Not implemented');
   }
-
-  // private async fetchFullBlocksBatch(
-  //   api: SolanaApi,
-  //   batch: number[],
-  // ): Promise<IBlock<SolanaBlock>[]> {
-  //   return api.fetchBlocks(batch);
-  // }
-
-  // private async fetchLightBlocksBatch(
-  //   api: EthereumApi,
-  //   batch: number[],
-  // ): Promise<IBlock<LightEthereumBlock>[]> {
-  //   return api.fetchBlocksLight(batch);
-  // }
-
-  // updateBlockFetching(): void {
-  //   const fetchFunc = this.fetchFullBlocksBatch.bind(this);
-
-  //   if (this.nodeConfig?.profiler) {
-  //     this.fetchBlocksFunction = profilerWrap(
-  //       fetchFunc,
-  //       'SolanaApiService',
-  //       'fetchBlocksBatches',
-  //     ) as FetchFunc;
-  //   } else {
-  //     this.fetchBlocksFunction = fetchFunc;
-  //   }
-  // }
 }

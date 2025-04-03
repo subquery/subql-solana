@@ -1,12 +1,6 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
-import {
-  Program,
-  BorshInstructionCoder,
-  BorshEventCoder,
-  Idl,
-} from '@coral-xyz/anchor';
 import { sha256 } from '@noble/hashes/sha256'; // This is a transient dep from '@coral-xyz/anchor'
 import { filterBlockTimestamp } from '@subql/node-core';
 import {
@@ -22,7 +16,6 @@ import {
 import { isHex } from '@subql/utils';
 import bs58 from 'bs58';
 import { SubqlProjectBlockFilter } from '../configure/SubqueryProject';
-import { SolanaApi } from './api.solana';
 
 function getAccountByIndex(
   instruction: SolanaInstruction,
@@ -30,7 +23,8 @@ function getAccountByIndex(
 ): string {
   return instruction.transaction.transaction.message.accountKeys[index];
 }
-function getProgramId(instruction: SolanaInstruction): string {
+
+export function getProgramId(instruction: SolanaInstruction): string {
   return getAccountByIndex(instruction, instruction.programIdIndex);
 }
 
@@ -145,7 +139,7 @@ export function filterLogsProcessor(
   return true;
 }
 
-const idlCache = new Map<string, Idl>();
+// const idlCache = new Map<string, Idl>();
 
 // TODO memoize this
 export function getAnchorDiscriminator(
@@ -163,59 +157,4 @@ export function getAnchorDiscriminator(
   const hash = sha256(preimage);
   const discriminator = Buffer.from(hash).subarray(0, 8);
   return discriminator;
-}
-
-async function getIdl(api: SolanaApi, programId: string): Promise<Idl> {
-  let idl = idlCache.get(programId);
-  if (idl) {
-    return idl;
-  }
-  idl =
-    (await Program.fetchIdl(programId, { connection: api as any })) ??
-    undefined;
-
-  if (!idl) {
-    throw new Error(`Failed to resolve IDL from network for ${programId}`);
-  }
-
-  idlCache.set(programId, idl);
-  return idl;
-}
-
-// TODO why would this be null?
-// TODO how do we get a connection, were using @solana/kit not @solana/web3.js
-export async function decodeInstruction<T = any>(
-  api: SolanaApi,
-  instruction: SolanaInstruction,
-  idl?: Idl,
-): Promise<{ name: string; data: T } | null> {
-  if (!idl) {
-    const programId = getProgramId(instruction);
-
-    idl = await getIdl(api, programId);
-  }
-
-  const coder = new BorshInstructionCoder(idl);
-  return coder.decode(instruction.data, 'base58') as {
-    name: string;
-    data: T;
-  } | null;
-}
-
-export async function decodeLog<T = any>(
-  api: SolanaApi,
-  log: string,
-  idl?: Idl,
-  programId?: string,
-): Promise<{ name: string; data: T } | null> {
-  if (!idl) {
-    if (!programId) {
-      throw new Error('No IDL or programId provided, unable to decode log');
-    }
-    idl = await getIdl(api, programId);
-  }
-
-  const coder = new BorshEventCoder(idl);
-
-  return coder.decode(log.replace('Program data:', '').trim());
 }

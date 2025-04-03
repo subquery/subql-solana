@@ -3,14 +3,14 @@
 
 import fs from 'fs';
 import path from 'path';
-import { loadFromJsonOrYaml, RunnerQueryBaseModel } from '@subql/common';
-import { validateSync } from 'class-validator';
-import { DeploymentV1_0_0, SolanaRunnerNodeImpl, SolanaRunnerSpecsImpl } from '../project/versioned/v1_0_0';
-import { SolanaProjectManifestVersioned, VersionedProjectManifest } from './versioned';
+import {loadFromJsonOrYaml, RunnerQueryBaseModel} from '@subql/common';
+import {validateSync} from 'class-validator';
+import {DeploymentV1_0_0, SolanaRunnerNodeImpl, SolanaRunnerSpecsImpl} from '../project/versioned/v1_0_0';
+import {SolanaProjectManifestVersioned, VersionedProjectManifest} from './versioned';
 
 const projectsDir = path.join(__dirname, '../../test');
 
-function loadEthereumProjectManifest(file: string): SolanaProjectManifestVersioned {
+function loadSolanaProjectManifest(file: string): SolanaProjectManifestVersioned {
   let manifestPath = file;
   if (fs.existsSync(file) && fs.lstatSync(file).isDirectory()) {
     const yamlFilePath = path.join(file, 'project.yaml');
@@ -30,15 +30,15 @@ function loadEthereumProjectManifest(file: string): SolanaProjectManifestVersion
   return projectManifest;
 }
 
-describe('test eth project.yaml', () => {
-  it('could get eth project template name from its deployment', () => {
-    const manifest = loadEthereumProjectManifest(path.join(projectsDir, 'project_1.0.0.yaml'));
+describe('test solana project.yaml', () => {
+  it('could get solana project template name from its deployment', () => {
+    const manifest = loadSolanaProjectManifest(path.join(projectsDir, 'project_1.0.0.yaml'));
     const deployment = manifest.toDeployment();
     expect(deployment).toContain('name: Pool');
   });
 
   it('could get options in template from its deployment', () => {
-    const manifest = loadEthereumProjectManifest(path.join(projectsDir, 'project_1.0.0.yaml'));
+    const manifest = loadSolanaProjectManifest(path.join(projectsDir, 'project_1.0.0.yaml'));
     const deployment = manifest.toDeployment();
     expect(deployment).toContain('abi: Pool');
   });
@@ -46,20 +46,24 @@ describe('test eth project.yaml', () => {
 
 describe('project.yaml', () => {
   it('can validate project.yaml', () => {
-    expect(() => loadEthereumProjectManifest(path.join(projectsDir, 'project_falsy.yaml'))).toThrow();
-    expect(() => loadEthereumProjectManifest(path.join(projectsDir, 'project_falsy_array.yaml'))).toThrow();
+    // TODO this should catch a specific error, the file doesn't currently exist
+    throw new Error('Not implemented');
+    expect(() => loadSolanaProjectManifest(path.join(projectsDir, 'project_falsy.yaml'))).toThrow();
+    expect(() => loadSolanaProjectManifest(path.join(projectsDir, 'project_falsy_array.yaml'))).toThrow();
   });
 
   it('can fail validation if version not supported', () => {
-    expect(() => loadEthereumProjectManifest(path.join(projectsDir, 'project_invalid_version.yaml'))).toThrow();
+    // TODO this should catch a specific error, the file doesn't currently exist
+    throw new Error('Not implemented');
+    expect(() => loadSolanaProjectManifest(path.join(projectsDir, 'project_invalid_version.yaml'))).toThrow('');
   });
 
   it('can validate a v1.0.0 project.yaml with templates', () => {
-    expect(() => loadEthereumProjectManifest(path.join(projectsDir, 'project_1.0.0.yaml'))).not.toThrow();
+    expect(() => loadSolanaProjectManifest(path.join(projectsDir, 'project_1.0.0.yaml'))).not.toThrow();
   });
 
   it('get v1.0.0 deployment mapping filter', () => {
-    const manifestVersioned = loadEthereumProjectManifest(path.join(projectsDir, 'project_1.0.0.yaml'));
+    const manifestVersioned = loadSolanaProjectManifest(path.join(projectsDir, 'project_1.0.0.yaml'));
 
     const deployment = manifestVersioned.asV1_0_0.deployment;
     const filter = deployment.dataSources[0].mapping.handlers[0].filter;
@@ -69,13 +73,13 @@ describe('project.yaml', () => {
   });
 
   it('can convert genesis hash in v1.0.0 to chainId in deployment', () => {
-    const deployment = loadEthereumProjectManifest(path.join(projectsDir, 'project_1.0.0.yaml')).asV1_0_0.deployment;
+    const deployment = loadSolanaProjectManifest(path.join(projectsDir, 'project_1.0.0.yaml')).asV1_0_0.deployment;
     expect(deployment.network.chainId).not.toBeNull();
     console.log(deployment.network.chainId);
   });
 
   it.skip('can get chainId for deployment', () => {
-    const deployment = loadEthereumProjectManifest(path.join(projectsDir, 'project_1.0.0_chainId.yaml')).asV1_0_0
+    const deployment = loadSolanaProjectManifest(path.join(projectsDir, 'project_1.0.0_chainId.yaml')).asV1_0_0
       .deployment;
     expect(deployment.network.chainId).toBe('moonbeamChainId');
   });
@@ -96,28 +100,24 @@ describe('project.yaml', () => {
 
     deployment.runner.query = queryImp;
 
-    const errors = validateSync(deployment.runner, { whitelist: true, forbidNonWhitelisted: true });
+    const errors = validateSync(deployment.runner, {whitelist: true, forbidNonWhitelisted: true});
     expect(errors.length).toBe(0);
   });
 
   it('can validate a v1.0.0 project.yaml with unsupported runner node', () => {
-    expect(() => loadEthereumProjectManifest(path.join(projectsDir, 'project_1.0.0_bad_runner.yaml'))).toThrow();
+    expect(() => loadSolanaProjectManifest(path.join(projectsDir, 'project_1.0.0_bad_runner.yaml'))).toThrow();
   });
 
   //TODO, pre-release should be excluded
   it.skip('can throw error with unsupported runner version', () => {
-    expect(() =>
-      loadEthereumProjectManifest(path.join(projectsDir, 'project_1.0.0_bad_runner_version.yaml'))
-    ).toThrow();
+    expect(() => loadSolanaProjectManifest(path.join(projectsDir, 'project_1.0.0_bad_runner_version.yaml'))).toThrow();
   });
 
   it('can validate a v1.0.0 project.yaml runner and datasource mismatches', () => {
-    expect(() =>
-      loadEthereumProjectManifest(path.join(projectsDir, 'project_1.0.0_runner_ds_mismatch.yaml'))
-    ).toThrow();
+    expect(() => loadSolanaProjectManifest(path.join(projectsDir, 'project_1.0.0_runner_ds_mismatch.yaml'))).toThrow();
   });
 
   it('can fail validation if custom ds missing processor', () => {
-    expect(() => loadEthereumProjectManifest(path.join(projectsDir, 'project_0.2.0_invalid_custom_ds.yaml'))).toThrow();
+    expect(() => loadSolanaProjectManifest(path.join(projectsDir, 'project_0.2.0_invalid_custom_ds.yaml'))).toThrow();
   });
 });

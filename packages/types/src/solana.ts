@@ -61,8 +61,8 @@ export type DecodedData<T = any> = {
 export type SolanaLogMessage<T = any> = {
   /** The raw log message **/
   message: string;
-  /** */
-  decodedMessage?: DecodedData<T>[];
+  /** A promise for the decoded message. This will be lazily evaluated unless it is matched by a datasource filter then it will resolve instantly */
+  decodedMessage: Promise<DecodedData<T> | null>;
   /** The program address that emitted the message */
   programId: string;
   /** The original index of the unparsed log */
@@ -125,8 +125,8 @@ export type SolanaInstruction<T = any> = Readonly<{
   accounts: readonly number[];
   /* The raw instruction data, in base58 encoding */
   data: Base58EncodedBytes;
-  /* Decoded instruction data, only present if an IDL is provided or found on the network */
-  decodedData?: DecodedData<T>;
+  /** A promise for the decoded message. This will be lazily evaluated unless it is matched by a datasource filter then it will resolve instantly */
+  decodedData: Promise<DecodedData<T> | null>;
   programIdIndex: number;
   stackHeight?: number;
 

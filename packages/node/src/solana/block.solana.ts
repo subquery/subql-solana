@@ -15,6 +15,7 @@ import type {
   DecodedData,
   SolanaLogMessage,
 } from '@subql/types-solana';
+import { SolanaDecoder } from './decoder';
 
 type RawSolanaBlock = Readonly<{
   /** The number of blocks beneath this block */
@@ -32,20 +33,26 @@ type RawSolanaBlock = Readonly<{
 }>;
 
 function wrapInstruction(
-  instruction: Omit<SolanaInstruction, 'transaction'>,
+  instruction: Omit<SolanaInstruction, 'transaction' | 'decodedData'>,
   transaction: TransactionForFullJson<void>,
+  decoder: SolanaDecoder,
 ): SolanaInstruction {
+  let pendingDecode: Promise<DecodedData | null>;
   // XXX if we make this fully circular toJSON will need to be added to omit the transaction on the instruction
   return {
     ...instruction,
     transaction,
-    get parseData(): DecodedData | undefined {
-      throw new Error('Not implemented');
+    get decodedData(): Promise<DecodedData | null> {
+      pendingDecode ??= decoder.decodeInstruction(this);
+      return pendingDecode;
     },
   };
 }
 
-function wrapLogs(logs: readonly string[] | null): SolanaLogMessage[] | null {
+function wrapLogs(
+  logs: readonly string[] | null,
+  decoder: SolanaDecoder,
+): SolanaLogMessage[] | null {
   if (logs === null) {
     return null;
   }
@@ -55,12 +62,14 @@ function wrapLogs(logs: readonly string[] | null): SolanaLogMessage[] | null {
   const instructionPath: string[] = [];
 
   for (const [idx, log] of Object.entries(logs)) {
+    let pendingDecode: Promise<DecodedData | null>;
     if (log.startsWith('Program log:')) {
       res.push({
         message: log,
         programId: instructionPath[instructionPath.length - 1],
         logIndex: parseInt(idx, 10),
         type: 'log',
+        decodedMessage: Promise.resolve(null),
       });
     } else if (log.startsWith('Program data:')) {
       res.push({
@@ -68,7 +77,10 @@ function wrapLogs(logs: readonly string[] | null): SolanaLogMessage[] | null {
         programId: instructionPath[instructionPath.length - 1],
         logIndex: parseInt(idx, 10),
         type: 'data',
-        decodedMessage: undefined, // TODO getter function to parse
+        get decodedMessage(): Promise<DecodedData | null> {
+          pendingDecode ??= decoder.decodeLog(this);
+          return pendingDecode;
+        }, // TODO getter function to parse
       });
     } else if (log.startsWith('Program return:')) {
       res.push({
@@ -76,7 +88,10 @@ function wrapLogs(logs: readonly string[] | null): SolanaLogMessage[] | null {
         programId: instructionPath[instructionPath.length - 1],
         logIndex: parseInt(idx, 10),
         type: 'other',
-        decodedMessage: undefined, // TODO getter function to parse, can return data be dcoded?
+        get decodedMessage(): Promise<DecodedData | null> {
+          pendingDecode ??= decoder.decodeLog(this);
+          return pendingDecode;
+        }, // TODO getter function to parse, can return data be dcoded?
       });
     } else if (log.startsWith('Program consumption:')) {
       // DO nothing
@@ -112,7 +127,10 @@ function wrapLogs(logs: readonly string[] | null): SolanaLogMessage[] | null {
 
 /**
  * Transforms a block from a raw response to the types injected into handlers*/
-export function transformBlock(block: RawSolanaBlock): SolanaBlock {
+export function transformBlock(
+  block: RawSolanaBlock,
+  decoder: SolanaDecoder,
+): SolanaBlock {
   return {
     ...block,
     transactions: block.transactions.map((tx) => ({
@@ -122,7 +140,7 @@ export function transformBlock(block: RawSolanaBlock): SolanaBlock {
         message: {
           ...tx.transaction.message,
           instructions: tx.transaction.message.instructions.map((instruction) =>
-            wrapInstruction(instruction, tx),
+            wrapInstruction(instruction, tx, decoder),
           ),
         },
       },
@@ -133,11 +151,11 @@ export function transformBlock(block: RawSolanaBlock): SolanaBlock {
               (innerInstruction) => ({
                 ...innerInstruction,
                 instructions: innerInstruction.instructions.map((instruction) =>
-                  wrapInstruction(instruction, tx),
+                  wrapInstruction(instruction, tx, decoder),
                 ),
               }),
             ),
-            logs: wrapLogs(tx.meta.logMessages),
+            logs: wrapLogs(tx.meta.logMessages, decoder),
           }
         : null,
     })),

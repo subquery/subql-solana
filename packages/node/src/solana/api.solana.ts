@@ -8,16 +8,14 @@ import { assertIsAddress } from '@solana/addresses';
 import { createSolanaRpc, Rpc } from '@solana/kit';
 import { SolanaRpcApi } from '@solana/rpc-api';
 import { getLogger, Header, IBlock } from '@subql/node-core';
-import {
-  SolanaBlock,
-  ISolanaEndpointConfig,
-} from '@subql/types-solana';
+import { SolanaBlock, ISolanaEndpointConfig } from '@subql/types-solana';
 import CacheableLookup from 'cacheable-lookup';
 import {
   formatBlockUtil,
   solanaBlockToHeader,
   transformBlock,
 } from './block.solana';
+import { SolanaDecoder } from './decoder';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { version: packageVersion } = require('../../package.json');
@@ -25,7 +23,6 @@ const { version: packageVersion } = require('../../package.json');
 const logger = getLogger('api.ethereum');
 
 export type SolanaSafeApi = never;
-
 
 function getHttpAgents() {
   // By default Nodejs doesn't cache DNS lookups
@@ -56,6 +53,7 @@ export class SolanaApi {
   #genesisBlockHash: string;
   private chainId?: number;
   private name?: string;
+  readonly decoder: SolanaDecoder;
 
   /**
    * @param {string} endpoint - The endpoint of the RPC provider
@@ -70,6 +68,8 @@ export class SolanaApi {
   ) {
     this.#client = client;
     this.#genesisBlockHash = genesisHash;
+
+    this.decoder = new SolanaDecoder(this);
   }
 
   static async create(
@@ -78,33 +78,30 @@ export class SolanaApi {
     config?: ISolanaEndpointConfig,
   ): Promise<SolanaApi> {
     try {
-
       // TODO keep alive, user agent and other headers
       const client = createSolanaRpc(endpoint);
       const genesisBlockHash = await client.getGenesisHash().send();
 
-      return new SolanaApi(
-        client,
-        genesisBlockHash,
-        endpoint,
-        eventEmitter,
-      );
+      return new SolanaApi(client, genesisBlockHash, endpoint, eventEmitter);
     } catch (e) {
-      console.error('CrateSoalana API', e)
+      console.error('CrateSoalana API', e);
       throw e;
     }
   }
 
   async getFinalizedBlockHeader(): Promise<Header> {
-
-    const height = await this.#client.getBlockHeight({ commitment: 'finalized' }).send();
+    const height = await this.#client
+      .getBlockHeight({ commitment: 'finalized' })
+      .send();
 
     // Request the minimal amount of information here
-    const block = await this.#client.getBlock(height, {
-      encoding: 'json',
-      transactionDetails: 'none',
-      rewards: false
-    }).send();
+    const block = await this.#client
+      .getBlock(height, {
+        encoding: 'json',
+        transactionDetails: 'none',
+        rewards: false,
+      })
+      .send();
 
     if (!block) {
       throw new Error('Unable to get finalized block');
@@ -114,13 +111,17 @@ export class SolanaApi {
   }
 
   async getFinalizedBlockHeight(): Promise<number> {
-    const finalizedHeight = await this.#client.getBlockHeight({ commitment: 'finalized' }).send();
+    const finalizedHeight = await this.#client
+      .getBlockHeight({ commitment: 'finalized' })
+      .send();
 
     return Number(finalizedHeight);
   }
 
   async getBestBlockHeight(): Promise<number> {
-    const confirmedHeight = await this.#client.getBlockHeight({ commitment: 'confirmed' }).send();
+    const confirmedHeight = await this.#client
+      .getBlockHeight({ commitment: 'confirmed' })
+      .send();
 
     return Number(confirmedHeight);
   }
@@ -130,7 +131,7 @@ export class SolanaApi {
       case '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d':
         return 'mainnet';
       case 'EKLxEB4xoEDq9AAn5HhFiP5WqdhNVc4An2HvJyzHzx7u': // Not tested
-        return 'testnet;'
+        return 'testnet;';
       case 'GH7ome3EiwEr7tu9JuTh2dpYWBJK3z69Xm1ZE3MEE6JC':
         return 'devnet';
       default:
@@ -146,7 +147,9 @@ export class SolanaApi {
     return 'solana';
   }
 
-  async getHeaderByHeightOrHash(heightOrHash: number | string): Promise<Header> {
+  async getHeaderByHeightOrHash(
+    heightOrHash: number | string,
+  ): Promise<Header> {
     // if (typeof heightOrHash === 'number') {
     //   heightOrHash = hexValue(heightOrHash);
     // }
@@ -164,10 +167,13 @@ export class SolanaApi {
 
   async fetchBlock(blockNumber: number): Promise<IBlock<SolanaBlock>> {
     try {
-      const rawBlock = await this.#client.getBlock(
-        BigInt(blockNumber),
-        { encoding: "json", transactionDetails: 'full', maxSupportedTransactionVersion: 0 }
-      ).send();
+      const rawBlock = await this.#client
+        .getBlock(BigInt(blockNumber), {
+          encoding: 'json',
+          transactionDetails: 'full',
+          maxSupportedTransactionVersion: 0,
+        })
+        .send();
 
       if (!rawBlock) {
         // TODO could get
@@ -175,7 +181,7 @@ export class SolanaApi {
       }
 
       this.eventEmitter.emit('fetchBlock');
-      return formatBlockUtil(transformBlock(rawBlock));
+      return formatBlockUtil(transformBlock(rawBlock, this.decoder));
     } catch (e: any) {
       throw this.handleError(e);
     }
@@ -190,17 +196,20 @@ export class SolanaApi {
   }
 
   getSafeApi(blockHeight: number): SolanaSafeApi {
-    throw new Error('Safe Api is not supported')
+    throw new Error('Safe Api is not supported');
   }
 
   // This method is designed to be compatible with @solana/web3.js so that @coral-xyz/anchor IDLs can be fetched.
   async getAccountInfo(address: unknown): Promise<{ data: Buffer } | null> {
-    const addressStr = typeof address === 'string' ? address : (address as any).toBase58();
+    const addressStr =
+      typeof address === 'string' ? address : (address as any).toBase58();
     assertIsAddress(addressStr);
 
-    const res = await this.#client.getAccountInfo(addressStr, {
-      encoding: 'base64',
-    }).send();
+    const res = await this.#client
+      .getAccountInfo(addressStr, {
+        encoding: 'base64',
+      })
+      .send();
 
     if (res.value) {
       return {
@@ -211,90 +220,6 @@ export class SolanaApi {
     return null;
   }
 
-  // private buildInterface(
-  //   abiName: string,
-  //   assets: Record<string, string>,
-  // ): Interface {
-  //   if (!assets[abiName]) {
-  //     throw new Error(`ABI named "${abiName}" not referenced in assets`);
-  //   }
-
-  //   // This assumes that all datasources have a different abi name or they are the same abi
-  //   if (!this.contractInterfaces[abiName]) {
-  //     // Constructing the interface validates the ABI
-  //     try {
-  //       let abiObj = JSON.parse(assets[abiName]);
-
-  //       /*
-  //        * Allows parsing JSON artifacts as well as ABIs
-  //        * https://trufflesuite.github.io/artifact-updates/background.html#what-are-artifacts
-  //        */
-  //       if (!Array.isArray(abiObj) && abiObj.abi) {
-  //         abiObj = abiObj.abi;
-  //       }
-
-  //       this.contractInterfaces[abiName] = new Interface(abiObj);
-  //     } catch (e: any) {
-  //       logger.error(`Unable to parse ABI: ${e.message}`);
-  //       throw new Error('ABI is invalid');
-  //     }
-  //   }
-
-  //   return this.contractInterfaces[abiName];
-  // }
-
-  // async parseLog<T extends EthereumResult = EthereumResult>(
-  //   log: EthereumLog | LightEthereumLog,
-  //   ds: SubqlRuntimeDatasource,
-  // ): Promise<
-  //   EthereumLog | LightEthereumLog | EthereumLog<T> | LightEthereumLog<T>
-  // > {
-  //   try {
-  //     if (!ds?.options?.abi) {
-  //       logger.warn('No ABI provided for datasource');
-  //       return log;
-  //     }
-  //     const iface = this.buildInterface(ds.options.abi, await loadAssets(ds));
-
-  //     log.args = iface?.parseLog(log).args as T;
-
-  //     return log;
-  //   } catch (e: any) {
-  //     logger.warn(`Failed to parse log data: ${e.message}`);
-  //     return log;
-  //   }
-  // }
-
-  // async parseTransaction<T extends EthereumResult = EthereumResult>(
-  //   transaction: SolanaTransaction,
-  //   ds: SubqlRuntimeDatasource,
-  // ): Promise<SolanaTransaction<T> | SolanaTransaction> {
-  //   try {
-  //     if (!ds?.options?.abi) {
-  //       if (transaction.input !== '0x') {
-  //         logger.warn('No ABI provided for datasource');
-  //       }
-  //       return transaction;
-  //     }
-  //     const assets = await loadAssets(ds);
-  //     const iface = this.buildInterface(ds.options.abi, assets);
-  //     const func = iface.getFunction(hexDataSlice(transaction.input, 0, 4));
-  //     const args = iface.decodeFunctionData(func, transaction.input) as T;
-
-  //     transaction.logs =
-  //       transaction.logs &&
-  //       ((await Promise.all(
-  //         transaction.logs.map(async (log) => this.parseLog(log, ds)),
-  //       )) as Array<EthereumLog | EthereumLog<T>>);
-
-  //     transaction.args = args;
-  //     return transaction;
-  //   } catch (e: any) {
-  //     logger.warn(`Failed to parse transaction data: ${e.message}`);
-  //     return transaction;
-  //   }
-  // }
-
   // eslint-disable-next-line @typescript-eslint/require-await
   async connect(): Promise<void> {
     logger.error('Ethereum API connect is not implemented');
@@ -304,7 +229,6 @@ export class SolanaApi {
   async disconnect(): Promise<void> {
     // NO-OP
     // TODO implement if websockets are supported
-
     // if (this.client instanceof WebSocketProvider) {
     //   await this.client.destroy();
     // } else {
@@ -313,7 +237,7 @@ export class SolanaApi {
   }
 
   handleError(e: Error): Error {
-    if ((e as any)?.status === 429) {
+    if ((e as any)?.context?.statusCode === 429) {
       const { hostname } = new URL(this.endpoint);
       return new Error(`Rate Limited at endpoint: ${hostname}`);
     }
