@@ -125,6 +125,36 @@ function wrapLogs(
   return res;
 }
 
+type DictionaryLog = {
+  message: string;
+  logIndex: number;
+  programId: string;
+  kind: 'data' | 'log' | 'other';
+};
+
+function wrapDictionaryLogs(
+  logs: DictionaryLog[],
+  decoder: SolanaDecoder,
+): SolanaLogMessage[] {
+  return logs.map((l) => {
+    let pendingDecode: Promise<DecodedData | null>;
+    return {
+      message: l.message,
+      programId: l.programId,
+      logIndex: l.logIndex,
+      type: l.kind,
+      get decodedMessage() {
+        if (!['other', 'data'].includes(l.kind)) {
+          return Promise.resolve(null);
+        }
+
+        pendingDecode ??= decoder.decodeLog(this);
+        return pendingDecode;
+      },
+    };
+  });
+}
+
 /**
  * Transforms a block from a raw response to the types injected into handlers*/
 export function transformBlock(
@@ -147,7 +177,7 @@ export function transformBlock(
       meta: tx.meta
         ? {
             ...tx.meta,
-            innerInstructions: tx.meta?.innerInstructions.map(
+            innerInstructions: tx.meta.innerInstructions.map(
               (innerInstruction) => ({
                 ...innerInstruction,
                 instructions: innerInstruction.instructions.map((instruction) =>
@@ -155,7 +185,10 @@ export function transformBlock(
                 ),
               }),
             ),
-            logs: wrapLogs(tx.meta.logMessages, decoder),
+            // Dictionary blocks have logs instead of logMessages that are already somewhat wrapped
+            logs: (tx.meta as any).logs
+              ? wrapDictionaryLogs((tx.meta as any).logs, decoder)
+              : wrapLogs(tx.meta.logMessages, decoder),
           }
         : null,
     })),

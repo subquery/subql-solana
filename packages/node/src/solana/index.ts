@@ -3,3 +3,4 @@
 
 export * from './api.solana';
 export * from './api.service.solana';
+export * from './decoder';

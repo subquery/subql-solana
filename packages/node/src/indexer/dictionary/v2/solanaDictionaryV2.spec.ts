@@ -1,6 +1,23 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { BlockHeightMap, NodeConfig } from '@subql/node-core';
+import {
+  SolanaDatasourceKind,
+  SolanaHandlerKind,
+  SubqlDatasource,
+  SubqlRuntimeDatasource,
+} from '@subql/types-solana';
+import { SubqueryProject } from '../../../configure/SubqueryProject';
+import { SolanaApi } from '../../../solana';
+import { SolanaDictionaryV2 } from './solanaDictionaryV2';
+
+const HTTP_ENDPOINT =
+  process.env.HTTP_ENDPOINT ?? 'https://solana.api.onfinality.io/public';
+
+const DEFAULT_DICTIONARY = 'http://localhost:8080';
+
 // import { NOT_NULL_FILTER } from '@subql/common-solana';
 // import {
 //   BlockHeightMap,
@@ -21,13 +38,11 @@
 //   SolanaProjectDsTemplate,
 //   SubqueryProject,
 // } from '../../../configure/SubqueryProject';
-// import { SolanaApi } from '../../../solana';
 // import {
 //   buildDictionaryV2QueryEntry,
 //   SolanaDictionaryV2,
 // } from './solanaDictionaryV2';
 
-// const DEFAULT_DICTIONARY = 'https://ethereum.node.subquery.network/public';
 // const HTTP_ENDPOINT = 'https://ethereum.rpc.subquery.network/public';
 // const mockDs: SolanaProjectDs[] = [
 //   {
@@ -112,220 +127,216 @@
 //   },
 // ];
 
-// const nodeConfig = new NodeConfig({
-//   subquery: 'eth-starter',
-//   subqueryName: 'eth-starter',
-//   dictionaryTimeout: 10,
-//   networkEndpoint: { [HTTP_ENDPOINT]: {} },
-//   networkDictionary: [DEFAULT_DICTIONARY],
-// });
+const nodeConfig = new NodeConfig({
+  subquery: 'solana-starter',
+  subqueryName: 'solana-starter',
+  dictionaryTimeout: 10,
+  networkEndpoint: { [HTTP_ENDPOINT]: {} },
+  networkDictionary: [DEFAULT_DICTIONARY],
+});
 
-// function makeBlockHeightMap(mockDs: SubqlDatasource[]): BlockHeightMap<any> {
-//   const m = new Map<number, any>();
-//   mockDs.forEach((ds, index, dataSources) => {
-//     m.set(ds.startBlock || 1, dataSources.slice(0, index + 1));
-//   });
-//   return new BlockHeightMap(m);
-// }
+function makeBlockHeightMap(mockDs: SubqlDatasource[]): BlockHeightMap<any> {
+  const m = new Map<number, any>();
+  mockDs.forEach((ds, index, dataSources) => {
+    m.set(ds.startBlock || 1, dataSources.slice(0, index + 1));
+  });
+  return new BlockHeightMap(m);
+}
 
 // // enable this once dictionary v2 is online
-// describe('solana dictionary v2', () => {
-//   let solanaDictionaryV2: SolanaDictionaryV2;
+describe('solana dictionary v2', () => {
+  let solanaDictionaryV2: SolanaDictionaryV2;
 
-//   const dsMap = makeBlockHeightMap(mockDs);
+  //   const dsMap = makeBlockHeightMap(mockDs);
 
-//   beforeAll(async () => {
-//     solanaDictionaryV2 = await SolanaDictionaryV2.create(
-//       DEFAULT_DICTIONARY,
-//       nodeConfig,
-//       { network: { chainId: '1' } } as SubqueryProject,
-//       await SolanaApi.create(HTTP_ENDPOINT, new EventEmitter2()),
-//     );
-//   }, 10000);
+  beforeAll(async () => {
+    solanaDictionaryV2 = await SolanaDictionaryV2.create(
+      DEFAULT_DICTIONARY,
+      nodeConfig,
+      { network: { chainId: '1' } } as SubqueryProject,
+      await SolanaApi.create(HTTP_ENDPOINT, new EventEmitter2()),
+    );
+  }, 10000);
 
-//   beforeEach(() => {
-//     solanaDictionaryV2.updateQueriesMap(dsMap);
-//   });
+  //   beforeEach(() => {
+  //     solanaDictionaryV2.updateQueriesMap(dsMap);
+  //   });
 
-//   it('converts ds to v2 dictionary queries', () => {
-//     const query = (solanaDictionaryV2 as any).queriesMap.get(19217803);
-//     expect(query.logs.length).toBe(1);
-//     expect(query.transactions.length).toBe(1);
-//   });
+  //   it('converts ds to v2 dictionary queries', () => {
+  //     const query = (solanaDictionaryV2 as any).queriesMap.get(19217803);
+  //     expect(query.logs.length).toBe(1);
+  //     expect(query.transactions.length).toBe(1);
+  //   });
 
-//   it('query response match with entries', async () => {
-//     const ethBlocks = (await solanaDictionaryV2.getData(
-//       19217803,
-//       (solanaDictionaryV2 as any)._metadata.end,
-//       2,
-//     )) as DictionaryResponse<IBlock<SolanaBlock>>;
+  //   it('query response match with entries', async () => {
+  //     const ethBlocks = (await solanaDictionaryV2.getData(
+  //       19217803,
+  //       (solanaDictionaryV2 as any)._metadata.end,
+  //       2,
+  //     )) as DictionaryResponse<IBlock<SolanaBlock>>;
 
-//     expect(ethBlocks.batchBlocks.map((b) => b.block.number)).toStrictEqual([
-//       19217803, 19217804,
-//     ]);
+  //     expect(ethBlocks.batchBlocks.map((b) => b.block.number)).toStrictEqual([
+  //       19217803, 19217804,
+  //     ]);
 
-//     const ethBlock19217803 = ethBlocks.batchBlocks[0].block;
-//     const ethBlock19217804 = ethBlocks.batchBlocks[1].block;
+  //     const ethBlock19217803 = ethBlocks.batchBlocks[0].block;
+  //     const ethBlock19217804 = ethBlocks.batchBlocks[1].block;
 
-//     expect(ethBlock19217803.number).toBe(19217803);
-//     expect(ethBlock19217804.number).toBe(19217804);
+  //     expect(ethBlock19217803.number).toBe(19217803);
+  //     expect(ethBlock19217804.number).toBe(19217804);
 
-//     // Sighash of approval tx
-//     expect(
-//       ethBlock19217803.transactions.filter(
-//         (tx) => tx.input.indexOf('0x095ea7b3') === 0,
-//       ).length,
-//     ).toBe(4);
+  //     // Sighash of approval tx
+  //     expect(
+  //       ethBlock19217803.transactions.filter(
+  //         (tx) => tx.input.indexOf('0x095ea7b3') === 0,
+  //       ).length,
+  //     ).toBe(4);
 
-//     expect(ethBlock19217804.logs.length).toBe(233);
+  //     expect(ethBlock19217804.logs.length).toBe(233);
 
-//     // This matches with dictionaryQueryEntries[0].topics
-//     expect(ethBlock19217804.logs[0].topics).toContain(
-//       '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
-//     );
-//   }, 10000);
+  //     // This matches with dictionaryQueryEntries[0].topics
+  //     expect(ethBlock19217804.logs[0].topics).toContain(
+  //       '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+  //     );
+  //   }, 10000);
 
-//   // Geth currently throwing errors with this request
-//   it.skip('is able to get transaction with field to is null', async () => {
-//     const dsMap = makeBlockHeightMap(mockDs2);
-//     solanaDictionaryV2.updateQueriesMap(dsMap);
+  //   // Geth currently throwing errors with this request
+  //   it.skip('is able to get transaction with field to is null', async () => {
+  //     const dsMap = makeBlockHeightMap(mockDs2);
+  //     solanaDictionaryV2.updateQueriesMap(dsMap);
 
-//     const { conditions } = (solanaDictionaryV2 as any).getQueryConditions(
-//       19217803,
-//       (solanaDictionaryV2 as any)._metadata.end,
-//     );
+  //     const { conditions } = (solanaDictionaryV2 as any).getQueryConditions(
+  //       19217803,
+  //       (solanaDictionaryV2 as any)._metadata.end,
+  //     );
 
-//     expect(conditions).toEqual({ transactions: [{ to: [null] }] });
+  //     expect(conditions).toEqual({ transactions: [{ to: [null] }] });
 
-//     const ethBlocks = (await solanaDictionaryV2.getData(
-//       19217803,
-//       (solanaDictionaryV2 as any)._metadata.end,
-//       1,
-//     )) as DictionaryResponse<IBlock<SolanaBlock>>;
+  //     const ethBlocks = (await solanaDictionaryV2.getData(
+  //       19217803,
+  //       (solanaDictionaryV2 as any)._metadata.end,
+  //       1,
+  //     )) as DictionaryResponse<IBlock<SolanaBlock>>;
 
-//     const { hash, transactions } = ethBlocks.batchBlocks[0].block;
+  //     const { hash, transactions } = ethBlocks.batchBlocks[0].block;
 
-//     expect(hash).toBe(
-//       '0xa9ba70126240a8418739a103527860948a2be32de2eb9a8f590591faa174c08b',
-//     );
+  //     expect(hash).toBe(
+  //       '0xa9ba70126240a8418739a103527860948a2be32de2eb9a8f590591faa174c08b',
+  //     );
 
-//     // https://etherscan.io/tx/0x57e8cd9483cb5d308151372b0cf33fdc615999283c80ee3c28e94f074dda61f1
-//     expect(
-//       transactions.find(
-//         (tx) =>
-//           tx.hash ===
-//           '0x57e8cd9483cb5d308151372b0cf33fdc615999283c80ee3c28e94f074dda61f1',
-//       ),
-//     ).toBeDefined();
-//   });
+  //     // https://etherscan.io/tx/0x57e8cd9483cb5d308151372b0cf33fdc615999283c80ee3c28e94f074dda61f1
+  //     expect(
+  //       transactions.find(
+  //         (tx) =>
+  //           tx.hash ===
+  //           '0x57e8cd9483cb5d308151372b0cf33fdc615999283c80ee3c28e94f074dda61f1',
+  //       ),
+  //     ).toBeDefined();
+  //   });
 
-//   it('is able to query with not null topics', async () => {
-//     /**
-//      * Dictionary v1 supported filtering logs where a topic was null or not null.
-//      * V2 doesn't yet support this but we should still be able to make a dictionary query that gets relevant logs.
-//      * It will just include events that will be filtered out later.
-//      * */
+  //   it('is able to query with not null topics', async () => {
+  //     /**
+  //      * Dictionary v1 supported filtering logs where a topic was null or not null.
+  //      * V2 doesn't yet support this but we should still be able to make a dictionary query that gets relevant logs.
+  //      * It will just include events that will be filtered out later.
+  //      * */
 
-//     const ds: SubqlRuntimeDatasource = {
-//       kind: SolanaDatasourceKind.Runtime,
-//       assets: new Map(),
-//       options: {
-//         abi: 'erc20',
-//       },
-//       startBlock: 19476187,
-//       mapping: {
-//         file: '',
-//         handlers: [
-//           {
-//             handler: 'handleLog',
-//             kind: SolanaHandlerKind.Log,
-//             filter: {
-//               topics: [
-//                 'Transfer(address, address, uint256)',
-//                 undefined,
-//                 undefined,
-//                 NOT_NULL_FILTER,
-//               ],
-//             },
-//           },
-//         ],
-//       },
-//     };
+  //     const ds: SubqlRuntimeDatasource = {
+  //       kind: SolanaDatasourceKind.Runtime,
+  //       assets: new Map(),
+  //       options: {
+  //         abi: 'erc20',
+  //       },
+  //       startBlock: 19476187,
+  //       mapping: {
+  //         file: '',
+  //         handlers: [
+  //           {
+  //             handler: 'handleLog',
+  //             kind: SolanaHandlerKind.Log,
+  //             filter: {
+  //               topics: [
+  //                 'Transfer(address, address, uint256)',
+  //                 undefined,
+  //                 undefined,
+  //                 NOT_NULL_FILTER,
+  //               ],
+  //             },
+  //           },
+  //         ],
+  //       },
+  //     };
 
-//     const dsMap = makeBlockHeightMap([ds]);
-//     solanaDictionaryV2.updateQueriesMap(dsMap);
+  //     const dsMap = makeBlockHeightMap([ds]);
+  //     solanaDictionaryV2.updateQueriesMap(dsMap);
 
-//     const { conditions } = (solanaDictionaryV2 as any).getQueryConditions(
-//       19476187,
-//       (solanaDictionaryV2 as any)._metadata.end,
-//     );
+  //     const { conditions } = (solanaDictionaryV2 as any).getQueryConditions(
+  //       19476187,
+  //       (solanaDictionaryV2 as any)._metadata.end,
+  //     );
 
-//     expect(conditions).toEqual({
-//       logs: [
-//         {
-//           address: [],
-//           topics0: [
-//             '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
-//           ],
-//           topics3: [],
-//         },
-//       ],
-//     });
+  //     expect(conditions).toEqual({
+  //       logs: [
+  //         {
+  //           address: [],
+  //           topics0: [
+  //             '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+  //           ],
+  //           topics3: [],
+  //         },
+  //       ],
+  //     });
 
-//     const ethBlocks = (await solanaDictionaryV2.getData(
-//       19476187,
-//       (solanaDictionaryV2 as any)._metadata.end,
-//       2,
-//     )) as DictionaryResponse<IBlock<SolanaBlock>>;
+  //     const ethBlocks = (await solanaDictionaryV2.getData(
+  //       19476187,
+  //       (solanaDictionaryV2 as any)._metadata.end,
+  //       2,
+  //     )) as DictionaryResponse<IBlock<SolanaBlock>>;
 
-//     const { hash, logs } = ethBlocks.batchBlocks[0].block;
+  //     const { hash, logs } = ethBlocks.batchBlocks[0].block;
 
-//     expect(hash).toEqual(
-//       '0xa798861151ed58ad67d80d1cf61dc30e65d003bc958e99a7969a05a67e69e0b2',
-//     );
+  //     expect(hash).toEqual(
+  //       '0xa798861151ed58ad67d80d1cf61dc30e65d003bc958e99a7969a05a67e69e0b2',
+  //     );
 
-//     const log = logs.find((l) => l.logIndex === 184);
-//     expect(log).toBeDefined();
-//     expect(log!.transactionHash).toEqual(
-//       '0x5491f3f4b7ca6cc81f992a17e19bc9bafff408518c643c5a254de44b5a7b6d72',
-//     );
+  //     const log = logs.find((l) => l.logIndex === 184);
+  //     expect(log).toBeDefined();
+  //     expect(log!.transactionHash).toEqual(
+  //       '0x5491f3f4b7ca6cc81f992a17e19bc9bafff408518c643c5a254de44b5a7b6d72',
+  //     );
 
-//     // Uncomment this when not null filter supported
-//     // expect(logs.filter(l => !l.topics[3]).length).toEqual(6) // There are 6 events with no topic3
-//   }, 100000);
+  //     // Uncomment this when not null filter supported
+  //     // expect(logs.filter(l => !l.topics[3]).length).toEqual(6) // There are 6 events with no topic3
+  //   }, 100000);
 
-//   it('returns a lastBufferedHeight if there are no block results', async () => {
-//     const ds: SubqlRuntimeDatasource = {
-//       kind: SolanaDatasourceKind.Runtime,
-//       assets: new Map(),
-//       options: {
-//         abi: 'erc20',
-//         address: '0x30baa3ba9d7089fd8d020a994db75d14cf7ec83b',
-//       },
-//       startBlock: 18723210,
-//       mapping: {
-//         file: '',
-//         handlers: [
-//           {
-//             handler: 'handleLog',
-//             kind: SolanaHandlerKind.Log,
-//             filter: {
-//               topics: ['Transfer(address, address, uint256)'],
-//             },
-//           },
-//         ],
-//       },
-//     };
+  it('returns a lastBufferedHeight if there are no block results', async () => {
+    const blockHeight = 317_617_480;
+    const ds: SubqlRuntimeDatasource = {
+      kind: SolanaDatasourceKind.Runtime,
+      startBlock: blockHeight,
+      mapping: {
+        file: '',
+        handlers: [
+          {
+            handler: 'handleInstruction',
+            kind: SolanaHandlerKind.Instruction,
+            filter: {
+              programId: '8A2ap8YTUmCYbQztNZQnebE333PBuWQxztYNpvQ8RXKX',
+            },
+          },
+        ],
+      },
+    };
 
-//     const dsMap = makeBlockHeightMap([ds]);
-//     solanaDictionaryV2.updateQueriesMap(dsMap);
+    const dsMap = makeBlockHeightMap([ds]);
+    solanaDictionaryV2.updateQueriesMap(dsMap);
 
-//     const res = await solanaDictionaryV2.getData(18723210, 18733210, 100);
+    const res = await solanaDictionaryV2.getData(blockHeight, blockHeight, 100);
 
-//     expect(res?.batchBlocks.length).toEqual(0);
-//     expect(res?.lastBufferedHeight).toEqual(18733210);
-//   });
-// });
+    expect(res?.batchBlocks.length).toEqual(0);
+    expect(res?.lastBufferedHeight).toEqual(blockHeight);
+  });
+});
 
 // describe('buildDictionaryV2QueryEntry', () => {
 //   it('Build filter for !null', () => {

@@ -7,7 +7,6 @@ import {
   KEYPATH_WILDCARD,
   messageConfig,
 } from '@solana/rpc-transformers';
-import { NOT_NULL_FILTER } from '@subql/common-solana';
 import {
   NodeConfig,
   DictionaryV2,
@@ -30,10 +29,8 @@ import {
   SolanaProjectDsTemplate,
   SubqueryProject,
 } from '../../../configure/SubqueryProject';
-import { SolanaApi } from '../../../solana';
+import { SolanaApi, SolanaDecoder } from '../../../solana';
 import { formatBlockUtil, transformBlock } from '../../../solana/block.solana';
-import { yargsOptions } from '../../../yargs';
-import { groupedDataSources, validAddresses } from '../utils';
 import {
   SolanaDictionaryV2QueryEntry,
   SolanaDictionaryTxConditions,
@@ -46,156 +43,46 @@ const MIN_FETCH_LIMIT = 200;
 
 const logger = getLogger('dictionary-v2');
 
-function applyAddresses(
-  addresses?: (string | undefined | null)[],
-): string[] | undefined {
-  const queryAddressLimit = yargsOptions.argv['query-address-limit'];
-  if (
-    !addresses ||
-    !addresses.length ||
-    addresses.length > queryAddressLimit ||
-    addresses.filter((v) => !v).length // DONT use find because 'undefined' and 'null' as falsey
-  ) {
-    return [];
-  }
-
-  return validAddresses(addresses).map((a) => a.toLowerCase());
-}
-
 function txFilterToDictionaryCondition(
   filter?: SolanaTransactionFilter,
-  addresses?: (string | undefined | null)[],
 ): SolanaDictionaryTxConditions {
   // TODO implement
-  throw new Error('Not implemented');
 
-  // const txConditions: EthDictionaryTxConditions = {};
-  // const toArray: (string | null)[] = [];
-  // const fromArray: string[] = [];
-  // const funcArray: string[] = [];
+  const txConditions: SolanaDictionaryTxConditions = {};
 
-  // if (filter?.from) {
-  //   fromArray.push(filter.from.toLowerCase());
-  // }
+  if (filter?.signerAccountKey) {
+    txConditions.signerAccountKeys = [filter.signerAccountKey];
+  }
 
-  // const assignTo = (value: string | null | undefined) => {
-  //   if (value === null) {
-  //     toArray.push(null);
-  //   } else if (value !== undefined) {
-  //     toArray.push(value.toLowerCase());
-  //   }
-  // };
-
-  // const optionsAddresses = applyAddresses(addresses);
-  // if (!optionsAddresses?.length) {
-  //   assignTo(filter?.to);
-  // } else {
-  //   if (filter?.to || filter?.to === null) {
-  //     logger.warn(
-  //       `TransactionFilter 'to' conflicts with 'address' in data source options, using data source option`,
-  //     );
-  //   }
-  //   optionsAddresses.forEach(assignTo);
-  // }
-
-  // if (filter?.function) {
-  //   funcArray.push(functionToSighash(filter.function));
-  // }
-
-  // if (toArray.length !== 0) {
-  //   txConditions.to = toArray;
-  // }
-  // if (fromArray.length !== 0) {
-  //   txConditions.from = fromArray;
-  // }
-
-  // if (funcArray.length !== 0) {
-  //   txConditions.data = funcArray;
-  // }
-
-  // return txConditions;
+  return txConditions;
 }
 
 function instructionFilterToDictionaryCondition(
   filter?: SolanaInstructionFilter,
-  addresses?: (string | undefined | null)[],
 ): SolanaDictionaryInstructionConditions {
-  // TODO implement
-  throw new Error('Not implemented');
-  // const txConditions: EthDictionaryTxConditions = {};
-  // const toArray: (string | null)[] = [];
-  // const fromArray: string[] = [];
-  // const funcArray: string[] = [];
+  const instConditions: SolanaDictionaryInstructionConditions = {};
 
-  // if (filter?.from) {
-  //   fromArray.push(filter.from.toLowerCase());
-  // }
+  if (filter?.accounts) {
+    throw new Error('Instrucitons account filter not implemented');
+    // instConditions.accounts = filter.accounts;
+  }
 
-  // const assignTo = (value: string | null | undefined) => {
-  //   if (value === null) {
-  //     toArray.push(null);
-  //   } else if (value !== undefined) {
-  //     toArray.push(value.toLowerCase());
-  //   }
-  // };
-
-  // const optionsAddresses = applyAddresses(addresses);
-  // if (!optionsAddresses?.length) {
-  //   assignTo(filter?.to);
-  // } else {
-  //   if (filter?.to || filter?.to === null) {
-  //     logger.warn(
-  //       `TransactionFilter 'to' conflicts with 'address' in data source options, using data source option`,
-  //     );
-  //   }
-  //   optionsAddresses.forEach(assignTo);
-  // }
-
-  // if (filter?.function) {
-  //   funcArray.push(functionToSighash(filter.function));
-  // }
-
-  // if (toArray.length !== 0) {
-  //   txConditions.to = toArray;
-  // }
-  // if (fromArray.length !== 0) {
-  //   txConditions.from = fromArray;
-  // }
-
-  // if (funcArray.length !== 0) {
-  //   txConditions.data = funcArray;
-  // }
-
-  // return txConditions;
+  if (filter?.programId) {
+    instConditions.programIds = [filter.programId];
+  }
+  return instConditions;
 }
 
 function logFilterToDictionaryCondition(
   filter?: SolanaLogFilter,
-  addresses?: (string | undefined | null)[],
 ): SolanaDictionaryLogConditions {
-  // TODO implement
-  throw new Error('Not implemented');
-  // const logConditions: SolanaDictionaryLogConditions = {};
-  // logConditions.address = applyAddresses(addresses);
-  // if (filter?.topics) {
-  //   for (let i = 0; i < Math.min(filter.topics.length, 4); i++) {
-  //     const topic = filter.topics[i];
-  //     if (!topic) {
-  //       continue;
-  //     }
-  //     const field = `topics${i}`;
-  //     // Initialized
-  //     if (!logConditions[field]) {
-  //       logConditions[field] = [];
-  //     }
-  //     if (topic === NOT_NULL_FILTER) {
-  //       logConditions[field] = []; // TODO, check if !null
-  //     } else {
-  //       logConditions[field].push(eventToTopic(topic));
-  //     }
-  //   }
-  // }
-  // return logConditions;
+  const logConditions: SolanaDictionaryLogConditions = {};
+
+  if (filter?.programId) {
+    logConditions.programIds = [filter.programId];
+  }
+
+  return logConditions;
 }
 
 function sanitiseDictionaryConditions(
@@ -229,67 +116,66 @@ export function buildDictionaryV2QueryEntry(
     transactions: [],
   };
 
-  const groupedHandlers = groupedDataSources(dataSources);
-  for (const [handler, addresses] of groupedHandlers) {
-    // No filters, cant use dictionary
-    if (!handler.filter && !addresses?.length) return {};
+  for (const ds of dataSources) {
+    for (const handler of ds.mapping.handlers) {
+      // No filters, cant use dictionary
+      if (!handler.filter) return {};
 
-    switch (handler.kind) {
-      case SolanaHandlerKind.Block:
-        if (handler.filter?.modulo === undefined) {
-          return {};
+      switch (handler.kind) {
+        case SolanaHandlerKind.Block:
+          if (handler.filter?.modulo === undefined) {
+            return {};
+          }
+          break;
+        case SolanaHandlerKind.Transaction: {
+          if (
+            handler.filter &&
+            Object.values(handler.filter).filter((v) => v !== undefined).length
+          ) {
+            dictionaryConditions.transactions ??= [];
+            dictionaryConditions.transactions.push(
+              txFilterToDictionaryCondition(handler.filter),
+            );
+          }
+          break;
         }
-        break;
-      case SolanaHandlerKind.Transaction: {
-        if (
-          (handler.filter &&
-            Object.values(handler.filter).filter((v) => v !== undefined)
-              .length) ||
-          validAddresses(addresses).length
-        ) {
-          dictionaryConditions.transactions ??= [];
-          dictionaryConditions.transactions.push(
-            txFilterToDictionaryCondition(handler.filter, addresses),
-          );
+        case SolanaHandlerKind.Instruction: {
+          if (
+            handler.filter &&
+            Object.values(handler.filter).filter((v) => v !== undefined).length
+          ) {
+            dictionaryConditions.instructions ??= [];
+            dictionaryConditions.instructions.push(
+              instructionFilterToDictionaryCondition(handler.filter),
+            );
+          }
+          break;
         }
-        break;
-      }
-      case SolanaHandlerKind.Instruction: {
-        if (
-          (handler.filter &&
-            Object.values(handler.filter).filter((v) => v !== undefined)
-              .length) ||
-          validAddresses(addresses).length
-        ) {
-          dictionaryConditions.instructions ??= [];
-          dictionaryConditions.instructions.push(
-            instructionFilterToDictionaryCondition(handler.filter, addresses),
-          );
-        }
-        break;
-      }
-      case SolanaHandlerKind.Log: {
-        throw new Error('Not implemented');
-        // if (
-        //   handler.filter?.topics?.length ||
-        //   validAddresses(addresses).length
-        // ) {
-        //   dictionaryConditions.logs ??= [];
-        //   dictionaryConditions.logs.push(
-        //     logFilterToDictionaryCondition(handler.filter, addresses),
-        //   );
-        // }
+        case SolanaHandlerKind.Log: {
+          if (
+            handler.filter &&
+            Object.values(handler.filter).filter((v) => v !== undefined).length
+          ) {
+            dictionaryConditions.logs ??= [];
+            dictionaryConditions.logs.push(
+              logFilterToDictionaryCondition(handler.filter),
+            );
+          }
 
-        break;
+          break;
+        }
+        default:
       }
-      default:
     }
   }
 
   return sanitiseDictionaryConditions(dictionaryConditions);
 }
 
-function parseBlock(block: RawSolanaBlock): SolanaBlock {
+function parseBlock(
+  block: RawSolanaBlock,
+  decoder: SolanaDecoder,
+): SolanaBlock {
   const methodName = 'parseBlock';
 
   // This is based on https://github.com/anza-xyz/kit/blob/main/packages/rpc-api/src/index.ts#L257
@@ -361,9 +247,14 @@ function parseBlock(block: RawSolanaBlock): SolanaBlock {
     },
   });
 
-  return transformBlock(
-    transformer(block, { methodName, params: undefined }) as any,
+  const rpcBlock = transformer(
+    { result: block },
+    { methodName, params: undefined },
   );
+
+  const res = transformBlock(rpcBlock as any, decoder);
+
+  return res;
 }
 
 export class SolanaDictionaryV2 extends DictionaryV2<
@@ -426,7 +317,7 @@ export class SolanaDictionaryV2 extends DictionaryV2<
     try {
       const blocks: IBlock<SolanaBlock>[] = (
         (data.blocks as unknown[]) || []
-      ).map((b) => formatBlockUtil(parseBlock(b)));
+      ).map((b) => formatBlockUtil(parseBlock(b, this.api.decoder)));
 
       if (!blocks.length) {
         return {
@@ -439,7 +330,7 @@ export class SolanaDictionaryV2 extends DictionaryV2<
         lastBufferedHeight: Number(blocks[blocks.length - 1].block.blockHeight),
       };
     } catch (e: any) {
-      logger.error(e, `Failed to handle block response}`);
+      logger.error(e, `Failed to handle block response`);
       throw e;
     }
   }

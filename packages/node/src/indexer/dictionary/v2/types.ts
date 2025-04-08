@@ -23,6 +23,7 @@ export interface SolanaDictionaryTxConditions {
 }
 
 export interface SolanaDictionaryInstructionConditions {
-  programIds?: string[]
+  programIds?: string[];
+  accounts?: (string[] | null)[];
   isCommitted?: boolean;
 }
