@@ -1,9 +1,7 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
-import { translateAddress } from '@coral-xyz/anchor';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Connection } from '@solana/web3.js';
 import { TransactionFilter } from '@subql/common-solana';
 import {
   SolanaBlock,
@@ -258,17 +256,5 @@ describe('Api.solana', () => {
       // TODO write test
       throw new Error('Test not implemented');
     });
-  });
-
-  it('has the same behaviour for getAccountInfo as legacy @solana/web3.js', async () => {
-    const connection2 = new Connection(HTTP_ENDPOINT);
-
-    const res1 = await solanaApi.getAccountInfo(
-      'SAGE2HAwep459SNq61LHvjxPk4pLPEJLoMETef7f7EE',
-    );
-    const res2 = await connection2.getAccountInfo(
-      translateAddress('SAGE2HAwep459SNq61LHvjxPk4pLPEJLoMETef7f7EE'),
-    );
-    expect(res1?.data).toEqual(res2?.data);
   });
 });

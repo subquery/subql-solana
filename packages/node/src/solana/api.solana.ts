@@ -79,6 +79,7 @@ export class SolanaApi {
   ): Promise<SolanaApi> {
     try {
       // TODO keep alive, user agent and other headers
+      console.log('CREATING API', endpoint);
       const client = createSolanaRpc(endpoint);
       const genesisBlockHash = await client.getGenesisHash().send();
 
@@ -239,6 +240,7 @@ export class SolanaApi {
   handleError(e: Error): Error {
     if ((e as any)?.context?.statusCode === 429) {
       const { hostname } = new URL(this.endpoint);
+      console.log('ERROR', e);
       return new Error(`Rate Limited at endpoint: ${hostname}`);
     }
 

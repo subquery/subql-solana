@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0
 
 import type {Address} from '@solana/addresses';
+import {TransactionVersion} from '@solana/kit';
 import type {
   TransactionForFullJson,
   UnixTimestamp,
@@ -24,6 +25,14 @@ type AddressTableLookup = Readonly<{
   readableIndexes: readonly number[];
   /** List of indices used to load addresses of writable accounts from a lookup table. */
   writableIndexes: readonly number[];
+}>;
+
+type TransactionForFullMetaLoadedAddresses = Readonly<{
+  /** Addresses loaded from lookup tables */
+  loadedAddresses: {
+    readonly: readonly Address[];
+    writable: readonly Address[];
+  };
 }>;
 
 type TransactionForFullTransactionAddressTableLookups = Readonly<{
@@ -117,8 +126,13 @@ export type TransactionForFullMetaInnerInstructionsUnparsed = Readonly<{
 }>;
 
 export type SolanaTransaction = {
-  meta: (TransactionForFullMetaBase & TransactionForFullMetaInnerInstructionsUnparsed) | null;
+  meta:
+    | (TransactionForFullMetaBase &
+        TransactionForFullMetaInnerInstructionsUnparsed &
+        TransactionForFullMetaLoadedAddresses)
+    | null;
   transaction: TransactionForFullTransactionAddressTableLookups & TransactionForFullTransactionJsonBase;
+  version: TransactionVersion;
 };
 
 export type SolanaInstruction<T = any> = Readonly<{
@@ -132,7 +146,7 @@ export type SolanaInstruction<T = any> = Readonly<{
 
   // Variation from the original @solana/rpc-types to allow linking back to the transaction
   // Use the original pacakge type here so we dont have a circular reference beyond Tx -> Inst -> Tx
-  transaction: TransactionForFullJson<void>;
+  transaction: TransactionForFullJson<0>;
 }>;
 
 export type BaseSolanaBlock = Readonly<{

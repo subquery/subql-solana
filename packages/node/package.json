@@ -19,7 +19,8 @@
     "subql-node-solana": "./bin/run"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "^0.31.0",
+    "@codama/dynamic-codecs": "^1.1.12",
+    "@codama/nodes-from-anchor": "^1.1.11",
     "@nestjs/common": "^11.0.8",
     "@nestjs/core": "^11.0.8",
     "@nestjs/event-emitter": "^2.0.0",
@@ -32,6 +33,7 @@
     "@subql/testing": "^2.2.1",
     "@subql/types-solana": "workspace:*",
     "cacheable-lookup": "6",
+    "codama": "^1.2.11",
     "ethers": "^5.7.0",
     "eventemitter2": "^6.4.5",
     "json5": "^2.2.3",

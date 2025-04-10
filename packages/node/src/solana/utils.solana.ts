@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0
 
 import { sha256 } from '@noble/hashes/sha256'; // This is a transient dep from '@coral-xyz/anchor'
+import { TransactionForFullJson } from '@solana/kit';
 import { filterBlockTimestamp } from '@subql/node-core';
 import {
   SolanaLogMessage,
@@ -17,11 +18,21 @@ import { isHex } from '@subql/utils';
 import bs58 from 'bs58';
 import { SubqlProjectBlockFilter } from '../configure/SubqueryProject';
 
+function allAccounts(
+  transaction: SolanaTransaction | TransactionForFullJson<0>,
+) {
+  return [
+    ...transaction.transaction.message.accountKeys,
+    ...(transaction.meta?.loadedAddresses.writable ?? []),
+    ...(transaction.meta?.loadedAddresses.readonly ?? []),
+  ];
+}
+
 function getAccountByIndex(
   instruction: SolanaInstruction,
   index: number,
 ): string {
-  return instruction.transaction.transaction.message.accountKeys[index];
+  return allAccounts(instruction.transaction)[index];
 }
 
 export function getProgramId(instruction: SolanaInstruction): string {

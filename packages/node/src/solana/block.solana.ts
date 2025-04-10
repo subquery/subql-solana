@@ -29,12 +29,12 @@ type RawSolanaBlock = Readonly<{
   /** The blockhash of this block's parent */
   previousBlockhash: Blockhash;
 
-  transactions: readonly TransactionForFullJson<void>[];
+  transactions: readonly TransactionForFullJson<0>[];
 }>;
 
 function wrapInstruction(
   instruction: Omit<SolanaInstruction, 'transaction' | 'decodedData'>,
-  transaction: TransactionForFullJson<void>,
+  transaction: TransactionForFullJson<0>,
   decoder: SolanaDecoder,
 ): SolanaInstruction {
   let pendingDecode: Promise<DecodedData | null>;
