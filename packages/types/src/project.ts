@@ -23,6 +23,7 @@ import {
   SolanaBlock,
   SolanaTransaction,
   SolanaInstruction,
+  SolanaLogMessage,
 } from './solana';
 type ApiWrapper = unknown; // TODO
 
@@ -70,8 +71,8 @@ export enum SolanaHandlerKind {
 export type SolanaRuntimeHandlerInputMap = {
   [SolanaHandlerKind.Block]: SolanaBlock;
   [SolanaHandlerKind.Transaction]: SolanaTransaction;
-  [SolanaHandlerKind.Instruction]: SolanaInstruction; // TODO
-  [SolanaHandlerKind.Log]: never; // TODO
+  [SolanaHandlerKind.Instruction]: SolanaInstruction;
+  [SolanaHandlerKind.Log]: SolanaLogMessage;
 };
 
 type SolanaRuntimeFilterMap = {
@@ -203,7 +204,8 @@ export interface SubqlRuntimeDatasource<M extends SubqlMapping<SubqlRuntimeHandl
    *  ['swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW', { file: "./idls/swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW.idl.json" }],
    * ])
    * */
-  idls?: Map<string, FileReference>;
+  // This must be assets so they are correctly loaded
+  assets?: Map<string, FileReference>;
 }
 
 export type SubqlDatasource = SubqlRuntimeDatasource | SubqlCustomDatasource;
@@ -227,7 +229,8 @@ export interface SubqlCustomDatasource<
    *  ['swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW', { file: "./idls/swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW.idl.json" }],
    * ])
    * */
-  idls?: Map<string, FileReference>;
+  // This must be assets so they are correctly loaded
+  assets?: Map<string, FileReference>;
   // /**
   //  * @example
   //  * processor: {

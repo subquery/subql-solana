@@ -117,6 +117,8 @@ function wrapLogs(
       }
     } else if (log.startsWith('Transfer')) {
       // Do nothing
+    } else if (log.startsWith('Create Account')) {
+      // TODO decide this behaviour
     } else {
       throw new Error(`Unable to parse log message: ${log}`);
     }
@@ -206,7 +208,7 @@ export function formatBlockUtil<B extends SolanaBlock = SolanaBlock>(
 
 export function solanaBlockToHeader(block: BaseSolanaBlock): Header {
   return {
-    blockHeight: Number(block.blockHeight),
+    blockHeight: Number(block.parentSlot) + 1, // The blocks don't include the slot because they assume you know that when making the request
     blockHash: block.blockhash,
     parentHash: block.previousBlockhash,
     timestamp: new Date(Number(block.blockTime) * 1000), // TODO test

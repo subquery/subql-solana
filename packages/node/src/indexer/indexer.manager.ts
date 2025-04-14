@@ -40,8 +40,12 @@ import {
 import { groupBy } from 'lodash';
 import { BlockchainService } from '../blockchain.service';
 import { SolanaProjectDs } from '../configure/SubqueryProject';
-import { SolanaApi, SolanaApiService, SolanaSafeApi } from '../solana';
-import { SolanaDecoder } from '../solana/decoder';
+import {
+  SolanaApi,
+  SolanaApiService,
+  SolanaDecoder,
+  SolanaSafeApi,
+} from '../solana';
 import {
   filterBlocksProcessor,
   filterInstructionsProcessor,
@@ -58,7 +62,7 @@ export class IndexerManager extends BaseIndexerManager<
   SolanaApiService,
   SubqlSolanaDataSource,
   SubqlSolanaCustomDataSource,
-  typeof FilterTypeMap,
+  ReturnType<typeof getFilterTypeMap>,
   typeof ProcessorTypeMap,
   SolanaRuntimeHandlerInputMap
 > {
@@ -85,7 +89,7 @@ export class IndexerManager extends BaseIndexerManager<
       dsProcessorService,
       dynamicDsService,
       unfinalizedBlocksService,
-      FilterTypeMap,
+      getFilterTypeMap(apiService.api.decoder),
       ProcessorTypeMap,
       blockchainService,
     );
@@ -129,11 +133,15 @@ export class IndexerManager extends BaseIndexerManager<
       )) {
         await this.indexInstruction(instruction, dataSources, getVM);
 
-        for (const innerInstrutions1 of innerInstructions[idx]) {
+        for (const innerInstrutions1 of innerInstructions[idx] ?? []) {
           for (const innerInstrution of innerInstrutions1.instructions) {
             await this.indexInstruction(innerInstrution, dataSources, getVM);
           }
         }
+      }
+
+      for (const log of tx.meta?.logs ?? []) {
+        await this.indexLog(log, dataSources, getVM);
       }
     }
   }
@@ -173,6 +181,16 @@ export class IndexerManager extends BaseIndexerManager<
     }
   }
 
+  private async indexLog(
+    log: SolanaLogMessage,
+    dataSources: SolanaProjectDs[],
+    getVM: (d: SolanaProjectDs) => Promise<IndexerSandbox>,
+  ): Promise<void> {
+    for (const ds of dataSources) {
+      await this.indexData(SolanaHandlerKind.Log, log, ds, getVM);
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/require-await
   protected async prepareFilteredData(
     kind: SolanaHandlerKind,
@@ -193,7 +211,7 @@ const ProcessorTypeMap = {
   [SolanaHandlerKind.Log]: isLogHandlerProcessor,
 };
 
-const FilterTypeMap = {
+const getFilterTypeMap = (decoder: SolanaDecoder) => ({
   [SolanaHandlerKind.Block]: (
     data: SolanaBlock,
     filter: SolanaBlockFilter,
@@ -208,13 +226,13 @@ const FilterTypeMap = {
     data: SolanaInstruction,
     filter: SolanaInstructionFilter,
     ds: SubqlSolanaDataSource,
-  ) => filterInstructionsProcessor(data, filter),
+  ) => filterInstructionsProcessor(data, decoder, filter),
   [SolanaHandlerKind.Log]: (
     data: SolanaLogMessage,
     filter: SolanaLogFilter,
     ds: SubqlSolanaDataSource,
   ) => filterLogsProcessor(data, filter),
-};
+});
 
 const DataIDLParser = {
   [SolanaHandlerKind.Block]: (data: SolanaBlock) => data,

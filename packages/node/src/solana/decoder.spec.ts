@@ -1,9 +1,11 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
+import { IdlV01 } from '@codama/nodes-from-anchor';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SolanaBlock } from '@subql/types-solana';
-import { BN } from 'bn.js';
+import bs58 from 'bs58';
+import { RootNode } from 'codama';
 import { SolanaApi } from './api.solana';
 import { Idl, SolanaDecoder } from './decoder';
 import { getProgramId } from './utils.solana';
@@ -12,13 +14,9 @@ const HTTP_ENDPOINT =
   process.env.HTTP_ENDPOINT ?? 'https://solana.api.onfinality.io/public';
 
 console.log('HTTPE HTTP_ENDPOINT', HTTP_ENDPOINT);
-const IDL_Jupiter: Idl = require('../../test/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4.idl.json');
-const IDL_swap: Idl = require('../../test/swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW.idl.json');
-const IDL_token: Idl = require('../../test/TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA.idl.json');
-
-function stringify(value: any): string {
-  return JSON.stringify(value, (_, v) => (BN.isBN(v) ? v.toString() : v));
-}
+const IDL_Jupiter: IdlV01 = require('../../test/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4.idl.json');
+const IDL_swap: IdlV01 = require('../../test/swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW.idl.json');
+const IDL_token: RootNode = require('../../test/TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA.idl.json');
 
 describe('SolanaDecoder', () => {
   let solanaApi: SolanaApi;
@@ -29,6 +27,15 @@ describe('SolanaDecoder', () => {
     solanaApi = await SolanaApi.create(HTTP_ENDPOINT, new EventEmitter2());
     decoder = new SolanaDecoder(solanaApi);
   });
+
+  const loadDecoderIdls = () => {
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    decoder.idls['JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4'] = IDL_Jupiter;
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    decoder.idls['swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW'] = IDL_swap;
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    decoder.idls['TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'] = IDL_token;
+  };
 
   describe('caching IDLs', () => {
     it('caches IDLs from the network', async () => {
@@ -60,21 +67,85 @@ describe('SolanaDecoder', () => {
     });
   });
 
+  describe('parsing instruction discriminators', () => {
+    beforeAll(() => {
+      loadDecoderIdls();
+    });
+
+    it('correctly parses Anchor program discriminators', () => {
+      for (const inst of IDL_Jupiter.instructions) {
+        expect(
+          decoder.parseDiscriminator(
+            inst.name,
+            'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',
+          ),
+        ).toEqual(Buffer.from(inst.discriminator));
+      }
+    });
+
+    it('correctly parses SPL program discriminators', () => {
+      for (let i = 0; i < IDL_token.program.instructions.length; i++) {
+        const inst = IDL_token.program.instructions[i];
+        expect(
+          decoder.parseDiscriminator(
+            inst.name,
+            'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+          ),
+        ).toEqual(Buffer.from([i]));
+      }
+    });
+
+    it('correctly parses hex discriminators', () => {
+      for (let i = 0; i < IDL_token.program.instructions.length; i++) {
+        expect(
+          decoder.parseDiscriminator(
+            `0x${Buffer.from([i]).toString('hex')}`,
+            'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+          ),
+        ).toEqual(Buffer.from([i]));
+      }
+
+      for (const inst of IDL_Jupiter.instructions) {
+        expect(
+          decoder.parseDiscriminator(
+            `0x${Buffer.from(inst.discriminator).toString('hex')}`,
+            'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+          ),
+        ).toEqual(Buffer.from(inst.discriminator));
+      }
+    });
+
+    it('correctly parses base58 discriminators', () => {
+      for (let i = 0; i < IDL_token.program.instructions.length; i++) {
+        expect(
+          decoder.parseDiscriminator(
+            bs58.encode(Buffer.from([i])),
+            'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+          ),
+        ).toEqual(Buffer.from([i]));
+      }
+
+      for (const inst of IDL_Jupiter.instructions) {
+        expect(
+          decoder.parseDiscriminator(
+            bs58.encode(Buffer.from(inst.discriminator)),
+            'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+          ),
+        ).toEqual(Buffer.from(inst.discriminator));
+      }
+    });
+  });
+
   describe('decode instrutions', () => {
     beforeAll(async () => {
       // https://solscan.io/block/330469167
       const { block } = await solanaApi.fetchBlock(330_469_167);
       blockData = block;
 
-      // eslint-disable-next-line @typescript-eslint/dot-notation
-      decoder.idls['JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4'] = IDL_Jupiter;
-      // eslint-disable-next-line @typescript-eslint/dot-notation
-      decoder.idls['swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW'] = IDL_swap;
-      // eslint-disable-next-line @typescript-eslint/dot-notation
-      decoder.idls['TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'] = IDL_token;
+      loadDecoderIdls();
     }, 30_000);
 
-    const instructionData = stringify({
+    const instructionData = {
       routePlan: [
         {
           swap: {
@@ -89,7 +160,7 @@ describe('SolanaDecoder', () => {
       quotedOutAmount: BigInt(126754),
       slippageBps: 200,
       platformFeeBps: 98,
-    });
+    };
 
     it('can decode an instruction with an IDL file', async () => {
       //https://solscan.io/tx/3rf2sSMeJC1dd4t4TDvYPfvQjpL6DG6qdDcMnruDtATPbwjqt3xDnNvddtiTBESL8AWiFt2zENghqAh1h252bKQi
@@ -106,7 +177,7 @@ describe('SolanaDecoder', () => {
 
       expect(decoded).toBeDefined();
       expect(decoded!.name).toEqual('route');
-      expect(stringify(decoded!.data)).toEqual(instructionData);
+      expect(decoded!.data).toEqual(instructionData);
     });
 
     // Since removing anchor we don't have a way of fetching IDLS
@@ -124,7 +195,7 @@ describe('SolanaDecoder', () => {
 
       expect(decoded).toBeDefined();
       expect(decoded!.name).toEqual('route');
-      expect(stringify(decoded!.data)).toEqual(instructionData);
+      expect(decoded!.data).toEqual(instructionData);
     });
 
     it('can decode SPL token program instructions', async () => {
@@ -163,12 +234,12 @@ describe('SolanaDecoder', () => {
       blockData = block;
     }, 30_000);
 
-    const logData = stringify({
+    const logData = {
       pubkey: 'BQR6JJFyMWxnUERqbCRCCy1ietW2yq8RTKDx9odzruha',
       data: {
         balances: ['03e05311f9', '03a42bdd0d38'],
       },
-    });
+    };
 
     it('can decode a log with an IDL file', async () => {
       // https://solscan.io/tx/5Z18NZWUiDmxmVYncvuyACB9HRRYyzZfRPE9pfT2yaTpAveDTUwghWaYMPRk9Df5HsJy9yd6dBrndrmHz1zfsAig
@@ -189,7 +260,7 @@ describe('SolanaDecoder', () => {
 
       expect(decoded).not.toBeNull();
       expect(decoded!.name).toBe('PoolBalanceUpdatedEvent');
-      expect(stringify(decoded!.data)).toBe(logData);
+      expect(decoded!.data).toEqual(logData);
     });
 
     it('can decode a log with an IDL found on chain', async () => {
@@ -211,7 +282,7 @@ describe('SolanaDecoder', () => {
 
       expect(decoded).not.toBeNull();
       expect(decoded!.name).toBe('PoolBalanceUpdatedEvent');
-      expect(stringify(decoded!.data)).toBe(logData);
+      expect(decoded!.data).toEqual(logData);
     });
   });
 });

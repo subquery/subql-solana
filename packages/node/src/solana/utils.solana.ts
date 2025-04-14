@@ -1,7 +1,6 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
-import { sha256 } from '@noble/hashes/sha256'; // This is a transient dep from '@coral-xyz/anchor'
 import { TransactionForFullJson } from '@solana/kit';
 import { filterBlockTimestamp } from '@subql/node-core';
 import {
@@ -14,9 +13,9 @@ import {
   SolanaTransaction,
   SolanaTransactionFilter,
 } from '@subql/types-solana';
-import { isHex } from '@subql/utils';
 import bs58 from 'bs58';
 import { SubqlProjectBlockFilter } from '../configure/SubqueryProject';
+import { SolanaDecoder } from './decoder';
 
 function allAccounts(
   transaction: SolanaTransaction | TransactionForFullJson<0>,
@@ -80,34 +79,33 @@ export function filterTransactionsProcessor(
 export function filterInstructionsProcessor(
   instruction: SolanaInstruction,
   // idls?: Map<string, Idl>,
+  decoder: SolanaDecoder,
   filter?: SolanaInstructionFilter,
 ): boolean {
   if (!filter) return true;
 
+  const programId = getProgramId(instruction);
   if (filter.programId) {
-    if (filter.programId !== getProgramId(instruction)) {
+    if (filter.programId !== programId) {
       return false;
     }
   }
 
-  // This is only working with Anchor programs currently
+  console.log('PROGRAM MATCH');
+
   if (filter.discriminator) {
-    const discAnchor = getAnchorDiscriminator(filter.discriminator);
-    const dataDiscriminator = bs58.decode(instruction.data).subarray(0, 8);
-    let b58disc: Buffer | undefined;
-    try {
-      bs58.decode(filter.discriminator);
-    } catch (e) {
-      // Do nothing
-    }
+    const discriminator = decoder.parseDiscriminator(
+      filter.discriminator,
+      programId,
+    );
+    const data = bs58.decode(instruction.data);
 
-    if (
-      !dataDiscriminator.equals(discAnchor) ||
-      (!!b58disc && dataDiscriminator.equals(b58disc))
-    ) {
+    if (data.indexOf(discriminator) !== 0) {
       return false;
     }
   }
+
+  console.log('DISCRIMINATOR MATCH');
 
   if (filter.accounts) {
     const accounts = instruction.transaction.transaction.message.accountKeys;
@@ -148,24 +146,4 @@ export function filterLogsProcessor(
   // TODO parse log data
 
   return true;
-}
-
-// const idlCache = new Map<string, Idl>();
-
-// TODO memoize this
-export function getAnchorDiscriminator(
-  name: string,
-  namespace = 'global',
-): Buffer {
-  if (isHex(`0x${name}`)) {
-    return Buffer.from(name, 'hex');
-  }
-
-  const preimage = (name as string).startsWith(namespace)
-    ? name
-    : `${namespace}:${name}`;
-
-  const hash = sha256(preimage);
-  const discriminator = Buffer.from(hash).subarray(0, 8);
-  return discriminator;
 }

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0
 
 import assert from 'assert';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ApiService,
@@ -11,6 +11,7 @@ import {
   NodeConfig,
   IBlock,
   exitWithError,
+  profilerWrap,
 } from '@subql/node-core';
 import { IEndpointConfig } from '@subql/types-core';
 import {
@@ -39,8 +40,8 @@ export class SolanaApiService extends ApiService<
   };
 
   private constructor(
-    @Inject('ISubqueryProject') private project: SubqueryProject,
     connectionPoolService: ConnectionPoolService<SolanaApiConnection>,
+    private nodeConfig: NodeConfig,
     eventEmitter: EventEmitter2,
   ) {
     super(connectionPoolService, eventEmitter);
@@ -65,10 +66,12 @@ export class SolanaApiService extends ApiService<
     }
 
     const apiService = new SolanaApiService(
-      project,
       connectionPoolService,
+      nodeConfig,
       eventEmitter,
     );
+
+    apiService.updateBlockFetching();
 
     await apiService.createConnections(network, (endpoint, config) =>
       SolanaApiConnection.create(
@@ -80,6 +83,13 @@ export class SolanaApiService extends ApiService<
     );
 
     return apiService;
+  }
+
+  private async fetchFullBlocksBatch(
+    api: SolanaApi,
+    batch: number[],
+  ): Promise<IBlock<SolanaBlock>[]> {
+    return api.fetchBlocks(batch);
   }
 
   protected metadataMismatchError(
@@ -99,6 +109,23 @@ export class SolanaApiService extends ApiService<
   }
 
   safeApi(height: number): SolanaSafeApi {
-    throw new Error('Not implemented');
+    return this.api.getSafeApi(height);
+  }
+
+  private updateBlockFetching() {
+    const fetchFunc =
+      /*skipTransactions
+      ? this.fetchLightBlocksBatch.bind(this)
+      : */ this.fetchFullBlocksBatch.bind(this);
+
+    if (this.nodeConfig?.profiler) {
+      this.fetchBlocksFunction = profilerWrap(
+        fetchFunc,
+        'SubstrateUtil',
+        'fetchBlocksBatches',
+      ) as FetchFunc;
+    } else {
+      this.fetchBlocksFunction = fetchFunc;
+    }
   }
 }

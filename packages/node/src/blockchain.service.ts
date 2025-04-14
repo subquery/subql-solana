@@ -136,7 +136,13 @@ export class BlockchainService
     // return dsObj;
   }
 
-  onProjectChange(project: SubqueryProject): Promise<void> | void {
+  async onProjectChange(project: SubqueryProject): Promise<void> {
+    await Promise.all(
+      project.dataSources.map((ds) => this.apiService.api.decoder.loadIdls(ds)),
+    );
+    await Promise.all(
+      project.templates.map((ds) => this.apiService.api.decoder.loadIdls(ds)),
+    );
     // TODO if solana supports light blocks implement this function
     // this.apiService.updateBlockFetching();
   }

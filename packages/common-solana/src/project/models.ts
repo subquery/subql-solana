@@ -166,7 +166,7 @@ export class RuntimeDataSourceBase<M extends SubqlMapping<SubqlRuntimeHandler>>
   @Type(() => FileReferenceImpl)
   @ValidateNested({each: true})
   @IsOptional()
-  idls?: Map<string, FileReference>;
+  assets?: Map<string, FileReference>;
 }
 
 export class FileReferenceImpl implements FileReference {
@@ -185,7 +185,7 @@ export class CustomDataSourceBase<K extends string, M extends SubqlMapping = Sub
   mapping!: M;
   @Type(() => FileReferenceImpl)
   @ValidateNested({each: true})
-  idls!: Map<string, FileReference>;
+  assets!: Map<string, FileReference>;
   @Type(() => FileReferenceImpl)
   @IsObject()
   processor!: FileReference;

@@ -89,14 +89,14 @@ describe('Api.solana', () => {
 
         // A program called by this instruction
         expect(
-          filterInstructionsProcessor(inst!, {
+          filterInstructionsProcessor(inst!, solanaApi.decoder, {
             programId: '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8',
           }),
         ).toBe(true);
 
         // A program not called by this instruction
         expect(
-          filterInstructionsProcessor(inst!, {
+          filterInstructionsProcessor(inst!, solanaApi.decoder, {
             programId: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
           }),
         ).toBe(false);
@@ -116,7 +116,7 @@ describe('Api.solana', () => {
 
         for (const discriminator of validNames) {
           expect(
-            filterInstructionsProcessor(inst!, {
+            filterInstructionsProcessor(inst!, solanaApi.decoder, {
               discriminator,
             }),
           ).toBe(true);
@@ -129,7 +129,7 @@ describe('Api.solana', () => {
         ];
         for (const discriminator of invalidNames) {
           expect(
-            filterInstructionsProcessor(inst!, {
+            filterInstructionsProcessor(inst!, solanaApi.decoder, {
               discriminator,
             }),
           ).toBe(false);
@@ -143,13 +143,13 @@ describe('Api.solana', () => {
         const inst = tx?.transaction.message.instructions[4];
 
         expect(
-          filterInstructionsProcessor(inst!, {
+          filterInstructionsProcessor(inst!, solanaApi.decoder, {
             accounts: [null, ['6fuLRV8aLJF96MaNi44bLJUhaSJu1yzc588kHM4DfG2W']],
           }),
         ).toBe(true);
 
         expect(
-          filterInstructionsProcessor(inst!, {
+          filterInstructionsProcessor(inst!, solanaApi.decoder, {
             accounts: [
               null,
               null,
@@ -159,13 +159,13 @@ describe('Api.solana', () => {
         ).toBe(false);
 
         expect(
-          filterInstructionsProcessor(inst!, {
+          filterInstructionsProcessor(inst!, solanaApi.decoder, {
             accounts: [null, null, []],
           }),
         ).toBe(false);
 
         expect(
-          filterInstructionsProcessor(inst!, {
+          filterInstructionsProcessor(inst!, solanaApi.decoder, {
             accounts: [
               null,
               [

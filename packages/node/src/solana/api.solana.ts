@@ -22,7 +22,7 @@ const { version: packageVersion } = require('../../package.json');
 
 const logger = getLogger('api.ethereum');
 
-export type SolanaSafeApi = never;
+export type SolanaSafeApi = undefined;
 
 function getHttpAgents() {
   // By default Nodejs doesn't cache DNS lookups
@@ -51,8 +51,6 @@ export class SolanaApi {
 
   // This is used within the sandbox when HTTP is used
   #genesisBlockHash: string;
-  private chainId?: number;
-  private name?: string;
   readonly decoder: SolanaDecoder;
 
   /**
@@ -79,9 +77,13 @@ export class SolanaApi {
   ): Promise<SolanaApi> {
     try {
       // TODO keep alive, user agent and other headers
-      console.log('CREATING API', endpoint);
       const client = createSolanaRpc(endpoint);
-      const genesisBlockHash = await client.getGenesisHash().send();
+      const genesisBlockHash = await client
+        .getGenesisHash()
+        .send()
+        .catch((e) => {
+          throw new Error('Failed to get genesis hash', { cause: e });
+        });
 
       return new SolanaApi(client, genesisBlockHash, endpoint, eventEmitter);
     } catch (e) {
@@ -91,40 +93,52 @@ export class SolanaApi {
   }
 
   async getFinalizedBlockHeader(): Promise<Header> {
-    const height = await this.#client
-      .getBlockHeight({ commitment: 'finalized' })
-      .send();
+    try {
+      const height = await this.#client
+        .getSlot({ commitment: 'finalized' })
+        .send();
 
-    // Request the minimal amount of information here
-    const block = await this.#client
-      .getBlock(height, {
-        encoding: 'json',
-        transactionDetails: 'none',
-        rewards: false,
-      })
-      .send();
+      // Request the minimal amount of information here
+      const block = await this.#client
+        .getBlock(height, {
+          encoding: 'json',
+          transactionDetails: 'none',
+          rewards: false,
+        })
+        .send();
 
-    if (!block) {
-      throw new Error('Unable to get finalized block');
+      if (!block) {
+        throw new Error('Unable to get finalized block');
+      }
+
+      return solanaBlockToHeader(block);
+    } catch (e) {
+      throw new Error('Failed to get finalized header', { cause: e });
     }
-
-    return solanaBlockToHeader(block);
   }
 
   async getFinalizedBlockHeight(): Promise<number> {
-    const finalizedHeight = await this.#client
-      .getBlockHeight({ commitment: 'finalized' })
-      .send();
+    try {
+      const finalizedHeight = await this.#client
+        .getSlot({ commitment: 'finalized' })
+        .send();
 
-    return Number(finalizedHeight);
+      return Number(finalizedHeight);
+    } catch (e) {
+      throw new Error('Failed to get finalized height', { cause: e });
+    }
   }
 
   async getBestBlockHeight(): Promise<number> {
-    const confirmedHeight = await this.#client
-      .getBlockHeight({ commitment: 'confirmed' })
-      .send();
+    try {
+      const confirmedHeight = await this.#client
+        .getSlot({ commitment: 'confirmed' })
+        .send();
 
-    return Number(confirmedHeight);
+      return Number(confirmedHeight);
+    } catch (e) {
+      throw new Error('Failed to get best height', { cause: e });
+    }
   }
 
   getRuntimeChain(): string {
@@ -151,6 +165,7 @@ export class SolanaApi {
   async getHeaderByHeightOrHash(
     heightOrHash: number | string,
   ): Promise<Header> {
+    console.log('GET HEADER', heightOrHash);
     // if (typeof heightOrHash === 'number') {
     //   heightOrHash = hexValue(heightOrHash);
     // }
@@ -197,7 +212,8 @@ export class SolanaApi {
   }
 
   getSafeApi(blockHeight: number): SolanaSafeApi {
-    throw new Error('Safe Api is not supported');
+    return;
+    // throw new Error('Safe Api is not supported');
   }
 
   // This method is designed to be compatible with @solana/web3.js so that @coral-xyz/anchor IDLs can be fetched.
@@ -224,7 +240,7 @@ export class SolanaApi {
   // eslint-disable-next-line @typescript-eslint/require-await
   async connect(): Promise<void> {
     logger.error('Ethereum API connect is not implemented');
-    throw new Error('Not implemented');
+    throw new Error('Not implemented: connect');
   }
 
   async disconnect(): Promise<void> {

@@ -16,11 +16,13 @@ import {
   DecodedData,
   SolanaInstruction,
   SolanaLogMessage,
-  SubqlRuntimeDatasource,
+  SubqlDatasource,
 } from '@subql/types-solana';
+import { isHex } from '@subql/utils';
 import bs58 from 'bs58';
 import {
   BytesValueNode,
+  camelCase,
   createFromRoot,
   InstructionNode,
   RootNode,
@@ -47,39 +49,80 @@ export function getBytesFromBytesValueNode(node: BytesValueNode): Uint8Array {
 // TODO fill with appropriate type, this could be a codama or anchor IDL
 export type Idl = AnchorIdl | RootNode;
 
-function findInstructionNode(
+function parseIdl(idl: Idl): RootNode {
+  let codama = createFromRoot(rootNodeFromAnchor(idl as AnchorIdl));
+  // Check if the idl was an anchor idl
+  if (codama.getRoot().program.publicKey === '') {
+    codama = createFromRoot(idl as RootNode);
+  }
+
+  return codama.getRoot();
+}
+
+function getInstructionDiscriminatorBytes(node: InstructionNode): Buffer {
+  const discArg = node.arguments.find((arg) => arg.name === 'discriminator');
+  if (!discArg) {
+    throw new Error(`Instruction ${node.name} does not have a discriminator`);
+  }
+
+  // TODO what about other types of discriminators or ones that are larger than 1 byte?
+  switch (discArg.defaultValue?.kind) {
+    case 'numberValueNode':
+      return Buffer.from([discArg.defaultValue.number]);
+    case 'bytesValueNode':
+      return Buffer.from(getBytesFromBytesValueNode(discArg.defaultValue));
+    case undefined:
+      break;
+    default:
+      throw new Error(
+        `Unable to handle unknown discriminator type ${discArg.defaultValue?.kind}`,
+      );
+  }
+
+  throw new Error(`Unable to find discriminator for instruction ${node.name}`);
+}
+
+function findInstructionForData(
   rootNode: RootNode,
   data: Buffer,
 ): InstructionNode | undefined {
   return rootNode.program.instructions.find((inst) => {
-    const discArg = inst.arguments.find((arg) => arg.name === 'discriminator');
-    if (!discArg) return false;
-
-    // TODO what about other types of discriminators or ones that are larger than 1 byte?
-    switch (discArg.defaultValue?.kind) {
-      case 'numberValueNode':
-        return data[0] === discArg.defaultValue.number;
-      case 'bytesValueNode': {
-        const defaultBytes = getBytesFromBytesValueNode(discArg.defaultValue);
-        return data.indexOf(defaultBytes) === 0;
-      }
-      case undefined:
-        break;
-      default:
-        throw new Error(
-          `Unable to handle unknown discriminator type ${discArg.defaultValue?.kind}`,
-        );
+    try {
+      const bytes = getInstructionDiscriminatorBytes(inst);
+      return data.indexOf(bytes) === 0;
+    } catch (e) {
+      logger.debug(
+        `Failed to get discriminator for instruction ${inst.name}: ${e}`,
+      );
+      return false;
     }
-
-    return false;
   });
+}
+
+function findInstructionDiscriminatorByName(
+  rootNode: RootNode,
+  name: string,
+): Buffer | undefined {
+  const inst = rootNode.program.instructions.find((inst) => inst.name === name);
+  if (!inst) {
+    return undefined;
+  }
+
+  try {
+    return getInstructionDiscriminatorBytes(inst);
+  } catch (e) {
+    logger.debug(
+      `Failed to get discriminator for instruction ${inst.name}: ${e}`,
+    );
+    return undefined;
+  }
 }
 
 function findEventNode(
   rootNode: RootNode,
   data: Buffer,
 ): InstructionNode | undefined {
-  throw new Error('Not implemented');
+  throw new Error('Not implemented: findEventNode');
 }
 
 function decodeData(
@@ -90,13 +133,7 @@ function decodeData(
     data: Buffer,
   ) => InstructionNode | undefined,
 ): DecodedData | null {
-  let codama = createFromRoot(rootNodeFromAnchor(idl as AnchorIdl));
-  // Check if the idl was an anchor idl
-  if (codama.getRoot().program.publicKey === '') {
-    codama = createFromRoot(idl as RootNode);
-  }
-
-  const root = codama.getRoot();
+  const root = parseIdl(idl);
   const buffer = bs58.decode(data);
 
   const node = getEncodableNode(root, buffer);
@@ -128,7 +165,7 @@ export function decodeInstruction(
   idl: Idl,
   data: Base58EncodedBytes,
 ): DecodedData | null {
-  return decodeData(idl, data, findInstructionNode);
+  return decodeData(idl, data, findInstructionForData);
 }
 
 export function decodeLog(idl: Idl, message: string): DecodedData | null {
@@ -143,18 +180,19 @@ export class SolanaDecoder {
 
   constructor(public api: SolanaApi) {}
 
-  async loadIdls(ds: SubqlRuntimeDatasource): Promise<void> {
-    if (!ds.idls) {
+  async loadIdls(ds: SubqlDatasource): Promise<void> {
+    if (!ds.assets) {
       return;
     }
 
-    for (const [name, { file }] of ds.idls.entries()) {
+    for (const [name, { file }] of ds.assets.entries()) {
       try {
         if (this.idls[name]) {
           continue;
         }
         const raw = await fs.promises.readFile(file, { encoding: 'utf8' });
         this.idls[name] = JSON.parse(raw);
+        logger.info(`Loaded IDL for ${name}`);
       } catch (e) {
         throw new Error(`Failed to load datasource IDL ${name}:${file}`);
       }
@@ -163,12 +201,42 @@ export class SolanaDecoder {
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async getIdlFromChain(programId: string): Promise<Idl | null> {
-    throw new Error('Not implemented');
+    throw new Error('Not implemented: getIdlFromChain');
     // this.idls[programId] ??= await Program.fetchIdl(programId, {
     //   connection: this.api as any,
     // });
 
     // return this.idls[programId];
+  }
+
+  // TODO memoize this
+  parseDiscriminator(input: string, programId: string): Buffer {
+    if (isHex(input)) {
+      return Buffer.from(input.replace('0x', ''), 'hex');
+    }
+
+    const idl = this.idls[programId];
+    if (!idl) {
+      throw new Error(`Unable to find IDL for program ${programId}`);
+    }
+
+    const root = parseIdl(idl);
+
+    let discriminator = findInstructionDiscriminatorByName(root, input);
+
+    if (!discriminator) {
+      // Try find a camel case version
+      discriminator = findInstructionDiscriminatorByName(
+        root,
+        camelCase(input),
+      );
+    }
+
+    if (!discriminator) {
+      return bs58.decode(input);
+    }
+
+    return discriminator;
   }
 
   async decodeInstruction(

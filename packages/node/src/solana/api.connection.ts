@@ -52,7 +52,7 @@ export class SolanaApiConnection
   }
 
   safeApi(height: number): never {
-    throw new Error(`Not Implemented`);
+    throw new Error(`Not Implemented: safeApi`);
   }
 
   async apiConnect(): Promise<void> {
