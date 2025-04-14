@@ -27,7 +27,7 @@ function allAccounts(
   ];
 }
 
-function getAccountByIndex(
+export function getAccountByIndex(
   instruction: SolanaInstruction,
   index: number,
 ): string {
@@ -91,8 +91,6 @@ export function filterInstructionsProcessor(
     }
   }
 
-  console.log('PROGRAM MATCH');
-
   if (filter.discriminator) {
     const discriminator = decoder.parseDiscriminator(
       filter.discriminator,
@@ -104,8 +102,6 @@ export function filterInstructionsProcessor(
       return false;
     }
   }
-
-  console.log('DISCRIMINATOR MATCH');
 
   if (filter.accounts) {
     const accounts = instruction.transaction.transaction.message.accountKeys;
