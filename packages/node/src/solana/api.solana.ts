@@ -1,15 +1,12 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
-import http from 'http';
-import https from 'https';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { assertIsAddress } from '@solana/addresses';
 import { createSolanaRpc, Rpc } from '@solana/kit';
 import { SolanaRpcApi } from '@solana/rpc-api';
 import { getLogger, Header, IBlock } from '@subql/node-core';
 import { SolanaBlock, ISolanaEndpointConfig } from '@subql/types-solana';
-import CacheableLookup from 'cacheable-lookup';
 import {
   formatBlockUtil,
   solanaBlockToHeader,
@@ -23,28 +20,6 @@ const { version: packageVersion } = require('../../package.json');
 const logger = getLogger('api.ethereum');
 
 export type SolanaSafeApi = undefined;
-
-function getHttpAgents() {
-  // By default Nodejs doesn't cache DNS lookups
-  // https://httptoolkit.com/blog/configuring-nodejs-dns/
-  const lookup = new CacheableLookup();
-
-  const options: http.AgentOptions = {
-    keepAlive: true,
-    /*, maxSockets: 100*/
-  };
-
-  const httpAgent = new http.Agent(options);
-  const httpsAgent = new https.Agent(options);
-
-  lookup.install(httpAgent);
-  lookup.install(httpsAgent);
-
-  return {
-    http: httpAgent,
-    https: httpsAgent,
-  };
-}
 
 export class SolanaApi {
   #client: Rpc<SolanaRpcApi>;
@@ -76,8 +51,15 @@ export class SolanaApi {
     config?: ISolanaEndpointConfig,
   ): Promise<SolanaApi> {
     try {
-      // TODO keep alive, user agent and other headers
-      const client = createSolanaRpc(endpoint);
+      // Keep-Alive is enabled by default, for more details see:
+      // https://github.com/anza-xyz/kit/tree/main/packages/rpc-transport-http#config
+      const client = createSolanaRpc(endpoint, {
+        headers: {
+          userAgent: `SubQuery Node ${packageVersion}`,
+          ...(config?.headers as any), // TYPES ISSUE
+        },
+      });
+
       const genesisBlockHash = await client
         .getGenesisHash()
         .send()
