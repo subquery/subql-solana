@@ -24,6 +24,7 @@ export interface SolanaDictionaryTxConditions {
 
 export interface SolanaDictionaryInstructionConditions {
   programIds?: string[];
-  accounts?: (string[] | null)[];
+  accounts?: (string[] | null | undefined)[];
+  discriminators?: string[]; // 0x Prefixed hex strings
   isCommitted?: boolean;
 }

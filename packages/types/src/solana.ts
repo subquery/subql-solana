@@ -211,12 +211,18 @@ export interface SolanaInstructionFilter extends SolanaTransactionFilter {
   discriminator?: string;
 
   /**
-   * Instruction accounts by their index, null to skip that index or an array of addresses to match one of. This is limited to the first 10 accounts for performance optimisations.
+   * Instruction accounts by their index, null to skip that index or an array of addresses to match one of. This is limited to the first 16 accounts for performance optimisations.
    * @example
    * accounts: [null, null, ["GnjWvvFY1ZhWj5wJSZBxcpP6PqYmdXFaGgdgFKKYoZ1V"]] // Match instructions where the 3rd account is "GnjWvvFY1ZhWj5wJSZBxcpP6PqYmdXFaGgdgFKKYoZ1V"
    * */
   accounts?: [
     InstructionAccountFilter,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
     InstructionAccountFilter?,
     InstructionAccountFilter?,
     InstructionAccountFilter?,

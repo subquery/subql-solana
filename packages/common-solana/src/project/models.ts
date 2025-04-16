@@ -23,7 +23,17 @@ import {
   InstructionAccountFilter,
 } from '@subql/types-solana';
 import {plainToClass, Transform, Type} from 'class-transformer';
-import {IsArray, IsEnum, IsOptional, IsString, IsObject, ValidateNested, Length} from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsObject,
+  ValidateNested,
+  Length,
+  ValidateIf,
+  IsDefined,
+} from 'class-validator';
 
 export class BlockFilter extends BlockFilterImpl implements SolanaBlockFilter {}
 
@@ -34,7 +44,8 @@ export class TransactionFilter implements SolanaTransactionFilter {
 }
 
 export class InstructionFilter implements SolanaInstructionFilter {
-  @IsOptional()
+  @ValidateIf((o) => o.discriminator !== undefined)
+  @IsDefined({message: 'programId is required if discriminator is set'})
   @IsString()
   programId?: string;
 
@@ -44,9 +55,16 @@ export class InstructionFilter implements SolanaInstructionFilter {
 
   @IsOptional()
   @IsArray()
-  @Length(0, 9)
+  @Length(0, 16)
   accounts?: [
     InstructionAccountFilter,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
+    InstructionAccountFilter?,
     InstructionAccountFilter?,
     InstructionAccountFilter?,
     InstructionAccountFilter?,

@@ -58,17 +58,30 @@ function txFilterToDictionaryCondition(
 }
 
 function instructionFilterToDictionaryCondition(
+  decoder: SolanaDecoder,
   filter?: SolanaInstructionFilter,
 ): SolanaDictionaryInstructionConditions {
   const instConditions: SolanaDictionaryInstructionConditions = {};
 
   if (filter?.accounts) {
-    throw new Error('Instrucitons account filter not implemented');
-    // instConditions.accounts = filter.accounts;
+    instConditions.accounts = filter.accounts;
   }
 
   if (filter?.programId) {
     instConditions.programIds = [filter.programId];
+  }
+
+  if (filter?.discriminator) {
+    if (!filter.programId) {
+      throw new Error(
+        'programId is required to be set when a discriminator is provided',
+      );
+    }
+    const disc = decoder.parseDiscriminator(
+      filter.discriminator,
+      filter.programId,
+    );
+    instConditions.discriminators = [`0x${disc.toString('hex')}`];
   }
   return instConditions;
 }
@@ -109,6 +122,7 @@ function sanitiseDictionaryConditions(
 }
 
 export function buildDictionaryV2QueryEntry(
+  decoder: SolanaDecoder,
   dataSources: SolanaProjectDs[],
 ): SolanaDictionaryV2QueryEntry {
   const dictionaryConditions: SolanaDictionaryV2QueryEntry = {
@@ -146,7 +160,7 @@ export function buildDictionaryV2QueryEntry(
           ) {
             dictionaryConditions.instructions ??= [];
             dictionaryConditions.instructions.push(
-              instructionFilterToDictionaryCondition(handler.filter),
+              instructionFilterToDictionaryCondition(decoder, handler.filter),
             );
           }
           break;
@@ -294,7 +308,7 @@ export class SolanaDictionaryV2 extends DictionaryV2<
   buildDictionaryQueryEntries(
     dataSources: (SolanaProjectDs | SolanaProjectDsTemplate)[],
   ): SolanaDictionaryV2QueryEntry {
-    return buildDictionaryV2QueryEntry(dataSources);
+    return buildDictionaryV2QueryEntry(this.api.decoder, dataSources);
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
