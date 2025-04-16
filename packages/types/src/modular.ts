@@ -7,5 +7,9 @@ import {SubqlCustomDatasource, SubqlDatasource, SubqlRuntimeDatasource} from './
 
 export interface SolanaNetworkModule
   extends INetworkCommonModule<SubqlDatasource, SubqlRuntimeDatasource, SubqlCustomDatasource> {
-  getIDLInterface(projectPath: string, idlFileName: string): unknown; // TODO update return type
+  generateIDLInterfaces(
+    datasources: SubqlDatasource[],
+    projectPath: string,
+    renderTemplate: (templatePath: string, outputPath: string, templateData: Data) => Promise<void>
+  ): Promise<void>;
 }

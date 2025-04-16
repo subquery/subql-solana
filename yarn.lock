@@ -1578,7 +1578,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@codama/renderers-js@npm:1.2.10":
+"@codama/renderers-js@npm:1.2.10, @codama/renderers-js@npm:^1.2.10":
   version: 1.2.10
   resolution: "@codama/renderers-js@npm:1.2.10"
   dependencies:
@@ -3773,6 +3773,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@subql/common-solana@workspace:packages/common-solana"
   dependencies:
+    "@codama/nodes-from-anchor": ^1.1.11
+    "@codama/renderers-js": ^1.2.10
     "@subql/common": 5.4.1-1
     "@subql/types-solana": "workspace:*"
     "@types/ejs": ^3.1.2
@@ -3780,6 +3782,7 @@ __metadata:
     "@types/lodash": ^4
     "@types/pino": ^6.3.12
     "@types/rimraf": 3.0.2
+    codama: ^1.2.11
     ejs: 3.1.10
     js-yaml: ^4.1.0
     lodash: 4.17.21
@@ -3845,7 +3848,6 @@ __metadata:
   resolution: "@subql/node-solana@workspace:packages/node"
   dependencies:
     "@codama/dynamic-codecs": ^1.1.12
-    "@codama/nodes-from-anchor": ^1.1.11
     "@nestjs/common": ^11.0.8
     "@nestjs/core": ^11.0.8
     "@nestjs/event-emitter": ^2.0.0

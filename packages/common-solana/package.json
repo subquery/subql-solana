@@ -14,8 +14,11 @@
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "dependencies": {
+    "@codama/nodes-from-anchor": "^1.1.11",
+    "@codama/renderers-js": "^1.2.10",
     "@subql/common": "5.4.1-1",
     "@subql/types-solana": "workspace:*",
+    "codama": "^1.2.11",
     "js-yaml": "^4.1.0",
     "pino": "^6.13.3",
     "reflect-metadata": "^0.1.13"

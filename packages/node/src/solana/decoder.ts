@@ -3,7 +3,6 @@
 
 import fs from 'node:fs';
 import { getNodeCodec } from '@codama/dynamic-codecs';
-import { AnchorIdl, rootNodeFromAnchor } from '@codama/nodes-from-anchor';
 import {
   getBase16Encoder,
   getBase58Encoder,
@@ -11,6 +10,7 @@ import {
   getUtf8Encoder,
 } from '@solana/codecs-strings';
 import { Base58EncodedBytes } from '@solana/kit';
+import { parseIdl, Idl } from '@subql/common-solana';
 import { getLogger } from '@subql/node-core';
 import {
   DecodedData,
@@ -20,13 +20,7 @@ import {
 } from '@subql/types-solana';
 import { isHex } from '@subql/utils';
 import bs58 from 'bs58';
-import {
-  BytesValueNode,
-  camelCase,
-  createFromRoot,
-  InstructionNode,
-  RootNode,
-} from 'codama';
+import { BytesValueNode, camelCase, InstructionNode, RootNode } from 'codama';
 import { Memoize } from '../utils/decorators';
 import { getProgramId } from './utils.solana';
 
@@ -44,19 +38,6 @@ export function getBytesFromBytesValueNode(node: BytesValueNode): Uint8Array {
     default:
       return getBase64Encoder().encode(node.data) as Uint8Array;
   }
-}
-
-// TODO fill with appropriate type, this could be a codama or anchor IDL
-export type Idl = AnchorIdl | RootNode;
-
-function parseIdl(idl: Idl): RootNode {
-  let codama = createFromRoot(rootNodeFromAnchor(idl as AnchorIdl));
-  // Check if the idl was an anchor idl
-  if (codama.getRoot().program.publicKey === '') {
-    codama = createFromRoot(idl as RootNode);
-  }
-
-  return codama.getRoot();
 }
 
 function getInstructionDiscriminatorBytes(node: InstructionNode): Buffer {
@@ -133,7 +114,7 @@ function decodeData(
     data: Buffer,
   ) => InstructionNode | undefined,
 ): DecodedData | null {
-  const root = parseIdl(idl);
+  const root = parseIdl(idl).getRoot();
   const buffer = bs58.decode(data);
 
   const node = getEncodableNode(root, buffer);
@@ -217,7 +198,7 @@ export class SolanaDecoder {
       throw new Error(`Unable to find IDL for program ${programId}`);
     }
 
-    const root = parseIdl(idl);
+    const root = parseIdl(idl).getRoot();
 
     let discriminator = findInstructionDiscriminatorByName(root, input);
 

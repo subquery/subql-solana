@@ -20,7 +20,6 @@
   },
   "dependencies": {
     "@codama/dynamic-codecs": "^1.1.12",
-    "@codama/nodes-from-anchor": "^1.1.11",
     "@nestjs/common": "^11.0.8",
     "@nestjs/core": "^11.0.8",
     "@nestjs/event-emitter": "^2.0.0",

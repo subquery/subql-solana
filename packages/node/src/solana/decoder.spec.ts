@@ -7,7 +7,7 @@ import { SolanaBlock } from '@subql/types-solana';
 import bs58 from 'bs58';
 import { RootNode } from 'codama';
 import { SolanaApi } from './api.solana';
-import { Idl, SolanaDecoder } from './decoder';
+import { SolanaDecoder } from './decoder';
 import { getProgramId } from './utils.solana';
 
 const HTTP_ENDPOINT =
