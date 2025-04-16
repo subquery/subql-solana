@@ -15,6 +15,7 @@ import {
 } from '@subql/node-core';
 import { ISolanaEndpointConfig, SolanaBlock } from '@subql/types-solana';
 import { SolanaApi } from './api.solana';
+import { SolanaDecoder } from './decoder';
 
 export type FetchFunc = (
   api: SolanaApi,
@@ -44,9 +45,10 @@ export class SolanaApiConnection
     endpoint: string,
     fetchBlocksBatches: GetFetchFunc,
     eventEmitter: EventEmitter2,
+    decoder: SolanaDecoder,
     config?: ISolanaEndpointConfig,
   ): Promise<SolanaApiConnection> {
-    const api = await SolanaApi.create(endpoint, eventEmitter, config);
+    const api = await SolanaApi.create(endpoint, eventEmitter, decoder, config);
 
     return new SolanaApiConnection(api, fetchBlocksBatches);
   }

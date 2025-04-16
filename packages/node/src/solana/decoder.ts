@@ -27,7 +27,7 @@ import {
   InstructionNode,
   RootNode,
 } from 'codama';
-import { SolanaApi } from './api.solana';
+import { Memoize } from '../utils/decorators';
 import { getProgramId } from './utils.solana';
 
 const logger = getLogger('SolanaDecoder');
@@ -175,10 +175,6 @@ export function decodeLog(idl: Idl, message: string): DecodedData | null {
 
 export class SolanaDecoder {
   idls: Record<string, Idl | null> = {};
-  // instructionDecoders: Record<string, BorshInstructionCoder> = {};
-  // eventDecoders: Record<string, BorshEventCoder> = {};
-
-  constructor(public api: SolanaApi) {}
 
   async loadIdls(ds: SubqlDatasource): Promise<void> {
     if (!ds.assets) {
@@ -210,6 +206,7 @@ export class SolanaDecoder {
   }
 
   // TODO memoize this
+  @Memoize()
   parseDiscriminator(input: string, programId: string): Buffer {
     if (isHex(input)) {
       return Buffer.from(input.replace('0x', ''), 'hex');

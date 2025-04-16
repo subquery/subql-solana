@@ -22,6 +22,7 @@ import {
 import { SubqueryProject } from '../configure/SubqueryProject';
 import { SolanaApiConnection, FetchFunc, GetFetchFunc } from './api.connection';
 import { SolanaApi, SolanaSafeApi } from './api.solana';
+import { SolanaDecoder } from './decoder';
 
 const logger = getLogger('api');
 
@@ -43,6 +44,7 @@ export class SolanaApiService extends ApiService<
     connectionPoolService: ConnectionPoolService<SolanaApiConnection>,
     private nodeConfig: NodeConfig,
     eventEmitter: EventEmitter2,
+    readonly decoder: SolanaDecoder,
   ) {
     super(connectionPoolService, eventEmitter);
   }
@@ -65,10 +67,13 @@ export class SolanaApiService extends ApiService<
       (network.endpoint as Record<string, IEndpointConfig>)[endpoint] = config;
     }
 
+    const decoder = new SolanaDecoder();
+
     const apiService = new SolanaApiService(
       connectionPoolService,
       nodeConfig,
       eventEmitter,
+      decoder,
     );
 
     apiService.updateBlockFetching();
@@ -78,6 +83,7 @@ export class SolanaApiService extends ApiService<
         endpoint,
         apiService.fetchBlocksBatches,
         eventEmitter,
+        decoder,
         config,
       ),
     );

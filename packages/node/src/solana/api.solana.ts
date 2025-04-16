@@ -26,7 +26,7 @@ export class SolanaApi {
 
   // This is used within the sandbox when HTTP is used
   #genesisBlockHash: string;
-  readonly decoder: SolanaDecoder;
+  // readonly decoder: SolanaDecoder;
 
   /**
    * @param {string} endpoint - The endpoint of the RPC provider
@@ -38,16 +38,18 @@ export class SolanaApi {
     genesisHash: string,
     private endpoint: string,
     private eventEmitter: EventEmitter2,
+    readonly decoder: SolanaDecoder,
   ) {
     this.#client = client;
     this.#genesisBlockHash = genesisHash;
 
-    this.decoder = new SolanaDecoder(this);
+    // this.decoder = new SolanaDecoder(this);
   }
 
   static async create(
     endpoint: string,
     eventEmitter: EventEmitter2,
+    decoder: SolanaDecoder,
     config?: ISolanaEndpointConfig,
   ): Promise<SolanaApi> {
     try {
@@ -67,7 +69,13 @@ export class SolanaApi {
           throw new Error('Failed to get genesis hash', { cause: e });
         });
 
-      return new SolanaApi(client, genesisBlockHash, endpoint, eventEmitter);
+      return new SolanaApi(
+        client,
+        genesisBlockHash,
+        endpoint,
+        eventEmitter,
+        decoder,
+      );
     } catch (e) {
       console.error('CrateSoalana API', e);
       throw e;
