@@ -3,13 +3,17 @@
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BlockchainService } from './blockchain.service';
-import { SolanaApi, SolanaApiService } from './solana';
+import { SolanaApi, SolanaApiService, SolanaDecoder } from './solana';
 
 const HTTP_ENDPOINT =
   process.env.HTTP_ENDPOINT ?? 'https://solana.api.onfinality.io/public';
 
 const mockApiService = async (): Promise<SolanaApiService> => {
-  const solanaApi = await SolanaApi.create(HTTP_ENDPOINT, new EventEmitter2());
+  const solanaApi = await SolanaApi.create(
+    HTTP_ENDPOINT,
+    new EventEmitter2(),
+    new SolanaDecoder(),
+  );
 
   return {
     unsafeApi: solanaApi,

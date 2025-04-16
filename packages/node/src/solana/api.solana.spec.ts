@@ -9,6 +9,7 @@ import {
   SolanaTransaction,
 } from '@subql/types-solana';
 import { SolanaApi } from './api.solana';
+import { SolanaDecoder } from './decoder';
 import {
   filterBlocksProcessor,
   filterInstructionsProcessor,
@@ -31,7 +32,11 @@ describe('Api.solana', () => {
   };
 
   beforeAll(async () => {
-    solanaApi = await SolanaApi.create(HTTP_ENDPOINT, eventEmitter);
+    solanaApi = await SolanaApi.create(
+      HTTP_ENDPOINT,
+      eventEmitter,
+      new SolanaDecoder(),
+    );
     // https://solscan.io/block/325922873
     blockData = await fetchBlock(325_922_873);
   }, 20_000);

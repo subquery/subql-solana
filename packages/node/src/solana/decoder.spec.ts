@@ -24,8 +24,12 @@ describe('SolanaDecoder', () => {
   let blockData: SolanaBlock;
 
   beforeAll(async () => {
-    solanaApi = await SolanaApi.create(HTTP_ENDPOINT, new EventEmitter2());
-    decoder = new SolanaDecoder(solanaApi);
+    decoder = new SolanaDecoder();
+    solanaApi = await SolanaApi.create(
+      HTTP_ENDPOINT,
+      new EventEmitter2(),
+      decoder,
+    );
   });
 
   const loadDecoderIdls = () => {

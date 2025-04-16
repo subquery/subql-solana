@@ -10,7 +10,7 @@ import {
   SubqlRuntimeDatasource,
 } from '@subql/types-solana';
 import { SubqueryProject } from '../../../configure/SubqueryProject';
-import { SolanaApi } from '../../../solana';
+import { SolanaApi, SolanaDecoder } from '../../../solana';
 import { SolanaDictionaryV2 } from './solanaDictionaryV2';
 
 const HTTP_ENDPOINT =
@@ -154,7 +154,11 @@ describe('solana dictionary v2', () => {
       DEFAULT_DICTIONARY,
       nodeConfig,
       { network: { chainId: '1' } } as SubqueryProject,
-      await SolanaApi.create(HTTP_ENDPOINT, new EventEmitter2()),
+      await SolanaApi.create(
+        HTTP_ENDPOINT,
+        new EventEmitter2(),
+        new SolanaDecoder(),
+      ),
     );
   }, 10000);
 

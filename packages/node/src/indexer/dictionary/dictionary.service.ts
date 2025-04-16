@@ -34,7 +34,7 @@ export class SolanaDictionaryService extends DictionaryService<
     }
 
     const dictionaryEndpoints = await this.getDictionaryEndpoints(
-      NETWORK_FAMILY.ethereum,
+      NETWORK_FAMILY.solana,
       this.project.network,
     );
 
@@ -53,9 +53,7 @@ export class SolanaDictionaryService extends DictionaryService<
         );
       }
     }
-    logger.debug(
-      `Dictionary versions v2: ${dictionariesV2.length}`,
-    );
+    logger.debug(`Dictionary versions v2: ${dictionariesV2.length}`);
     // v2 should be prioritised
     this.init([...dictionariesV2]);
   }
