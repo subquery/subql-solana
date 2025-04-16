@@ -5,7 +5,12 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { assertIsAddress } from '@solana/addresses';
 import { createSolanaRpc, Rpc } from '@solana/kit';
 import { SolanaRpcApi } from '@solana/rpc-api';
-import { getLogger, Header, IBlock } from '@subql/node-core';
+import {
+  BlockUnavailableError,
+  getLogger,
+  Header,
+  IBlock,
+} from '@subql/node-core';
 import { SolanaBlock, ISolanaEndpointConfig } from '@subql/types-solana';
 import {
   formatBlockUtil,
@@ -182,8 +187,8 @@ export class SolanaApi {
         .send();
 
       if (!rawBlock) {
-        // TODO could get
-        throw new Error(`Unable to get block at slot ${blockNumber}`);
+        // No block for that slot
+        throw new BlockUnavailableError();
       }
 
       this.eventEmitter.emit('fetchBlock');
