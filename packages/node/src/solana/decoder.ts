@@ -10,7 +10,7 @@ import {
   getUtf8Encoder,
 } from '@solana/codecs-strings';
 import { Base58EncodedBytes } from '@solana/kit';
-import { parseIdl, Idl } from '@subql/common-solana';
+import { parseIdl, Idl, isAnchorIdlV01 } from '@subql/common-solana';
 import { getLogger } from '@subql/node-core';
 import {
   DecodedData,
@@ -20,7 +20,13 @@ import {
 } from '@subql/types-solana';
 import { isHex } from '@subql/utils';
 import bs58 from 'bs58';
-import { BytesValueNode, camelCase, InstructionNode, RootNode } from 'codama';
+import {
+  BytesValueNode,
+  camelCase,
+  DefinedTypeNode,
+  InstructionNode,
+  RootNode,
+} from 'codama';
 import { Memoize } from '../utils/decorators';
 import { getProgramId } from './utils.solana';
 
@@ -99,23 +105,26 @@ function findInstructionDiscriminatorByName(
   }
 }
 
-function findEventNode(
-  rootNode: RootNode,
-  data: Buffer,
-): InstructionNode | undefined {
-  throw new Error('Not implemented: findEventNode');
+// Converts a base58 or base64 string to Buffer
+function basedToBuffer(input: string | Base58EncodedBytes): Buffer {
+  try {
+    return bs58.decode(input);
+  } catch (e) {
+    return Buffer.from(input, 'base64');
+  }
 }
 
 function decodeData(
   idl: Idl,
-  data: Base58EncodedBytes,
+  data: Base58EncodedBytes | string,
   getEncodableNode: (
     rootNode: RootNode,
     data: Buffer,
-  ) => InstructionNode | undefined,
+  ) => InstructionNode | DefinedTypeNode | undefined,
 ): DecodedData | null {
   const root = parseIdl(idl).getRoot();
-  const buffer = bs58.decode(data);
+
+  const buffer = basedToBuffer(data);
 
   const node = getEncodableNode(root, buffer);
   if (!node) {
@@ -127,13 +136,13 @@ function decodeData(
 
   try {
     // Path is required to find other defined structs
-    const codec = getNodeCodec([root, root.program, node]);
+    const codec = getNodeCodec([root, root.program, node as any]);
 
     // Strip the discriminator
-    const { discriminator, ...data } = codec.decode(buffer) as any;
+    const { discriminator, ...decoded } = codec.decode(buffer) as any;
 
     return {
-      data: data,
+      data: decoded,
       name: node.name,
     };
   } catch (e) {
@@ -149,9 +158,35 @@ export function decodeInstruction(
   return decodeData(idl, data, findInstructionForData);
 }
 
+// Codama doesn't support Logs so extra work is required to decode logs
 export function decodeLog(idl: Idl, message: string): DecodedData | null {
-  const data = message.replace('Program data:', '') as Base58EncodedBytes;
-  return decodeData(idl, data, findEventNode);
+  // Older versions don't support events
+  if (!isAnchorIdlV01(idl)) {
+    throw new Error('Only Anchor IDL v0.1.0 is supported for decoding logs');
+  }
+
+  const msgData = message.replace('Program data: ', '') as any;
+  const msgBuffer = basedToBuffer(msgData);
+
+  // Codama doesn't include events so we have to find it manually
+  const event = idl.events?.find(
+    (e) => msgBuffer.indexOf(Buffer.from(e.discriminator)) === 0,
+  );
+
+  if (!event) {
+    throw new Error('Unable to find event for log data');
+  }
+
+  // Input needs to be without the discriminator because we're just going to decode a type
+  const input = msgBuffer
+    .subarray(event.discriminator.length)
+    .toString('base64');
+
+  return decodeData(idl, input as any, (root, data) => {
+    return root.program.definedTypes.find(
+      (t) => t.name === event.name || t.name === camelCase(event.name),
+    );
+  });
 }
 
 export class SolanaDecoder {
@@ -186,7 +221,6 @@ export class SolanaDecoder {
     // return this.idls[programId];
   }
 
-  // TODO memoize this
   @Memoize()
   parseDiscriminator(input: string, programId: string): Buffer {
     if (isHex(input)) {

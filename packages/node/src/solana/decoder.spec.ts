@@ -13,7 +13,6 @@ import { getProgramId } from './utils.solana';
 const HTTP_ENDPOINT =
   process.env.HTTP_ENDPOINT ?? 'https://solana.api.onfinality.io/public';
 
-console.log('HTTPE HTTP_ENDPOINT', HTTP_ENDPOINT);
 const IDL_Jupiter: IdlV01 = require('../../test/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4.idl.json');
 const IDL_swap: IdlV01 = require('../../test/swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW.idl.json');
 const IDL_token: RootNode = require('../../test/TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA.idl.json');
@@ -235,17 +234,18 @@ describe('SolanaDecoder', () => {
     beforeAll(async () => {
       //https://solscan.io/block/327347682
       const { block } = await solanaApi.fetchBlock(327_347_682);
+      loadDecoderIdls();
       blockData = block;
     }, 30_000);
 
     const logData = {
       pubkey: 'BQR6JJFyMWxnUERqbCRCCy1ietW2yq8RTKDx9odzruha',
       data: {
-        balances: ['03e05311f9', '03a42bdd0d38'],
+        balances: [BigInt('16648442361'), BigInt('4003645427000')],
       },
     };
 
-    it('can decode a log with an IDL file', async () => {
+    it('can decode a log with an Anchor IDL file', async () => {
       // https://solscan.io/tx/5Z18NZWUiDmxmVYncvuyACB9HRRYyzZfRPE9pfT2yaTpAveDTUwghWaYMPRk9Df5HsJy9yd6dBrndrmHz1zfsAig
       const tx = blockData.transactions.find((tx) =>
         tx.transaction.signatures.find(
@@ -263,29 +263,7 @@ describe('SolanaDecoder', () => {
       const decoded = await decoder.decodeLog(programLogs![0]);
 
       expect(decoded).not.toBeNull();
-      expect(decoded!.name).toBe('PoolBalanceUpdatedEvent');
-      expect(decoded!.data).toEqual(logData);
-    });
-
-    it('can decode a log with an IDL found on chain', async () => {
-      // https://solscan.io/tx/5Z18NZWUiDmxmVYncvuyACB9HRRYyzZfRPE9pfT2yaTpAveDTUwghWaYMPRk9Df5HsJy9yd6dBrndrmHz1zfsAig
-      const tx = blockData.transactions.find((tx) =>
-        tx.transaction.signatures.find(
-          (s) =>
-            s ===
-            '5Z18NZWUiDmxmVYncvuyACB9HRRYyzZfRPE9pfT2yaTpAveDTUwghWaYMPRk9Df5HsJy9yd6dBrndrmHz1zfsAig',
-        ),
-      );
-
-      const programLogs = tx!.meta!.logs?.filter((l) =>
-        l.message.startsWith('Program data:'),
-      );
-      expect(programLogs?.length).toBe(1);
-
-      const decoded = await decoder.decodeLog(programLogs![0]);
-
-      expect(decoded).not.toBeNull();
-      expect(decoded!.name).toBe('PoolBalanceUpdatedEvent');
+      expect(decoded!.name).toBe('poolBalanceUpdatedEvent');
       expect(decoded!.data).toEqual(logData);
     });
   });

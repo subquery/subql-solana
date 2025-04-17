@@ -3,7 +3,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import {AnchorIdl, rootNodeFromAnchor} from '@codama/nodes-from-anchor';
+import {AnchorIdl, IdlV01, rootNodeFromAnchor} from '@codama/nodes-from-anchor';
 import {renderVisitor} from '@codama/renderers-js';
 import {SubqlDatasource} from '@subql/types-solana';
 import {Codama, createFromRoot, RootNode, pascalCase} from 'codama';
@@ -13,11 +13,19 @@ const INSTRUCTION_TEMPLATE_TS = path.resolve(__dirname, '../../templates/idl.ts.
 const CODAMA_PATH = '/src/types/program-interfaces';
 const IDL_PATH = '/src/types/handler-inputs';
 
-export function getIDLInterface(projectPath: string, idlFileName: string): unknown {
-  throw new Error('Not implemented');
+export type Idl = AnchorIdl | RootNode;
+
+export function isAnchorIdl(idl: Idl): idl is AnchorIdl {
+  return !isRootNode(idl);
 }
 
-export type Idl = AnchorIdl | RootNode;
+export function isAnchorIdlV01(idl: Idl): idl is IdlV01 {
+  return isAnchorIdl(idl) && (idl.metadata as {spec?: string}).spec === '0.1.0';
+}
+
+export function isRootNode(idl: Idl): idl is RootNode {
+  return !!(idl as RootNode).program?.publicKey;
+}
 
 export function parseIdl(idl: Idl): Codama {
   let codama = createFromRoot(rootNodeFromAnchor(idl as AnchorIdl));
