@@ -23,17 +23,7 @@ import {
   InstructionAccountFilter,
 } from '@subql/types-solana';
 import {plainToClass, Transform, Type} from 'class-transformer';
-import {
-  IsArray,
-  IsEnum,
-  IsOptional,
-  IsString,
-  IsObject,
-  ValidateNested,
-  Length,
-  ValidateIf,
-  IsDefined,
-} from 'class-validator';
+import {IsArray, IsEnum, IsOptional, IsString, IsObject, ValidateNested, ValidateIf, IsDefined} from 'class-validator';
 
 export class BlockFilter extends BlockFilterImpl implements SolanaBlockFilter {}
 
@@ -55,7 +45,6 @@ export class InstructionFilter implements SolanaInstructionFilter {
 
   @IsOptional()
   @IsArray()
-  @Length(0, 16)
   accounts?: [
     InstructionAccountFilter,
     InstructionAccountFilter?,

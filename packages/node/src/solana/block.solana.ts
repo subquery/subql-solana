@@ -33,20 +33,35 @@ type RawSolanaBlock = Readonly<{
 }>;
 
 function wrapInstruction(
-  instruction: Omit<SolanaInstruction, 'transaction' | 'decodedData'>,
+  index: number[],
+  instruction: Omit<
+    SolanaInstruction,
+    'index' | 'block' | 'transaction' | 'decodedData'
+  >,
   transaction: TransactionForFullJson<0>,
+  block: BaseSolanaBlock,
   decoder: SolanaDecoder,
 ): SolanaInstruction {
   let pendingDecode: Promise<DecodedData | null>;
   // XXX if we make this fully circular toJSON will need to be added to omit the transaction on the instruction
-  return {
+  const res = {
     ...instruction,
+    index,
     transaction,
+    block,
     get decodedData(): Promise<DecodedData | null> {
       pendingDecode ??= decoder.decodeInstruction(this);
       return pendingDecode;
     },
   };
+
+  // Implement this in order to calculate block size
+  (res as any).toJSON = () => {
+    const { block, decodedData, transaction, ...rest } = res;
+    return rest;
+  };
+
+  return res;
 }
 
 function wrapLogs(
@@ -117,12 +132,20 @@ function wrapLogs(
       }
     } else if (log.startsWith('Transfer')) {
       // Do nothing
-    } else if (log.startsWith('Create Account')) {
+    } else if (log.startsWith('Create Account') || log.startsWith('Allocate')) {
       // TODO decide this behaviour
     } else {
       throw new Error(`Unable to parse log message: ${log}`);
     }
   }
+
+  // Implement this in order to calculate block size
+  res.forEach((r) => {
+    (r as any).toJSON = () => {
+      const { decodedMessage, ...rest } = r;
+      return rest;
+    };
+  });
 
   return res;
 }
@@ -140,7 +163,7 @@ function wrapDictionaryLogs(
 ): SolanaLogMessage[] {
   return logs.map((l) => {
     let pendingDecode: Promise<DecodedData | null>;
-    return {
+    const res = {
       message: l.message,
       programId: l.programId,
       logIndex: l.logIndex,
@@ -154,6 +177,14 @@ function wrapDictionaryLogs(
         return pendingDecode;
       },
     };
+
+    // Implement this in order to calculate block size
+    (res as any).toJSON = () => {
+      const { decodedMessage, ...rest } = res;
+      return rest;
+    };
+
+    return res;
   });
 }
 
@@ -163,37 +194,56 @@ export function transformBlock(
   block: RawSolanaBlock,
   decoder: SolanaDecoder,
 ): SolanaBlock {
+  const { transactions, ...baseBlock } = block;
   return {
-    ...block,
-    transactions: block.transactions.map((tx) => ({
-      ...tx,
-      transaction: {
-        ...tx.transaction,
-        message: {
-          ...tx.transaction.message,
-          instructions: tx.transaction.message.instructions.map((instruction) =>
-            wrapInstruction(instruction, tx, decoder),
-          ),
-        },
-      },
-      meta: tx.meta
-        ? {
-            ...tx.meta,
-            innerInstructions: tx.meta.innerInstructions.map(
-              (innerInstruction) => ({
-                ...innerInstruction,
-                instructions: innerInstruction.instructions.map((instruction) =>
-                  wrapInstruction(instruction, tx, decoder),
+    ...baseBlock,
+    transactions: transactions.map((tx) => {
+      try {
+        return {
+          ...tx,
+          block: baseBlock,
+          transaction: {
+            ...tx.transaction,
+            message: {
+              ...tx.transaction.message,
+              instructions: tx.transaction.message.instructions.map(
+                (instruction, index) =>
+                  wrapInstruction([index], instruction, tx, baseBlock, decoder),
+              ),
+            },
+          },
+          meta: tx.meta
+            ? {
+                ...tx.meta,
+                innerInstructions: tx.meta.innerInstructions.map(
+                  (innerInstruction) => ({
+                    ...innerInstruction,
+                    instructions: innerInstruction.instructions.map(
+                      (instruction, innerIndex) =>
+                        wrapInstruction(
+                          [innerInstruction.index, innerIndex],
+                          instruction,
+                          tx,
+                          baseBlock,
+                          decoder,
+                        ),
+                    ),
+                  }),
                 ),
-              }),
-            ),
-            // Dictionary blocks have logs instead of logMessages that are already somewhat wrapped
-            logs: (tx.meta as any).logs
-              ? wrapDictionaryLogs((tx.meta as any).logs, decoder)
-              : wrapLogs(tx.meta.logMessages, decoder),
-          }
-        : null,
-    })),
+                // Dictionary blocks have logs instead of logMessages that are already somewhat wrapped
+                logs: (tx.meta as any).logs
+                  ? wrapDictionaryLogs((tx.meta as any).logs, decoder)
+                  : wrapLogs(tx.meta.logMessages, decoder),
+              }
+            : null,
+        };
+      } catch (e) {
+        throw new Error(
+          `Failed to transform transaction: ${tx.transaction.signatures[0]}`,
+          { cause: e },
+        );
+      }
+    }),
   };
 }
 
@@ -211,6 +261,6 @@ export function solanaBlockToHeader(block: BaseSolanaBlock): Header {
     blockHeight: Number(block.parentSlot) + 1, // The blocks don't include the slot because they assume you know that when making the request
     blockHash: block.blockhash,
     parentHash: block.previousBlockhash,
-    timestamp: new Date(Number(block.blockTime) * 1000), // TODO test
+    timestamp: new Date(Number(block.blockTime) * 1000),
   };
 }

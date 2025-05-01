@@ -6,5 +6,7 @@ import { SolanaBlock } from '@subql/types-solana';
 export type BlockContent = SolanaBlock;
 
 export function getBlockSize(block: BlockContent): number {
-  throw new Error('Not implemented: getBlockSize');
+  return block.transactions
+    .map((tx) => Buffer.byteLength(JSON.stringify(tx), 'utf8'))
+    .reduce((acc, value) => acc + value, 0);
 }

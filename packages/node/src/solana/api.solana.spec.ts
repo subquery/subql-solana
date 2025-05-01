@@ -3,6 +3,7 @@
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TransactionFilter } from '@subql/common-solana';
+import { IBlock } from '@subql/node-core';
 import {
   SolanaBlock,
   SolanaBlockFilter,
@@ -23,13 +24,7 @@ const HTTP_ENDPOINT =
 describe('Api.solana', () => {
   let solanaApi: SolanaApi;
   const eventEmitter = new EventEmitter2();
-  let blockData: SolanaBlock;
-
-  const fetchBlock = async (height: number) => {
-    const block = await solanaApi.fetchBlock(height);
-
-    return block.block as SolanaBlock;
-  };
+  let block: IBlock<SolanaBlock>;
 
   beforeAll(async () => {
     solanaApi = await SolanaApi.create(
@@ -38,11 +33,11 @@ describe('Api.solana', () => {
       new SolanaDecoder(),
     );
     // https://solscan.io/block/325922873
-    blockData = await fetchBlock(325_922_873);
+    block = await solanaApi.fetchBlock(325_922_873);
   }, 20_000);
 
   function getTxBySig(sig: string): SolanaTransaction {
-    const tx = blockData.transactions.find((tx) =>
+    const tx = block.block.transactions.find((tx) =>
       tx.transaction.signatures.find((s) => s === sig),
     );
     if (!tx) {
@@ -51,17 +46,27 @@ describe('Api.solana', () => {
     return tx;
   }
 
+  it('parses block timestamps correctly', () => {
+    expect(block.getHeader().timestamp).toEqual(
+      new Date('2025-03-10T22:40:28.000Z'),
+    );
+  });
+
   describe('Filters', () => {
     it('Should run block filters correctly', () => {
       const moduloBlockFilter: SolanaBlockFilter = {
         modulo: 1,
       };
-      expect(filterBlocksProcessor(blockData, moduloBlockFilter)).toBeTruthy();
+      expect(
+        filterBlocksProcessor(block.block, moduloBlockFilter),
+      ).toBeTruthy();
 
       const moduloBlockFilter2: SolanaBlockFilter = {
         modulo: 325_922_870,
       };
-      expect(filterBlocksProcessor(blockData, moduloBlockFilter2)).toBeFalsy();
+      expect(
+        filterBlocksProcessor(block.block, moduloBlockFilter2),
+      ).toBeFalsy();
 
       // TODO timestamp block filter
     });

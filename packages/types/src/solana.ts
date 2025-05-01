@@ -133,9 +133,14 @@ export type SolanaTransaction = {
     | null;
   transaction: TransactionForFullTransactionAddressTableLookups & TransactionForFullTransactionJsonBase;
   version: TransactionVersion;
+  block: BaseSolanaBlock;
 };
 
 export type SolanaInstruction<T = any> = Readonly<{
+  /** The index of the instruction within the transaction.
+   * If it is an inner transaction then the index is prefixed by the index of the outer instruction
+   * @example [3, 1] The 2nd inner instruction for the 4rd instruction */
+  index: number[];
   accounts: readonly number[];
   /* The raw instruction data, in base58 encoding */
   data: Base58EncodedBytes;
@@ -147,6 +152,7 @@ export type SolanaInstruction<T = any> = Readonly<{
   // Variation from the original @solana/rpc-types to allow linking back to the transaction
   // Use the original pacakge type here so we dont have a circular reference beyond Tx -> Inst -> Tx
   transaction: TransactionForFullJson<0>;
+  block: BaseSolanaBlock;
 }>;
 
 export type BaseSolanaBlock = Readonly<{
