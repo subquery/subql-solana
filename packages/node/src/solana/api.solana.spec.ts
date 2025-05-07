@@ -89,6 +89,21 @@ describe('Api.solana', () => {
     });
 
     describe('instructions', () => {
+      it('can filter failed instructions', () => {
+        const failedTx = block.block.transactions.find((tx) => tx.meta?.err);
+        const failedInst = failedTx!.transaction.message.instructions[0];
+        expect(
+          filterInstructionsProcessor(failedInst, solanaApi.decoder, {
+            includeFailed: true,
+          }),
+        ).toBeTruthy();
+        expect(
+          filterInstructionsProcessor(failedInst, solanaApi.decoder, {
+            includeFailed: false,
+          }),
+        ).toBeFalsy();
+      });
+
       it('can filter programIds', () => {
         const tx = getTxBySig(
           '4V5S9ymSheic34SsHN9AHA86b41qXfA9JwdEra1UUgoNdvWFTMA5ueSCHn6nRTBDphMQFUFLPgU4N2QsG8En3J1d',

@@ -7,7 +7,7 @@ import type {
   Slot,
   TransactionForFullJson,
 } from '@solana/rpc-types';
-import type { Header, IBlock } from '@subql/node-core';
+import { getLogger, type Header, type IBlock } from '@subql/node-core';
 import type {
   SolanaBlock,
   BaseSolanaBlock,
@@ -16,6 +16,8 @@ import type {
   SolanaLogMessage,
 } from '@subql/types-solana';
 import { SolanaDecoder } from './decoder';
+
+const logger = getLogger('SolanaBlock');
 
 type RawSolanaBlock = Readonly<{
   /** The number of blocks beneath this block */
@@ -130,12 +132,16 @@ function wrapLogs(
         default:
           throw new Error(`Unknown log mode: ${mode}, log: ${log}`);
       }
-    } else if (log.startsWith('Transfer')) {
-      // Do nothing
-    } else if (log.startsWith('Create Account') || log.startsWith('Allocate')) {
-      // TODO decide this behaviour
     } else {
-      throw new Error(`Unable to parse log message: ${log}`);
+      /**
+       * Known examples (prefixes):
+       *  * Transfer
+       *  * Create Account
+       *  * Allocate
+       *  * Instruction references an unknown account
+       * */
+
+      logger.warn(`Unable to parse log message: ${log}`);
     }
   }
 

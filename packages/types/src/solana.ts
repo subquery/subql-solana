@@ -199,7 +199,7 @@ export type InstructionAccountFilter = null | string[];
  * @interface
  * @extends {SolanaInstructionFilter}
  */
-export interface SolanaInstructionFilter extends SolanaTransactionFilter {
+export interface SolanaInstructionFilter {
   /**
    * The account key of the program that is interacted with.
    * @example
@@ -239,6 +239,9 @@ export interface SolanaInstructionFilter extends SolanaTransactionFilter {
     InstructionAccountFilter?,
     InstructionAccountFilter?
   ];
+
+  /* Include failed instructions. By default failed instructions are not included */
+  includeFailed?: boolean;
 }
 
 /**

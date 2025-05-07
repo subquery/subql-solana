@@ -46,8 +46,6 @@ const logger = getLogger('dictionary-v2');
 function txFilterToDictionaryCondition(
   filter?: SolanaTransactionFilter,
 ): SolanaDictionaryTxConditions {
-  // TODO implement
-
   const txConditions: SolanaDictionaryTxConditions = {};
 
   if (filter?.signerAccountKey) {
@@ -83,6 +81,17 @@ function instructionFilterToDictionaryCondition(
     );
     instConditions.discriminators = [`0x${disc.toString('hex')}`];
   }
+
+  // TO CONFIRM
+  /*
+    undefined -> failed + successful
+    true -> successful
+    false -> failed
+  */
+  if (!filter?.includeFailed) {
+    instConditions.isCommitted = true;
+  }
+
   return instConditions;
 }
 

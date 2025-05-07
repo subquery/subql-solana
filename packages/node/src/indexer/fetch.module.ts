@@ -20,6 +20,7 @@ import {
   DictionaryService,
   UnfinalizedBlocksService,
   blockDispatcherFactory,
+  MultiChainRewindService,
 } from '@subql/node-core';
 import { BlockchainService } from '../blockchain.service';
 import { SolanaApiService } from '../solana/api.service.solana';
@@ -44,9 +45,13 @@ import { IndexerManager } from './indexer.manager';
       useClass: BlockchainService,
     },
     IndexerManager,
+    MultiChainRewindService,
     {
       provide: 'IBlockDispatcher',
-      useFactory: blockDispatcherFactory(path.resolve(__dirname, '../../dist/indexer/worker/worker.js'), []),
+      useFactory: blockDispatcherFactory(
+        path.resolve(__dirname, '../../dist/indexer/worker/worker.js'),
+        [],
+      ),
       inject: [
         NodeConfig,
         EventEmitter2,
@@ -62,6 +67,7 @@ import { IndexerManager } from './indexer.manager';
         ConnectionPoolStateManager,
         'IBlockchainService',
         IndexerManager,
+        MultiChainRewindService,
         MonitorService,
       ],
     },

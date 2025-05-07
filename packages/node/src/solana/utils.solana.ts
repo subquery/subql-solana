@@ -58,7 +58,7 @@ export function filterBlocksProcessor(
 }
 
 export function filterTransactionsProcessor(
-  transaction: SolanaTransaction,
+  transaction: SolanaTransaction | TransactionForFullJson<0>,
   filter?: SolanaTransactionFilter,
 ): boolean {
   if (!filter) return true;
@@ -78,27 +78,20 @@ export function filterTransactionsProcessor(
 
 export function filterInstructionsProcessor(
   instruction: SolanaInstruction,
-  // idls?: Map<string, Idl>,
   decoder: SolanaDecoder,
   filter?: SolanaInstructionFilter,
 ): boolean {
   if (!filter) return true;
 
-  const programId = getProgramId(instruction);
-  if (filter.programId) {
-    if (filter.programId !== programId) {
+  if (!filter.includeFailed) {
+    if (instruction.transaction.meta?.err) {
       return false;
     }
   }
 
-  if (filter.discriminator) {
-    const discriminator = decoder.parseDiscriminator(
-      filter.discriminator,
-      programId,
-    );
-    const data = bs58.decode(instruction.data);
-
-    if (data.indexOf(discriminator) !== 0) {
+  const programId = getProgramId(instruction);
+  if (filter.programId) {
+    if (filter.programId !== programId) {
       return false;
     }
   }
@@ -114,6 +107,18 @@ export function filterInstructionsProcessor(
       if (!filterAccounts.includes(accounts[instructionAccountIndex])) {
         return false;
       }
+    }
+  }
+
+  if (filter.discriminator) {
+    const discriminator = decoder.parseDiscriminator(
+      filter.discriminator,
+      programId,
+    );
+    const data = bs58.decode(instruction.data);
+
+    if (data.indexOf(discriminator) !== 0) {
+      return false;
     }
   }
 

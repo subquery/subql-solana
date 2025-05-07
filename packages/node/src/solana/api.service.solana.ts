@@ -127,7 +127,7 @@ export class SolanaApiService extends ApiService<
     if (this.nodeConfig?.profiler) {
       this.fetchBlocksFunction = profilerWrap(
         fetchFunc,
-        'SubstrateUtil',
+        'SolanaApiService',
         'fetchBlocksBatches',
       ) as FetchFunc;
     } else {

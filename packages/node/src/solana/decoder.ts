@@ -3,14 +3,14 @@
 
 import fs from 'node:fs';
 import { getNodeCodec } from '@codama/dynamic-codecs';
-import {
-  getBase16Encoder,
-  getBase58Encoder,
-  getBase64Encoder,
-  getUtf8Encoder,
-} from '@solana/codecs-strings';
 import { Base58EncodedBytes } from '@solana/kit';
-import { parseIdl, Idl, isAnchorIdlV01 } from '@subql/common-solana';
+import {
+  parseIdl,
+  Idl,
+  isAnchorIdlV01,
+  getInstructionDiscriminatorBytes,
+  findInstructionDiscriminatorByName,
+} from '@subql/common-solana';
 import { getLogger } from '@subql/node-core';
 import {
   DecodedData,
@@ -20,54 +20,11 @@ import {
 } from '@subql/types-solana';
 import { isHex } from '@subql/utils';
 import bs58 from 'bs58';
-import {
-  BytesValueNode,
-  camelCase,
-  DefinedTypeNode,
-  InstructionNode,
-  RootNode,
-} from 'codama';
+import { camelCase, DefinedTypeNode, InstructionNode, RootNode } from 'codama';
 import { Memoize } from '../utils/decorators';
 import { getProgramId } from './utils.solana';
 
 const logger = getLogger('SolanaDecoder');
-
-export function getBytesFromBytesValueNode(node: BytesValueNode): Uint8Array {
-  switch (node.encoding) {
-    case 'utf8':
-      return getUtf8Encoder().encode(node.data) as Uint8Array;
-    case 'base16':
-      return getBase16Encoder().encode(node.data) as Uint8Array;
-    case 'base58':
-      return getBase58Encoder().encode(node.data) as Uint8Array;
-    case 'base64':
-    default:
-      return getBase64Encoder().encode(node.data) as Uint8Array;
-  }
-}
-
-function getInstructionDiscriminatorBytes(node: InstructionNode): Buffer {
-  const discArg = node.arguments.find((arg) => arg.name === 'discriminator');
-  if (!discArg) {
-    throw new Error(`Instruction ${node.name} does not have a discriminator`);
-  }
-
-  // TODO what about other types of discriminators or ones that are larger than 1 byte?
-  switch (discArg.defaultValue?.kind) {
-    case 'numberValueNode':
-      return Buffer.from([discArg.defaultValue.number]);
-    case 'bytesValueNode':
-      return Buffer.from(getBytesFromBytesValueNode(discArg.defaultValue));
-    case undefined:
-      break;
-    default:
-      throw new Error(
-        `Unable to handle unknown discriminator type ${discArg.defaultValue?.kind}`,
-      );
-  }
-
-  throw new Error(`Unable to find discriminator for instruction ${node.name}`);
-}
 
 function findInstructionForData(
   rootNode: RootNode,
@@ -84,25 +41,6 @@ function findInstructionForData(
       return false;
     }
   });
-}
-
-function findInstructionDiscriminatorByName(
-  rootNode: RootNode,
-  name: string,
-): Buffer | undefined {
-  const inst = rootNode.program.instructions.find((inst) => inst.name === name);
-  if (!inst) {
-    return undefined;
-  }
-
-  try {
-    return getInstructionDiscriminatorBytes(inst);
-  } catch (e) {
-    logger.debug(
-      `Failed to get discriminator for instruction ${inst.name}: ${e}`,
-    );
-    return undefined;
-  }
 }
 
 // Converts a base58 or base64 string to Buffer
@@ -234,15 +172,7 @@ export class SolanaDecoder {
 
     const root = parseIdl(idl).getRoot();
 
-    let discriminator = findInstructionDiscriminatorByName(root, input);
-
-    if (!discriminator) {
-      // Try find a camel case version
-      discriminator = findInstructionDiscriminatorByName(
-        root,
-        camelCase(input),
-      );
-    }
+    const discriminator = findInstructionDiscriminatorByName(root, input);
 
     if (!discriminator) {
       return bs58.decode(input);
