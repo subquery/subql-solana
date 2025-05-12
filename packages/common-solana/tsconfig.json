@@ -4,8 +4,9 @@
     "rootDir": "src",
     "tsBuildInfoFile": "dist/.tsbuildinfo",
     "outDir": "dist",
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "strict": true
   },
-  "references": [{"path": "../types-solana"}, {"path": "../common"}],
+  "references": [{"path": "../types"}],
   "include": ["src/**/*"]
 }

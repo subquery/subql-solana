@@ -1,11 +1,19 @@
-// Copyright 2020-2021 OnFinality Limited authors & contributors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
+// SPDX-License-Identifier: GPL-3.0
 
-import {IProjectManifest, ProjectNetworkConfig} from '@subql/common';
-import {SubqlSolanaDatasource} from '@subql/types-solana';
+import { IProjectManifest } from '@subql/types-core';
+import { SubqlDatasource } from '@subql/types-solana';
 
-export type ISolanaProjectManifest = IProjectManifest<SubqlSolanaDatasource>;
+// All of these used to be redefined in this file, re-exporting for simplicity
+export {
+  SubqlRuntimeHandler,
+  SubqlCustomHandler,
+  SubqlHandler,
+  SubqlDatasource as SubqlSolanaDataSource,
+  SubqlCustomDatasource as SubqlSolanaCustomDataSource,
+  SubqlDatasourceProcessor,
+  SubqlHandlerFilter,
+} from '@subql/types-solana';
 
-export interface SolanaProjectNetworkConfig extends ProjectNetworkConfig {
-  chainId?: string;
-}
+export type ISolanaProjectManifest = IProjectManifest<SubqlDatasource>;
+

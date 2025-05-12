@@ -1,30 +1,28 @@
-// Copyright 2020-2021 OnFinality Limited authors & contributors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
+// SPDX-License-Identifier: GPL-3.0
 
-import {SubqlSolanaDatasource} from '@subql/types-solana';
-import {plainToClass} from 'class-transformer';
-import {ISolanaProjectManifest} from '../types';
-import {ProjectManifestV0_0_1Impl} from './v0_0_1';
+import { plainToClass } from 'class-transformer';
+import { ISolanaProjectManifest, SubqlSolanaDataSource } from '../types';
+import { ProjectManifestV1_0_0Impl } from './v1_0_0';
+export type VersionedProjectManifest = { specVersion: string };
 
-export type VersionedProjectManifest = {specVersion: string};
-
-const SUPPORTED_VERSIONS = {
-  '0.0.1': ProjectManifestV0_0_1Impl,
+const SOLANA_SUPPORTED_VERSIONS = {
+  '1.0.0': ProjectManifestV1_0_0Impl,
 };
 
-type Versions = keyof typeof SUPPORTED_VERSIONS;
+type Versions = keyof typeof SOLANA_SUPPORTED_VERSIONS;
 
-type ProjectManifestImpls = InstanceType<typeof SUPPORTED_VERSIONS[Versions]>;
+type ProjectManifestImpls = InstanceType<(typeof SOLANA_SUPPORTED_VERSIONS)[Versions]>;
 
-export function manifestIsV0_0_1(manifest: ISolanaProjectManifest): manifest is ProjectManifestV0_0_1Impl {
-  return manifest.specVersion === '0.0.1';
+export function manifestIsV1_0_0(manifest: ISolanaProjectManifest): manifest is ProjectManifestV1_0_0Impl {
+  return manifest.specVersion === '1.0.0';
 }
 
-export class ProjectManifestVersioned implements ISolanaProjectManifest {
+export class SolanaProjectManifestVersioned implements ISolanaProjectManifest {
   private _impl: ProjectManifestImpls;
 
   constructor(projectManifest: VersionedProjectManifest) {
-    const klass = SUPPORTED_VERSIONS['0.0.1'];
+    const klass = SOLANA_SUPPORTED_VERSIONS[projectManifest.specVersion as Versions];
     if (!klass) {
       throw new Error('specVersion not supported for project manifest file');
     }
@@ -35,23 +33,23 @@ export class ProjectManifestVersioned implements ISolanaProjectManifest {
     return this._impl;
   }
 
-  get isV0_0_1(): boolean {
-    return this.specVersion === '0.0.1';
+  get isV1_0_0(): boolean {
+    return this.specVersion === '1.0.0';
   }
 
-  get asV0_0_1(): ProjectManifestV0_0_1Impl {
-    return this._impl as ProjectManifestV0_0_1Impl;
+  get asV1_0_0(): ProjectManifestV1_0_0Impl {
+    return this._impl as ProjectManifestV1_0_0Impl;
   }
 
-  toDeployment(): string | undefined {
-    return this.toDeployment();
+  toDeployment(): string {
+    return this._impl.deployment.toYaml();
   }
 
   validate(): void {
-    // this._impl.validate();
+    return this._impl.validate();
   }
 
-  get dataSources(): SubqlSolanaDatasource[] {
+  get dataSources(): SubqlSolanaDataSource[] {
     return this._impl.dataSources;
   }
 
@@ -63,11 +61,11 @@ export class ProjectManifestVersioned implements ISolanaProjectManifest {
     return this._impl.specVersion;
   }
 
-  get description(): string {
+  get description(): string | undefined {
     return this._impl.description;
   }
 
-  get repository(): string {
+  get repository(): string | undefined {
     return this._impl.repository;
   }
 }

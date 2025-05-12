@@ -1,18 +1,21 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "target": "es2017",
     "sourceMap": true,
     "tsBuildInfoFile": "dist/.tsbuildinfo",
     "rootDir": "src",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "strict": true
   },
   "references": [
-    { "path": "../common" },
-    { "path": "../common-substrate" },
-    { "path": "../types" },
-    { "path": "../types-solana" },
-    { "path": "../common-solana" }
+    {
+      "path": "../common-solana"
+    },
+    {
+      "path": "../types"
+    }
   ],
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }

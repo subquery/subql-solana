@@ -21,14 +21,8 @@ module.exports = {
 
   // An array of glob patterns indicating a set of files for which coverage information should be collected
   collectCoverageFrom: [
-    'packages/cli/src/**/*.ts',
-    'packages/common/src/**/*.ts',
-    'packages/common-substrate/src/**/*.ts',
-    'packages/common-terra/src/**/*.ts',
-    'packages/contract-processors/src/**/*.ts',
+    'packages/common-solana/src/**/*.ts',
     'packages/node/src/**/*.ts',
-    'packages/node-terra/src/**/*.ts',
-    'packages/validator/src/**/*.ts',
   ],
 
   // The directory where Jest should output its coverage files
@@ -63,18 +57,13 @@ module.exports = {
   // forceCoverageMatch: [],
 
   // A path to a module which exports an async function that is triggered once before all test suites
-  // globalSetup: undefined,
+  // globalSetup: undefined
 
   // A path to a module which exports an async function that is triggered once after all test suites
   // globalTeardown: undefined,
 
   // A set of global variables that need to be available in all test environments
-  // globals: {},
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.test.json',
-    },
-  },
+  globals: {},
 
   // The maximum amount of workers used to run your tests. Can be specified as % or a number. E.g. maxWorkers: 10% will use 10% of your CPU amount + 1 as the maximum worker number. maxWorkers: 2 will use a maximum of 2 workers.
   // maxWorkers: "50%",
@@ -91,12 +80,8 @@ module.exports = {
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
   // moduleNameMapper: {},
   moduleNameMapper: {
-    '^@subql/common-substrate': '<rootDir>/packages/common-substrate/src',
-    '^@subql/common-substrate/(.*)$': '<rootDir>/packages/common-substrate/src/$1',
-    '^@subql/common-terra': '<rootDir>/packages/common-terra/src',
-    '^@subql/common-terra/(.*)$': '<rootDir>/packages/common-terra/src/$1',
-    '^@subql/common': '<rootDir>/packages/common/src',
-    '^@subql/common/(.*)$': '<rootDir>/packages/common/src/$1',
+    '@subql/common-solana': '<rootDir>/packages/common-solana/src',
+    '@subql/types-solana': '<rootDir>/packages/types/src'
   },
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
@@ -143,7 +128,7 @@ module.exports = {
 
   // The paths to modules that run some code to configure or set up the testing environment before each test
   // setupFiles: [],
-  setupFiles: ['./test/jest-setup.ts'],
+  setupFiles: ['<rootDir>/test/jest-setup.ts'],
 
   // A list of paths to modules that run some code to configure or set up the testing framework before each test
   // setupFilesAfterEnv: [],
@@ -191,7 +176,10 @@ module.exports = {
 
   // A map from regular expressions to paths to transformers
   transform: {
-    '^.+\\.(ts|tsx)?$': 'ts-jest',
+    '^.+\\.(ts|tsx)?$': [
+      'ts-jest',
+      { tsconfig: 'tsconfig.test.json' }
+    ],
     '^.+\\.(js|jsx)$': 'babel-jest',
   },
 

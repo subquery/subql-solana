@@ -4,138 +4,61 @@ on:
     branches:
       - main
     paths-ignore:
-      - '.github/workflows/**'
+      - ".github/workflows/**"
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
 
 jobs:
-  pre-ci:
-    runs-on: ubuntu-latest
-    timeout-minutes: 1
-    steps:
-      - name: 'Block Concurrent Executions'
-        uses: softprops/turnstyle@v1
-        with:
-          poll-interval-seconds: 10
-        env:
-          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
-
-
   Bump-Prerelease-Publish:
     name: Bump-Prerelease-Publish
-    needs: pre-ci
-    if: "!startsWith(github.event.head_commit.message, '[SKIP CI]') && !startsWith(github.event.head_commit.message, '[release]') && github.repository == 'subquery/subql'"
+    if: "!startsWith(github.event.head_commit.message, '[SKIP CI]') && !startsWith(github.event.head_commit.message, '[release]') && github.repository == 'subquery/subql-solana'"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 100
           token: ${{ secrets.REPO_TOKEN }}
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: lts/*
 
       - uses: marceloprado/has-changed-path@v1
-        id: changed-types
+        id: changed-types-solana
         with:
           paths: packages/types
 
       - uses: marceloprado/has-changed-path@v1
-        id: changed-types-terra
+        id: changed-common-solana
         with:
-          paths: packages/types-terra
-
-      - uses: marceloprado/has-changed-path@v1
-        id: changed-common
-        with:
-          paths: packages/common
-
-      - uses: marceloprado/has-changed-path@v1
-        id: changed-common-substrate
-        with:
-          paths: packages/common-substrate
-
-      - uses: marceloprado/has-changed-path@v1
-        id: changed-common-terra
-        with:
-          paths: packages/common-terra
-
-      - uses: marceloprado/has-changed-path@v1
-        id: changed-contract-processors
-        with:
-          paths: packages/contract-processors
-
-      - uses: marceloprado/has-changed-path@v1
-        id: changed-cli
-        with:
-          paths: packages/cli
+          paths: packages/common-solana
 
       - uses: marceloprado/has-changed-path@v1
         id: changed-node
         with:
           paths: packages/node
 
-      - uses: marceloprado/has-changed-path@v1
-        id: changed-node-terra
-        with:
-          paths: packages/node-terra
-
-      - uses: marceloprado/has-changed-path@v1
-        id: changed-query
-        with:
-          paths: packages/query
-
-      - uses: marceloprado/has-changed-path@v1
-        id: changed-validator
-        with:
-          paths: packages/validator
-
       - run: yarn
 
       - name: build
-        run: yarn workspaces foreach run build
+        run: yarn build
 
       #Add remove-stable-version
-      - name: Bump types & deploy
-        if: steps.changed-types.outputs.changed == 'true'
+      - name: Bump types solana & deploy
+        if: steps.changed-types-solana.outputs.changed == 'true'
         uses: ./.github/actions/create-prerelease
         with:
           package-path: packages/types
           npm-token: ${{ secrets.NPM_TOKEN }}
 
-      - name: Bump types terra & deploy
-        if: steps.changed-types-terra.outputs.changed == 'true'
+      - name: Bump common solana & deploy
+        if: steps.changed-common-solana.outputs.changed == 'true'
         uses: ./.github/actions/create-prerelease
         with:
-          package-path: packages/types-terra
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Bump common & deploy
-        if: steps.changed-common.outputs.changed == 'true'
-        uses: ./.github/actions/create-prerelease
-        with:
-          package-path: packages/common
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Bump common substrate & deploy
-        if: steps.changed-common-substrate.outputs.changed == 'true'
-        uses: ./.github/actions/create-prerelease
-        with:
-          package-path: packages/common-substrate
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Bump common terra & deploy
-        if: steps.changed-common-terra.outputs.changed == 'true'
-        uses: ./.github/actions/create-prerelease
-        with:
-          package-path: packages/common-terra
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Bump contract-processors & deploy
-        if: steps.changed-contract-processors.outputs.changed == 'true'
-        uses: ./.github/actions/create-prerelease
-        with:
-          package-path: packages/contract-processors
+          package-path: packages/common-solana
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Bump node & deploy
@@ -145,37 +68,9 @@ jobs:
           package-path: packages/node
           npm-token: ${{ secrets.NPM_TOKEN }}
 
-      - name: Bump node terra & deploy
-        if: steps.changed-node-terra.outputs.changed == 'true'
-        uses: ./.github/actions/create-prerelease
-        with:
-          package-path: packages/node-terra
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Bump query & deploy
-        if: steps.changed-query.outputs.changed == 'true'
-        uses: ./.github/actions/create-prerelease
-        with:
-          package-path: packages/query
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Bump validator & deploy
-        if: steps.changed-validator.outputs.changed == 'true'
-        uses: ./.github/actions/create-prerelease
-        with:
-          package-path: packages/validator
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
-      - name: Bump cli & deploy
-        if: steps.changed-cli.outputs.changed == 'true'
-        uses: ./.github/actions/create-prerelease
-        with:
-          package-path: packages/cli
-          npm-token: ${{ secrets.NPM_TOKEN }}
-
       - name: Commit changes
         uses: EndBug/add-and-commit@v5
         with:
-          message: '[SKIP CI] Prerelease'
+          message: "[SKIP CI] Prerelease"
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}

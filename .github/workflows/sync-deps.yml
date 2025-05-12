@@ -1,0 +1,42 @@
+name: Sync Deps
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [trigger-workflow]
+jobs:
+  code-style:
+    name: update deps
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      SUBQL_ACCESS_TOKEN: ${{ secrets.SUBQL_ACCESS_TOKEN }}
+      SUBQL_ACCESS_TOKEN_TEST: ${{ secrets.SUBQL_ACCESS_TOKEN_TEST }}
+      SUBQL_ORG_TEST: ${{ secrets.SUBQL_ORG_TEST }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: lts/*
+      - run: yarn
+
+      # Update deps
+      - name: Update types
+        run: yarn --cwd ./packages/types add @subql/types-core
+      - name: Update common
+        run: yarn --cwd ./packages/common-solana add @subql/common
+      - name: Update node
+        run: yarn --cwd ./packages/node add @subql/common @subql/node-core
+
+      - name: Determine branch name
+        id: branch-name
+        run: echo "branch=sync-$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: ${{ steps.branch-name.outputs.branch }}
+          commit-message: "Update @subql deps"
+          title: "Sync @subql dependencies"
+          body-path: ".github/PULL_REQUEST_TEMPLATE.md"

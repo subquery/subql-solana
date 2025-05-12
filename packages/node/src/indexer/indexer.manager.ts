@@ -1,395 +1,252 @@
-// Copyright 2020-2022 OnFinality Limited authors & contributors
-// SPDX-License-Identifier: Apache-2.0
+// Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
+// SPDX-License-Identifier: GPL-3.0
 
-import fs from 'fs';
 import { Inject, Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Connection, TransactionResponse } from '@solana/web3.js';
-
-import { getAllEntitiesRelations } from '@subql/common';
-
 import {
-  SubqlSolanaDatasource,
-  SubqlSolanaRuntimeHandler,
-  SubqlSolanaHandlerKind,
-  SubqlSolanaCustomDatasource,
-  SubqlSolanaCustomHandler,
-  RuntimeHandlerInputMap,
-  SecondLayerHandlerProcessor,
+  isBlockHandlerProcessor,
+  isCustomDs,
+  isRuntimeDs,
+  SubqlSolanaCustomDataSource,
+  SubqlSolanaDataSource,
+  isInstructionHandlerProcessor,
+  isTransactionHandlerProcessor,
+  isLogHandlerProcessor,
+} from '@subql/common-solana';
+import {
+  NodeConfig,
+  profiler,
+  IndexerSandbox,
+  ProcessBlockResponse,
+  BaseIndexerManager,
+  IBlock,
+  SandboxService,
+  DsProcessorService,
+  DynamicDsService,
+  UnfinalizedBlocksService,
+} from '@subql/node-core';
+import {
+  SolanaHandlerKind,
+  SolanaTransaction,
+  SolanaBlock,
+  SubqlRuntimeDatasource,
+  SolanaBlockFilter,
+  SolanaTransactionFilter,
+  SolanaInstruction,
+  SolanaInstructionFilter,
+  SolanaRuntimeHandlerInputMap,
+  SolanaLogMessage,
+  SolanaLogFilter,
 } from '@subql/types-solana';
-import { QueryTypes, Sequelize } from 'sequelize';
-import { NodeConfig } from '../configure/NodeConfig';
-
-import { SubquerySolanaProject } from '../configure/project.model';
-import { SubqueryRepo } from '../entities';
-import { getLogger } from '../utils/logger';
-import { profiler } from '../utils/profiler';
-// import * as SubstrateUtil from '../utils/substrate';
-import { filterTransaction } from '../utils/solana-helper';
-import { getYargsOption } from '../yargs';
-import { ApiService } from './api.service';
-import { DsProcessorService } from './ds-processor.service';
-
-import { MetadataFactory, MetadataRepo } from './entities/Metadata.entity';
-import { IndexerEvent } from './events';
-import { FetchService } from './fetch.service';
-
-import { IndexerSandbox, SandboxService } from './sandbox.service';
-import { StoreService } from './store.service';
+import { groupBy } from 'lodash';
+import { BlockchainService } from '../blockchain.service';
+import { SolanaProjectDs } from '../configure/SubqueryProject';
+import {
+  SolanaApi,
+  SolanaApiService,
+  SolanaDecoder,
+  SolanaSafeApi,
+} from '../solana';
+import {
+  filterBlocksProcessor,
+  filterInstructionsProcessor,
+  filterLogsProcessor,
+  filterTransactionsProcessor,
+} from '../solana/utils.solana';
 import { BlockContent } from './types';
 
-import {
-  isCustomSolanaDs,
-  isRuntimeSolanaDs,
-  isBlockHandlerProcessor,
-} from './utils';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-
-const DEFAULT_DB_SCHEMA = 'public';
-
-const logger = getLogger('indexer');
-const { argv } = getYargsOption();
-
 @Injectable()
-export class IndexerManager {
-  private api: Connection;
-  private prevSpecVersion?: number;
-  protected metadataRepo: MetadataRepo;
-  private filteredDataSources: SubqlSolanaDatasource[];
+export class IndexerManager extends BaseIndexerManager<
+  SolanaApi,
+  SolanaSafeApi,
+  BlockContent,
+  SolanaApiService,
+  SubqlSolanaDataSource,
+  SubqlSolanaCustomDataSource,
+  ReturnType<typeof getFilterTypeMap>,
+  typeof ProcessorTypeMap,
+  SolanaRuntimeHandlerInputMap
+> {
+  protected isRuntimeDs = isRuntimeDs;
+  protected isCustomDs = isCustomDs;
 
   constructor(
-    private storeService: StoreService,
-    private apiService: ApiService,
-    private fetchService: FetchService,
-
-    private sequelize: Sequelize,
-    private project: SubquerySolanaProject,
-    private nodeConfig: NodeConfig,
-    private sandboxService: SandboxService,
-    private dsProcessorService: DsProcessorService,
-
-    @Inject('Subquery') protected subqueryRepo: SubqueryRepo,
-    private eventEmitter: EventEmitter2,
-  ) {}
-
-  @profiler(argv.profiler)
-  async indexBlock(blockContent: BlockContent): Promise<void> {
-    const { block } = blockContent;
-    const blockHeight = +block.block.parentSlot + 1; // convert to block height
-    this.eventEmitter.emit(IndexerEvent.BlockProcessing, {
-      height: blockHeight,
-      timestamp: Date.now(),
-    });
-    const tx = await this.sequelize.transaction();
-    this.storeService.setTransaction(tx);
-    try {
-      for (const ds of this.filteredDataSources) {
-        const vm = this.sandboxService.getDsProcessor(ds);
-        if (isRuntimeSolanaDs(ds)) {
-          await this.indexBlockForRuntimeDs(
-            vm,
-            ds.mapping.handlers,
-            blockContent,
-          );
-        } else if (isCustomSolanaDs(ds)) {
-          logger.error('Not support custom datasource');
-          process.exit(1);
-          // await this.indexBlockForCustomDs(ds, vm, blockContent);
-        }
-      }
-      await this.storeService.setMetadata(
-        'lastProcessedHeight',
-        blockHeight + 1,
-      );
-    } catch (e) {
-      await tx.rollback();
-      throw e;
-    }
-    await tx.commit();
-    this.fetchService.latestProcessed(blockHeight);
-  }
-
-  async start(): Promise<void> {
-    await this.dsProcessorService.validateProjectCustomDatasources();
-    await this.fetchService.init();
-    this.api = this.apiService.getApi();
-    const schema = await this.ensureProject();
-    await this.initDbSchema(schema);
-    this.metadataRepo = await this.ensureMetadata(schema);
-
-    // get current process block height
-    let startHeight: number;
-    const lastProcessedHeight = await this.metadataRepo.findOne({
-      where: { key: 'lastProcessedHeight' },
-    });
-    if (lastProcessedHeight !== null && lastProcessedHeight.value !== null) {
-      startHeight = Number(lastProcessedHeight.value) + 1;
-    } else {
-      const project = await this.subqueryRepo.findOne({
-        where: { name: this.nodeConfig.subqueryName },
-      });
-      if (project !== null) {
-        startHeight = project.nextBlockHeight;
-      } else {
-        startHeight = this.getStartBlockFromDataSources();
-      }
-    }
-    //TODO: implement POI
-    logger.info(`startHeight ${startHeight}`);
-    this.eventEmitter.emit(IndexerEvent.Started, { height: startHeight });
-    void this.fetchService.startLoop(startHeight).catch((err) => {
-      logger.error(err, 'failed to fetch block');
-      // FIXME: retry before exit
-      process.exit(1);
-    });
-    this.filteredDataSources = this.filterDataSources(startHeight);
-    this.fetchService.register((block) => this.indexBlock(block));
-    //TODO: implement POI
-  }
-
-  private async ensureProject(): Promise<string> {
-    let schema = await this.getExistingProjectSchema();
-    if (!schema) {
-      schema = await this.createProjectSchema();
-    } else {
-      if (argv['force-clean']) {
-        try {
-          // drop existing project schema and metadata table
-          await this.sequelize.dropSchema(`"${schema}"`, {
-            logging: false,
-            benchmark: false,
-          });
-
-          // remove schema from subquery table (might not exist)
-          await this.sequelize.query(
-            ` DELETE
-              FROM public.subqueries
-              WHERE name = :name`,
-            {
-              replacements: { name: this.nodeConfig.subqueryName },
-              type: QueryTypes.DELETE,
-            },
-          );
-
-          logger.info('force cleaned schema and tables');
-
-          if (fs.existsSync(this.nodeConfig.mmrPath)) {
-            await fs.promises.unlink(this.nodeConfig.mmrPath);
-            logger.info('force cleaned file based mmr');
-          }
-        } catch (err) {
-          logger.error(err, 'failed to force clean');
-        }
-        schema = await this.createProjectSchema();
-      }
-    }
-
-    this.eventEmitter.emit(IndexerEvent.Ready, {
-      value: true,
-    });
-
-    return schema;
-  }
-
-  // Get existing project schema, undefined when doesn't exist
-  private async getExistingProjectSchema(): Promise<string> {
-    let schema = this.nodeConfig.localMode
-      ? DEFAULT_DB_SCHEMA
-      : this.nodeConfig.dbSchema;
-
-    // Note that sequelize.fetchAllSchemas does not include public schema, we cannot assume that public schema exists so we must make a raw query
-    const schemas = (await this.sequelize
-      .query(`SELECT schema_name FROM information_schema.schemata`, {
-        type: QueryTypes.SELECT,
-      })
-      .then((xs) => xs.map((x: any) => x.schema_name))
-      .catch((err) => {
-        logger.error(`Unable to fetch all schemas: ${err}`);
-        process.exit(1);
-      })) as [string];
-
-    if (!schemas.includes(schema)) {
-      // fallback to subqueries table
-      const subqueryModel = await this.subqueryRepo.findOne({
-        where: { name: this.nodeConfig.subqueryName },
-      });
-      if (subqueryModel) {
-        schema = subqueryModel.dbSchema;
-      } else {
-        schema = undefined;
-      }
-    }
-    return schema;
-  }
-
-  private async createProjectSchema(): Promise<string> {
-    let schema: string;
-    if (this.nodeConfig.localMode) {
-      // create tables in default schema if local mode is enabled
-      schema = DEFAULT_DB_SCHEMA;
-    } else {
-      schema = this.nodeConfig.dbSchema;
-      const schemas = await this.sequelize.showAllSchemas(undefined);
-      if (!(schemas as unknown as string[]).includes(schema)) {
-        await this.sequelize.createSchema(`"${schema}"`, undefined);
-      }
-    }
-
-    return schema;
-  }
-
-  private async initDbSchema(schema: string): Promise<void> {
-    const graphqlSchema = this.project.schema;
-    const modelsRelations = getAllEntitiesRelations(graphqlSchema);
-    await this.storeService.init(modelsRelations, schema);
-  }
-
-  private async ensureMetadata(schema: string) {
-    const metadataRepo = MetadataFactory(this.sequelize, schema);
-    const { chainId } = this.apiService.networkMeta;
-
-    this.eventEmitter.emit(
-      IndexerEvent.NetworkMetadata,
-      this.apiService.networkMeta,
+    @Inject('APIService') apiService: SolanaApiService,
+    nodeConfig: NodeConfig,
+    sandboxService: SandboxService<SolanaSafeApi, SolanaApi>,
+    dsProcessorService: DsProcessorService<
+      SubqlSolanaDataSource,
+      SubqlSolanaCustomDataSource
+    >,
+    dynamicDsService: DynamicDsService<SubqlSolanaDataSource>,
+    @Inject('IUnfinalizedBlocksService')
+    unfinalizedBlocksService: UnfinalizedBlocksService,
+    @Inject('IBlockchainService') blockchainService: BlockchainService,
+  ) {
+    super(
+      apiService,
+      nodeConfig,
+      sandboxService,
+      dsProcessorService,
+      dynamicDsService,
+      unfinalizedBlocksService,
+      getFilterTypeMap(apiService.api.decoder),
+      ProcessorTypeMap,
+      blockchainService,
     );
-
-    const keys = ['blockOffset', 'chain', 'genesisHash'] as const;
-
-    const entries = await metadataRepo.findAll({
-      where: {
-        key: keys,
-      },
-    });
-
-    const keyValue = entries.reduce((arr, curr) => {
-      arr[curr.key] = curr.value;
-      return arr;
-    }, {} as { [key in typeof keys[number]]: string });
-
-    if (!keyValue.blockOffset) {
-      const offsetValue = (this.getStartBlockFromDataSources() - 1).toString();
-      await this.storeService.setMetadata('blockOffset', offsetValue);
-    }
-
-    if (keyValue.chain !== chainId) {
-      await this.storeService.setMetadata('chain', chainId);
-    }
-
-    return metadataRepo;
   }
 
-  private filterDataSources(nextBlockHeight: number): SubqlSolanaDatasource[] {
-    const ds = this.project.dataSources;
-    if (ds.length === 0) {
-      logger.error(`Did not find any datasource`);
-      process.exit(1);
-    }
-
-    let filteredDs = ds.filter((ds) => ds.startBlock <= nextBlockHeight);
-    if (filteredDs.length === 0) {
-      logger.error(
-        `Your start block is greater than the current indexed block height in your database. Either change your startBlock (project.yaml) to <= ${nextBlockHeight} or delete your database and start again from the currently specified startBlock`,
-      );
-      process.exit(1);
-    }
-    // perform filter for custom ds
-    filteredDs = filteredDs.filter((ds) => {
-      if (isCustomSolanaDs(ds)) {
-        return this.dsProcessorService
-          .getDsProcessor(ds)
-          .dsFilterProcessor(ds, this.api as any);
-      } else {
-        return true;
-      }
-    });
-
-    if (!filteredDs.length) {
-      logger.error(`Did not find any datasources with associated processor`);
-      process.exit(1);
-    }
-    return filteredDs;
-  }
-
-  private getStartBlockFromDataSources() {
-    const startBlocksList = this.project.dataSources.map(
-      (item) => item.startBlock ?? 1,
+  @profiler()
+  async indexBlock(
+    block: IBlock<BlockContent>,
+    dataSources: SubqlSolanaDataSource[],
+  ): Promise<ProcessBlockResponse> {
+    return super.internalIndexBlock(block, dataSources, () =>
+      this.blockchainService.getSafeApi(block.block),
     );
-    if (startBlocksList.length === 0) {
-      logger.error(`Failed to find a valid datasource.`);
-      process.exit(1);
-    } else {
-      return Math.min(...startBlocksList);
-    }
   }
 
-  // private getDataSourcesForSpecName(): SubqlProjectDs[] {
-  //   return this.project.dataSources.filter(
-  //     (ds) =>
-  //       !ds.filter?.specName ||
-  //       ds.filter.specName === this.api.runtimeVersion.specName.toString(),
-  //   );
-  // }
-
-  private async indexBlockForRuntimeDs(
-    vm: IndexerSandbox,
-    handlers: SubqlSolanaRuntimeHandler[],
-    { block }: BlockContent,
-  ): Promise<void> {
-    for (const handler of handlers) {
-      switch (handler.kind) {
-        case SubqlSolanaHandlerKind.Block:
-          await vm.securedExec(handler.handler, [block]);
-          break;
-        case SubqlSolanaHandlerKind.Transaction: {
-          const filteredTransactions = filterTransaction(
-            block.block.transactions as TransactionResponse[],
-            handler.filter,
-          );
-          const { blockHeight, parentSlot }: any = block.block;
-
-          for (const tx of filteredTransactions as any) {
-            tx.blockHeight = blockHeight;
-            tx.slot = parentSlot + 1;
-            await vm.securedExec(handler.handler, [tx]);
-          }
-          break;
-        }
-        default:
-      }
-    }
+  protected getDsProcessor(
+    ds: SubqlSolanaDataSource,
+    safeApi: SolanaSafeApi,
+  ): IndexerSandbox {
+    return this.sandboxService.getDsProcessor(ds, safeApi, this.apiService.api);
   }
 
-  private async indexBlockForCustomDs(
-    ds: SubqlSolanaCustomDatasource<string>,
-    vm: IndexerSandbox,
-    { block }: BlockContent,
+  protected async indexBlockData(
+    block: BlockContent,
+    dataSources: SolanaProjectDs[],
+    getVM: (d: SolanaProjectDs) => Promise<IndexerSandbox>,
   ): Promise<void> {
-    const plugin = this.dsProcessorService.getDsProcessor(ds);
-    const assets = await this.dsProcessorService.getAssets(ds);
+    // console.time(`Indexed block ${block.blockHeight}`);
+    await this.indexBlockContent(block, dataSources, getVM);
 
-    const processData = async <K extends SubqlSolanaHandlerKind>(
-      processor: SecondLayerHandlerProcessor<K, unknown, unknown>,
-      handler: SubqlSolanaCustomHandler<string>,
-      filteredData: RuntimeHandlerInputMap[K][],
-    ): Promise<void> => {
-      const transformedData = await Promise.all(
-        filteredData
-          .filter((data) => processor.filterProcessor(handler.filter, data, ds))
-          .map((data) =>
-            processor.transformer(data, ds, this.api as any, assets),
-          ),
+    for (const tx of block.transactions) {
+      await this.indexTransaction(tx, dataSources, getVM);
+
+      // There is probably only one item per group but that could change based on the data structure
+      const innerInstructions = groupBy(
+        tx.meta?.innerInstructions,
+        (inner) => inner.index,
       );
 
-      for (const data of transformedData) {
-        await vm.securedExec(handler.handler, [data]);
-      }
-    };
+      for (const [idx, instruction] of Object.entries(
+        tx.transaction.message.instructions ?? [],
+      )) {
+        await this.indexInstruction(instruction, dataSources, getVM);
 
-    for (const handler of ds.mapping.handlers) {
-      const processor = plugin.handlerProcessors[handler.kind];
-      if (isBlockHandlerProcessor(processor)) {
-        await processData(processor, handler, [block]);
+        for (const innerInstrutions1 of innerInstructions[idx] ?? []) {
+          for (const innerInstrution of innerInstrutions1.instructions) {
+            await this.indexInstruction(innerInstrution, dataSources, getVM);
+          }
+        }
+      }
+
+      for (const log of tx.meta?.logs ?? []) {
+        await this.indexLog(log, dataSources, getVM);
       }
     }
+    // console.timeEnd(`Indexed block ${block.blockHeight}`);
+  }
+
+  private async indexBlockContent(
+    block: SolanaBlock,
+    dataSources: SolanaProjectDs[],
+    getVM: (d: SolanaProjectDs) => Promise<IndexerSandbox>,
+  ): Promise<void> {
+    for (const ds of dataSources) {
+      await this.indexData(SolanaHandlerKind.Block, block, ds, getVM);
+    }
+  }
+
+  private async indexTransaction(
+    tx: SolanaTransaction,
+    dataSources: SolanaProjectDs[],
+    getVM: (d: SolanaProjectDs) => Promise<IndexerSandbox>,
+  ): Promise<void> {
+    for (const ds of dataSources) {
+      await this.indexData(SolanaHandlerKind.Transaction, tx, ds, getVM);
+    }
+  }
+
+  private async indexInstruction(
+    instruction: SolanaInstruction,
+    dataSources: SolanaProjectDs[],
+    getVM: (d: SolanaProjectDs) => Promise<IndexerSandbox>,
+  ): Promise<void> {
+    for (const ds of dataSources) {
+      await this.indexData(
+        SolanaHandlerKind.Instruction,
+        instruction,
+        ds,
+        getVM,
+      );
+    }
+  }
+
+  private async indexLog(
+    log: SolanaLogMessage,
+    dataSources: SolanaProjectDs[],
+    getVM: (d: SolanaProjectDs) => Promise<IndexerSandbox>,
+  ): Promise<void> {
+    for (const ds of dataSources) {
+      await this.indexData(SolanaHandlerKind.Log, log, ds, getVM);
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  protected async prepareFilteredData(
+    kind: SolanaHandlerKind,
+    data: any,
+    ds: SubqlRuntimeDatasource,
+  ): Promise<any> {
+    // Ensure any provided IDLs are available
+    await this.apiService.api.decoder.loadIdls(ds);
+
+    return DataIDLParser[kind](data);
   }
 }
+
+const ProcessorTypeMap = {
+  [SolanaHandlerKind.Block]: isBlockHandlerProcessor,
+  [SolanaHandlerKind.Transaction]: isTransactionHandlerProcessor,
+  [SolanaHandlerKind.Instruction]: isInstructionHandlerProcessor,
+  [SolanaHandlerKind.Log]: isLogHandlerProcessor,
+};
+
+const getFilterTypeMap = (decoder: SolanaDecoder) => ({
+  [SolanaHandlerKind.Block]: (
+    data: SolanaBlock,
+    filter: SolanaBlockFilter,
+    ds: SubqlSolanaDataSource,
+  ) => filterBlocksProcessor(data, filter),
+  [SolanaHandlerKind.Transaction]: (
+    data: SolanaTransaction,
+    filter: SolanaTransactionFilter,
+    ds: SubqlSolanaDataSource,
+  ) => filterTransactionsProcessor(data, filter),
+  [SolanaHandlerKind.Instruction]: (
+    data: SolanaInstruction,
+    filter: SolanaInstructionFilter,
+    ds: SubqlSolanaDataSource,
+  ) => filterInstructionsProcessor(data, decoder, filter),
+  [SolanaHandlerKind.Log]: (
+    data: SolanaLogMessage,
+    filter: SolanaLogFilter,
+    ds: SubqlSolanaDataSource,
+  ) => filterLogsProcessor(data, filter),
+});
+
+const DataIDLParser = {
+  [SolanaHandlerKind.Block]: (data: SolanaBlock) => data,
+  [SolanaHandlerKind.Transaction]: (data: SolanaTransaction) => data,
+  [SolanaHandlerKind.Instruction]: async (data: SolanaInstruction) => {
+    // Preload the decoded data
+    await data.decodedData;
+    return data;
+  },
+  [SolanaHandlerKind.Log]: async (data: SolanaLogMessage) => {
+    // Preload the decoded data
+    await data.decodedMessage;
+    return data;
+  },
+};

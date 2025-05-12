@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+
+// Auto-generated , DO NOT EDIT
+import { SolanaInstruction, SolanaLogMessage } from '@subql/types-solana';
+
+import {<% props.instructions.forEach(function(inst){ %><%= inst %>InstructionDataArgs, <% }); %>} from '../program-interfaces/<%=props.name%>/instructions';
+
+<% props.instructions.forEach(function(inst){ %>
+export type <%=inst %>Instruction = SolanaInstruction<<%=inst%>InstructionDataArgs>
+<% }); %>
