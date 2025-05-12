@@ -115,6 +115,7 @@ export function filterInstructionsProcessor(
       filter.discriminator,
       programId,
     );
+
     const data = Buffer.from(bs58.decode(instruction.data));
 
     if (data.indexOf(discriminator) !== 0) {

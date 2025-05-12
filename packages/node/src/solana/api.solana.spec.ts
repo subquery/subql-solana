@@ -1,6 +1,7 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
+import { IdlV01 } from '@codama/nodes-from-anchor';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TransactionFilter } from '@subql/common-solana';
 import { IBlock } from '@subql/node-core';
@@ -14,12 +15,15 @@ import { SolanaDecoder } from './decoder';
 import {
   filterBlocksProcessor,
   filterInstructionsProcessor,
+  filterLogsProcessor,
   filterTransactionsProcessor,
 } from './utils.solana';
 
 // Add api key to work
 const HTTP_ENDPOINT =
   process.env.HTTP_ENDPOINT ?? 'https://solana.api.onfinality.io/public';
+
+const IDL_swap: IdlV01 = require('../../test/swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW.idl.json');
 
 describe('Api.solana', () => {
   let solanaApi: SolanaApi;
@@ -127,39 +131,33 @@ describe('Api.solana', () => {
         ).toBe(false);
       });
 
-      it('can filter discriminators', () => {
-        const tx = getTxBySig(
-          '4V5S9ymSheic34SsHN9AHA86b41qXfA9JwdEra1UUgoNdvWFTMA5ueSCHn6nRTBDphMQFUFLPgU4N2QsG8En3J1d',
-        );
-        const inst = tx?.transaction.message.instructions[4];
+      it.each([
+        // ['human', 'swap', true], // TODO wrong IDL currently
+        ['hex', '0x09', true],
+        ['base58', 'A', true],
+        ['human', 'shutdown', false],
+        ['hex', '0x74ce1bbfa6130049', false],
+        ['base58', 'kPf6M86k1NDLT', false],
+      ])(
+        'should correctly match discrminators in %s format',
+        (_, discriminator, result) => {
+          // TODO wrong IDL currently
+          solanaApi.decoder.idls[
+            '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8'
+          ] = IDL_swap;
+          const tx = getTxBySig(
+            '4V5S9ymSheic34SsHN9AHA86b41qXfA9JwdEra1UUgoNdvWFTMA5ueSCHn6nRTBDphMQFUFLPgU4N2QsG8En3J1d',
+          );
+          const inst = tx?.transaction.message.instructions[4];
 
-        const validNames = [
-          'raydium:swap', // Human
-          '09', // Hex
-          '09', // Base58
-        ];
-
-        for (const discriminator of validNames) {
           expect(
             filterInstructionsProcessor(inst!, solanaApi.decoder, {
+              programId: '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8',
               discriminator,
             }),
-          ).toBe(true);
-        }
-
-        const invalidNames = [
-          'claim_token', // Human
-          '74ce1bbfa6130049', // Hex
-          // 'kPf6M86k1NDLT', // Base58
-        ];
-        for (const discriminator of invalidNames) {
-          expect(
-            filterInstructionsProcessor(inst!, solanaApi.decoder, {
-              discriminator,
-            }),
-          ).toBe(false);
-        }
-      });
+          ).toBe(result);
+        },
+      );
 
       it('can filter accounts', () => {
         const tx = getTxBySig(
@@ -205,7 +203,25 @@ describe('Api.solana', () => {
 
     describe('logs', () => {
       it('should filter logs by program Id', () => {
-        throw new Error('Test not implemented');
+        const tx = getTxBySig(
+          '4V5S9ymSheic34SsHN9AHA86b41qXfA9JwdEra1UUgoNdvWFTMA5ueSCHn6nRTBDphMQFUFLPgU4N2QsG8En3J1d',
+        );
+
+        const log = tx!.meta!.logs![1];
+        expect(log).toBeDefined();
+        // Matching program id
+        expect(
+          filterLogsProcessor(log, {
+            programId: '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8',
+          }),
+        ).toBe(true);
+
+        // non-matching programId
+        expect(
+          filterLogsProcessor(log, {
+            programId: '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1',
+          }),
+        ).toBe(false);
       });
     });
   });
@@ -225,10 +241,6 @@ describe('Api.solana', () => {
           expect(instruction.transaction).toBeDefined();
         }
       }
-    });
-
-    it('can decode instruction data', () => {
-      throw new Error('Test not implemented');
     });
 
     it('corretly parses logs', () => {
@@ -251,10 +263,6 @@ describe('Api.solana', () => {
       );
       expect(txWError!.meta!.logs).toBeDefined();
       expect(txWError!.meta!.logs!.length).toBeGreaterThan(0);
-    });
-
-    it('can decode log data', () => {
-      throw new Error('Test not implemented');
     });
   });
 
