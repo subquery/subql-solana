@@ -86,7 +86,7 @@ describe('ApiService', () => {
 
   it('can fetch blocks', async () => {
     await expect(
-      apiService.api.fetchBlocks(range(12369621, 12369625)),
+      apiService.api.fetchBlocks(range(325_922_873, 325_922_873 + 10)),
     ).resolves.toHaveLength(4);
   });
 

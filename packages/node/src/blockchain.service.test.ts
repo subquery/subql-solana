@@ -17,6 +17,7 @@ const mockApiService = async (): Promise<SolanaApiService> => {
 
   return {
     unsafeApi: solanaApi,
+    api: solanaApi,
   } as any;
 };
 
