@@ -26,12 +26,14 @@ const logger = getLogger('api.ethereum');
 
 export type SolanaSafeApi = undefined;
 
+const REQUEST_TIMEOUT = 30_000;
+
 export class SolanaApi {
   #client: Rpc<SolanaRpcApi>;
 
   // This is used within the sandbox when HTTP is used
   #genesisBlockHash: string;
-  // readonly decoder: SolanaDecoder;
+  #requestTimeout: number;
 
   /**
    * @param {string} endpoint - The endpoint of the RPC provider
@@ -44,11 +46,11 @@ export class SolanaApi {
     private endpoint: string,
     private eventEmitter: EventEmitter2,
     readonly decoder: SolanaDecoder,
+    requestTimeout: number = REQUEST_TIMEOUT,
   ) {
     this.#client = client;
     this.#genesisBlockHash = genesisHash;
-
-    // this.decoder = new SolanaDecoder(this);
+    this.#requestTimeout = requestTimeout;
   }
 
   static async create(
@@ -69,7 +71,11 @@ export class SolanaApi {
 
       const genesisBlockHash = await client
         .getGenesisHash()
-        .send()
+        .send({
+          abortSignal: AbortSignal.timeout(
+            config?.requestTimeout ?? REQUEST_TIMEOUT,
+          ),
+        })
         .catch((e) => {
           throw new Error('Failed to get genesis hash', { cause: e });
         });
@@ -80,6 +86,7 @@ export class SolanaApi {
         endpoint,
         eventEmitter,
         decoder,
+        config?.requestTimeout,
       );
     } catch (e) {
       console.error('CrateSoalana API', e);
@@ -91,7 +98,7 @@ export class SolanaApi {
     try {
       const height = await this.#client
         .getSlot({ commitment: 'finalized' })
-        .send();
+        .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
 
       // Request the minimal amount of information here
       const block = await this.#client
@@ -100,7 +107,7 @@ export class SolanaApi {
           transactionDetails: 'none',
           rewards: false,
         })
-        .send();
+        .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
 
       if (!block) {
         throw new Error('Unable to get finalized block');
@@ -116,7 +123,7 @@ export class SolanaApi {
     try {
       const finalizedHeight = await this.#client
         .getSlot({ commitment: 'finalized' })
-        .send();
+        .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
 
       return Number(finalizedHeight);
     } catch (e) {
@@ -128,7 +135,7 @@ export class SolanaApi {
     try {
       const confirmedHeight = await this.#client
         .getSlot({ commitment: 'confirmed' })
-        .send();
+        .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
 
       return Number(confirmedHeight);
     } catch (e) {
@@ -160,14 +167,15 @@ export class SolanaApi {
   async getHeaderByHeightOrHash(
     heightOrHash: number | string,
   ): Promise<Header> {
-    console.log('GET HEADER', heightOrHash);
     // if (typeof heightOrHash === 'number') {
     //   heightOrHash = hexValue(heightOrHash);
     // }
     if (typeof heightOrHash === 'string') {
       throw new Error('Hash not supported'); // TODO find a workaround
     }
-    const block = await this.#client.getBlock(BigInt(heightOrHash)).send();
+    const block = await this.#client
+      .getBlock(BigInt(heightOrHash))
+      .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
 
     if (!block) {
       throw new Error(`Unable to get block: ${heightOrHash}`);
@@ -184,7 +192,7 @@ export class SolanaApi {
           transactionDetails: 'full',
           maxSupportedTransactionVersion: 0,
         })
-        .send();
+        .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
 
       if (!rawBlock) {
         // No block for that slot
@@ -194,6 +202,7 @@ export class SolanaApi {
       this.eventEmitter.emit('fetchBlock');
       return formatBlockUtil(transformBlock(rawBlock, this.decoder));
     } catch (e: any) {
+      console.log('Failed to fetch block', blockNumber, e.message);
       throw this.handleError(e);
     }
   }
@@ -221,7 +230,7 @@ export class SolanaApi {
       .getAccountInfo(addressStr, {
         encoding: 'base64',
       })
-      .send();
+      .send({ abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT) });
 
     if (res.value) {
       return {
@@ -251,7 +260,6 @@ export class SolanaApi {
   handleError(e: Error): Error {
     if ((e as any)?.context?.statusCode === 429) {
       const { hostname } = new URL(this.endpoint);
-      console.log('ERROR', e);
       return new Error(`Rate Limited at endpoint: ${hostname}`);
     }
 

@@ -82,7 +82,6 @@ function instructionFilterToDictionaryCondition(
     instConditions.discriminators = [`0x${disc.toString('hex')}`];
   }
 
-  // TO CONFIRM
   /*
     undefined -> failed + successful
     true -> successful

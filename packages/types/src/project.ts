@@ -276,9 +276,10 @@ export type SubqlDatasourceProcessor<
 
 export interface ISolanaEndpointConfig extends IEndpointConfig {
   /**
-   *  The JSON RPC batch size, if this is set to 0 it will not use batch requests
-   * */
-  batchSize?: number;
+   * The request timeout in MS for the Solana RPC.
+   * @default 30_000
+   */
+  requestTimeout?: number;
 }
 
 /**

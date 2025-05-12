@@ -46,7 +46,7 @@ function findInstructionForData(
 // Converts a base58 or base64 string to Buffer
 function basedToBuffer(input: string | Base58EncodedBytes): Buffer {
   try {
-    return bs58.decode(input);
+    return Buffer.from(bs58.decode(input));
   } catch (e) {
     return Buffer.from(input, 'base64');
   }
@@ -173,9 +173,8 @@ export class SolanaDecoder {
     const root = parseIdl(idl).getRoot();
 
     const discriminator = findInstructionDiscriminatorByName(root, input);
-
     if (!discriminator) {
-      return bs58.decode(input);
+      return Buffer.from(bs58.decode(input));
     }
 
     return discriminator;

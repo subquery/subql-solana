@@ -13,8 +13,6 @@ import {
   SubqlMapping,
 } from '@subql/types-solana';
 
-export const NOT_NULL_FILTER = '!null';
-
 type DefaultFilter = Record<string, unknown>;
 
 export function isBlockHandlerProcessor<E>(

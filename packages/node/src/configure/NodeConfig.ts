@@ -15,23 +15,11 @@ export class SolanaNodeConfig extends NodeConfig<ISolanaConfig> {
    * constructor(
    *   nodeConfig: NodeConfig,
    * ) {
-   *   this.nodeConfig = new EthereumNodeConfig(nodeConfig);
+   *   this.nodeConfig = new SolanaNodeConfig(nodeConfig);
    * }
    * */
   constructor(config: NodeConfig) {
     // Rebuild with internal config
     super((config as any)._config, (config as any)._isTest);
   }
-
-  // get skipTransactions(): boolean {
-  //   return !!this._config.skipTransactions;
-  // }
-
-  // get blockConfirmations(): number {
-  //   return this._config.blockConfirmations;
-  // }
-
-  // get blockForkReindex(): number {
-  //   return this._config.blockForkReindex;
-  // }
 }

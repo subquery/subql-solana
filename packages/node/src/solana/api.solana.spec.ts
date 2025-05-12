@@ -242,7 +242,6 @@ describe('Api.solana', () => {
       const txWData = getTxBySig(
         'qtUujQqx16ChZRMG4TE9eNMp4th3GxLvuuCQBEXK4KYyjqfAAPbP6xejA2ZTUe7X1cZYiHCnJHpC5v6GRctYc8c',
       );
-      // console.log('META LOGS', txWData.meta.logs);
       expect(txWData!.meta!.logs).toBeDefined();
       expect(txWData!.meta!.logs!.length).toBeGreaterThan(0);
 
@@ -250,7 +249,6 @@ describe('Api.solana', () => {
       const txWError = getTxBySig(
         '8q3z3WoYUcA8UQLYgdgriGCZrGJUAYoeUwTJaVuuq43AmKLQxKLAMxuEAWXMquozVXEX4eL91r3jxKFVifmeXrv',
       );
-      // console.log('ERROR LOGS', txWError.meta.logs);
       expect(txWError!.meta!.logs).toBeDefined();
       expect(txWError!.meta!.logs!.length).toBeGreaterThan(0);
     });

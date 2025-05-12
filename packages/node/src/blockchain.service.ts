@@ -79,7 +79,9 @@ export class BlockchainService
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async getChainInterval(): Promise<number> {
-    return 400; //Unit in MS
+    // Although the block production rate is 400ms we use a larger value to reduce the interval where the heads are refetched
+    return 2000;
+    // return 400; //Unit in MS
   }
 
   async getHeaderForHash(hash: string): Promise<Header> {

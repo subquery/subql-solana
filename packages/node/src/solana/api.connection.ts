@@ -73,22 +73,23 @@ export class SolanaApiConnection
   handleError = SolanaApiConnection.handleError;
 
   static handleError(e: Error): ApiConnectionError {
-    // let formatted_error: ApiConnectionError;
-    // if (e.message.startsWith(`No response received from RPC endpoint in`)) {
-    //   formatted_error = new TimeoutError(e);
-    // } else if (e.message.startsWith(`disconnected from `)) {
-    //   formatted_error = new DisconnectionError(e);
-    // } else if (e.message.startsWith(`Rate Limited at endpoint`)) {
-    //   formatted_error = new RateLimitError(e);
-    // } else if (e.message.includes(`Exceeded max limit of`)) {
-    //   formatted_error = new LargeResponseError(e);
-    // } else {
-    const formatted_error = new ApiConnectionError(
-      e.name,
-      e.message,
-      ApiErrorType.Default,
-    );
-    // }
+    let formatted_error: ApiConnectionError;
+    if (e.message.startsWith('The operation was aborted due to timeout')) {
+      formatted_error = new TimeoutError(e);
+      //} else if (e.message.startsWith(`disconnected from `)) {
+      //   formatted_error = new DisconnectionError(e);
+    } else if (e.message.startsWith(`Rate Limited at endpoint`)) {
+      formatted_error = new RateLimitError(e);
+      // } else if (e.message.includes(`Exceeded max limit of`)) {
+      //   formatted_error = new LargeResponseError(e);
+    } else {
+      console.log('ERRROR ', e.message);
+      formatted_error = new ApiConnectionError(
+        e.name,
+        e.message,
+        ApiErrorType.Default,
+      );
+    }
     return formatted_error;
   }
 }
