@@ -59,6 +59,12 @@ export async function generateIDLInterfaces(
   projectPath: string,
   renderTemplate: (templatePath: string, outputPath: string, templateData: Data) => Promise<void>
 ): Promise<void> {
+  // @subql/cli package calls this function with datasources as an array of objects
+  dataSources = dataSources.map((d) => ({
+    ...d,
+    assets: d?.assets ? (d.assets instanceof Map ? d.assets : new Map(Object.entries(d.assets))) : undefined,
+  })) as SubqlRuntimeDatasource[];
+
   const allAssets = new Map(
     dataSources.filter((ds) => ds.assets !== undefined).flatMap((ds) => Array.from(ds.assets!.entries()))
   );
