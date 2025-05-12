@@ -1,6 +1,6 @@
 {
   "name": "@subql/common-solana",
-  "version": "0.0.0-0",
+  "version": "0.0.0-1",
   "description": "",
   "scripts": {
     "build": "rm -rf dist && tsc -b",
@@ -35,5 +35,6 @@
     "@types/rimraf": "3.0.2",
     "ejs": "3.1.10",
     "lodash": "4.17.21"
-  }
+  },
+  "stableVersion": "0.0.0-0"
 }
