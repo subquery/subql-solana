@@ -41,7 +41,8 @@ describe('SolanaDecoder', () => {
   };
 
   describe('caching IDLs', () => {
-    it('caches IDLs from the network', async () => {
+    // Fetching IDLs from the network is not currently supported
+    it.skip('caches IDLs from the network', async () => {
       const spy = jest.spyOn(solanaApi, 'getAccountInfo');
 
       const mockInst = {

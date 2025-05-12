@@ -44,6 +44,7 @@ jobs:
       DB_DATABASE: postgres
       DB_HOST: postgres
       DB_PORT: 5432
+      HTTP_ENDPOINT: ${{ secrets.HTTP_ENDPOINT }}
     steps:
       - uses: actions/checkout@v4
 

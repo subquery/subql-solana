@@ -261,23 +261,36 @@ describe('Api.solana', () => {
   // Tests that data types can be stringified, this is important to test because of circular references
   describe('JSON serialization', () => {
     it('can stringify a SolanaBlock', () => {
-      // TODO write test
-      throw new Error('Test not implemented');
+      expect(() => JSON.stringify(block)).not.toThrow();
     });
 
     it('can stringify a SolanaTransaction', () => {
-      // TODO write test
-      throw new Error('Test not implemented');
+      const tx = getTxBySig(
+        '4vGc5nP4W7VZe7SmSb2GsJMG3KJijZJ4KGHUCQ14FmqfPsyDotn7kwR5nA13PpzjwT732ggiLuDGs5PDpjRCKsC6',
+      );
+
+      expect(tx).toBeDefined();
+      expect(() => JSON.stringify(tx)).not.toThrow();
     });
 
     it('can stringify a SolanaInstruction', () => {
-      // TODO write test
-      throw new Error('Test not implemented');
+      const tx = getTxBySig(
+        '4V5S9ymSheic34SsHN9AHA86b41qXfA9JwdEra1UUgoNdvWFTMA5ueSCHn6nRTBDphMQFUFLPgU4N2QsG8En3J1d',
+      );
+      const inst = tx?.transaction.message.instructions[4];
+
+      expect(inst).toBeDefined();
+      expect(() => JSON.stringify(inst)).not.toThrow();
     });
 
     it('can stringify a LogMessage', () => {
-      // TODO write test
-      throw new Error('Test not implemented');
+      const tx = getTxBySig(
+        '4V5S9ymSheic34SsHN9AHA86b41qXfA9JwdEra1UUgoNdvWFTMA5ueSCHn6nRTBDphMQFUFLPgU4N2QsG8En3J1d',
+      );
+
+      for (const log of tx!.meta!.logs!) {
+        expect(() => JSON.stringify(log)).not.toThrow();
+      }
     });
   });
 });
