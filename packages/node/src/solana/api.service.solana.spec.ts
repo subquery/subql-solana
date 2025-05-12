@@ -15,7 +15,8 @@ import { SubqueryProject } from '../configure/SubqueryProject';
 import { SolanaApiService } from './api.service.solana';
 
 // Add api key to work
-const HTTP_ENDPOINT = 'https://solana.api.onfinality.io/public';
+const HTTP_ENDPOINT =
+  process.env.HTTP_ENDPOINT ?? 'https://solana.api.onfinality.io/public';
 
 function testSubqueryProject(endpoint: string): SubqueryProject {
   return {
