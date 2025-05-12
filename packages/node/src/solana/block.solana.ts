@@ -263,6 +263,7 @@ export function formatBlockUtil<B extends SolanaBlock = SolanaBlock>(
 }
 
 export function solanaBlockToHeader(block: BaseSolanaBlock): Header {
+  console.log('BASE BLOCK', block.blockTime);
   return {
     blockHeight: Number(block.parentSlot) + 1, // The blocks don't include the slot because they assume you know that when making the request
     blockHash: block.blockhash,

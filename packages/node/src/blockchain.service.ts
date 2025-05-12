@@ -99,7 +99,7 @@ export class BlockchainService
 
   async getBlockTimestamp(height: number): Promise<Date> {
     const header = await this.getHeaderForHeight(height);
-    return header.timestamp!;
+    return header.timestamp;
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -115,11 +115,14 @@ export class BlockchainService
       // TODO how to retain this functionality
       // await this.dsProcessorService.validateCustomDs([dsObj]);
     } else if (isRuntimeDs(dsObj)) {
-      // TODO appy options
-      // dsObj.options = {
-      //   ...dsObj.options,
-      //   ...params.args,
-      // };
+      // Merge handler filtes with params.args
+      dsObj.mapping.handlers = dsObj.mapping.handlers.map((handler) => ({
+        ...handler,
+        filter: {
+          ...handler.filter,
+          ...params.args,
+        } as any,
+      }));
 
       const parsedDs = plainToClass(SolanaRuntimeDataSourceImpl, dsObj);
 

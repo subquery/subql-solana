@@ -174,7 +174,9 @@ export class SolanaApi {
       throw new Error('Hash not supported'); // TODO find a workaround
     }
     const block = await this.#client
-      .getBlock(BigInt(heightOrHash))
+      .getBlock(BigInt(heightOrHash), {
+        maxSupportedTransactionVersion: 0,
+      })
       .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
 
     if (!block) {
