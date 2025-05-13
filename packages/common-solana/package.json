@@ -1,6 +1,6 @@
 {
   "name": "@subql/common-solana",
-  "version": "0.0.0-2",
+  "version": "0.0.0-3",
   "description": "",
   "scripts": {
     "build": "rm -rf dist && tsc -b",
@@ -36,5 +36,5 @@
     "ejs": "3.1.10",
     "lodash": "4.17.21"
   },
-  "stableVersion": "0.0.0-1"
+  "stableVersion": "0.0.0-2"
 }
