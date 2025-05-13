@@ -349,7 +349,9 @@ export class SolanaDictionaryV2 extends DictionaryV2<
       }
       return {
         batchBlocks: blocks,
-        lastBufferedHeight: Number(blocks[blocks.length - 1].block.blockHeight),
+        lastBufferedHeight: Number(
+          blocks[blocks.length - 1].getHeader().blockHeight,
+        ),
       };
     } catch (e: any) {
       logger.error(e, `Failed to handle block response`);

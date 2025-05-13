@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { BlockHeightMap, NodeConfig } from '@subql/node-core';
+import { BlockHeightMap, IBlock, NodeConfig } from '@subql/node-core';
 import {
   SolanaDatasourceKind,
   SolanaHandlerKind,
@@ -16,7 +16,7 @@ import { SolanaDictionaryV2 } from './solanaDictionaryV2';
 const HTTP_ENDPOINT =
   process.env.HTTP_ENDPOINT ?? 'https://solana.api.onfinality.io/public';
 
-const DEFAULT_DICTIONARY = 'http://localhost:8080';
+const DEFAULT_DICTIONARY = 'https://dict-sol-tyk.subquery.network';
 
 const nodeConfig = new NodeConfig({
   subquery: 'solana-starter',
@@ -205,7 +205,7 @@ describe('solana dictionary v2', () => {
   //   }, 100000);
 
   it('returns a lastBufferedHeight if there are no block results', async () => {
-    const blockHeight = 317_617_480;
+    const blockHeight = 332_557_468;
     const ds: SubqlRuntimeDatasource = {
       kind: SolanaDatasourceKind.Runtime,
       startBlock: blockHeight,
@@ -216,7 +216,7 @@ describe('solana dictionary v2', () => {
             handler: 'handleInstruction',
             kind: SolanaHandlerKind.Instruction,
             filter: {
-              programId: '8A2ap8YTUmCYbQztNZQnebE333PBuWQxztYNpvQ8RXKX',
+              programId: 'BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY',
             },
           },
         ],
@@ -228,7 +228,8 @@ describe('solana dictionary v2', () => {
 
     const res = await solanaDictionaryV2.getData(blockHeight, blockHeight, 100);
 
-    expect(res?.batchBlocks.length).toEqual(0);
+    expect(res?.batchBlocks.length).toEqual(1);
+    expect((res?.batchBlocks[0] as IBlock).block.transactions.length).toBe(7);
     expect(res?.lastBufferedHeight).toEqual(blockHeight);
   });
 });
