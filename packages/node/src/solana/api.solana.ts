@@ -6,7 +6,9 @@ import { assertIsAddress } from '@solana/addresses';
 import { createSolanaRpc, Rpc } from '@solana/kit';
 import { SolanaRpcApi } from '@solana/rpc-api';
 import {
+  backoffRetry,
   BlockUnavailableError,
+  delay,
   getLogger,
   Header,
   IBlock,
@@ -96,24 +98,12 @@ export class SolanaApi {
 
   async getFinalizedBlockHeader(): Promise<Header> {
     try {
-      const height = await this.#client
-        .getSlot({ commitment: 'finalized' })
-        .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
-
-      // Request the minimal amount of information here
-      const block = await this.#client
-        .getBlock(height, {
-          encoding: 'json',
-          transactionDetails: 'none',
-          rewards: false,
-        })
-        .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
-
-      if (!block) {
-        throw new Error('Unable to get finalized block');
-      }
-
-      return solanaBlockToHeader(block);
+      const height = await this.getFinalizedBlockHeight();
+      // This needs retries becasue if the endpoint is load balanced you might get a different node that doesn't yet have this block
+      const header = await backoffRetry(() =>
+        this.getHeaderByHeightOrHash(height),
+      );
+      return header;
     } catch (e) {
       throw new Error('Failed to get finalized header', { cause: e });
     }
@@ -165,7 +155,7 @@ export class SolanaApi {
   }
 
   async getHeaderByHeightOrHash(
-    heightOrHash: number | string,
+    heightOrHash: number | string | bigint,
   ): Promise<Header> {
     // if (typeof heightOrHash === 'number') {
     //   heightOrHash = hexValue(heightOrHash);
@@ -173,9 +163,13 @@ export class SolanaApi {
     if (typeof heightOrHash === 'string') {
       throw new Error('Hash not supported'); // TODO find a workaround
     }
+    const slot =
+      typeof heightOrHash === 'number' ? BigInt(heightOrHash) : heightOrHash;
     const block = await this.#client
-      .getBlock(BigInt(heightOrHash), {
+      .getBlock(slot, {
         maxSupportedTransactionVersion: 0,
+        transactionDetails: 'none',
+        rewards: false,
       })
       .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
 

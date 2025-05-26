@@ -28,7 +28,7 @@
     "@solana/kit": "^2.1.0",
     "@subql/common": "5.4.1-1",
     "@subql/common-solana": "workspace:*",
-    "@subql/node-core": "^18.0.5",
+    "@subql/node-core": "^18.1.0",
     "@subql/testing": "^2.2.1",
     "@subql/types-solana": "workspace:*",
     "bs58": "^6.0.0",
