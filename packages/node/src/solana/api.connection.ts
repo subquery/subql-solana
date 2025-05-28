@@ -83,7 +83,6 @@ export class SolanaApiConnection
       // } else if (e.message.includes(`Exceeded max limit of`)) {
       //   formatted_error = new LargeResponseError(e);
     } else {
-      console.log('ERRROR ', e.message);
       formatted_error = new ApiConnectionError(
         e.name,
         e.message,

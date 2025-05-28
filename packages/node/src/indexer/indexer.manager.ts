@@ -89,7 +89,7 @@ export class IndexerManager extends BaseIndexerManager<
       dsProcessorService,
       dynamicDsService,
       unfinalizedBlocksService,
-      getFilterTypeMap(apiService.api.decoder),
+      getFilterTypeMap(apiService.decoder),
       ProcessorTypeMap,
       blockchainService,
     );
