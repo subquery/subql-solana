@@ -29,13 +29,10 @@ describe('Api.solana', () => {
   let solanaApi: SolanaApi;
   const eventEmitter = new EventEmitter2();
   let block: IBlock<SolanaBlock>;
+  const decoder = new SolanaDecoder();
 
   beforeAll(async () => {
-    solanaApi = await SolanaApi.create(
-      HTTP_ENDPOINT,
-      eventEmitter,
-      new SolanaDecoder(),
-    );
+    solanaApi = await SolanaApi.create(HTTP_ENDPOINT, eventEmitter, decoder);
     // https://solscan.io/block/325922873
     block = await solanaApi.fetchBlock(325_922_873);
   }, 20_000);
@@ -286,9 +283,11 @@ describe('Api.solana', () => {
         '4V5S9ymSheic34SsHN9AHA86b41qXfA9JwdEra1UUgoNdvWFTMA5ueSCHn6nRTBDphMQFUFLPgU4N2QsG8En3J1d',
       );
       const inst = tx?.transaction.message.instructions[4];
-
       expect(inst).toBeDefined();
+
+      const decodeInst = jest.spyOn(solanaApi.decoder, 'decodeInstruction');
       expect(() => JSON.stringify(inst)).not.toThrow();
+      expect(decodeInst).not.toHaveBeenCalled();
     });
 
     it('can stringify a LogMessage', () => {
@@ -297,7 +296,9 @@ describe('Api.solana', () => {
       );
 
       for (const log of tx!.meta!.logs!) {
+        const decodeLog = jest.spyOn(solanaApi.decoder, 'decodeLog');
         expect(() => JSON.stringify(log)).not.toThrow();
+        expect(decodeLog).not.toHaveBeenCalled();
       }
     });
   });

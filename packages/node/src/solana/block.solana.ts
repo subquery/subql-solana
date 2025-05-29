@@ -34,6 +34,19 @@ type RawSolanaBlock = Readonly<{
   transactions: readonly TransactionForFullJson<0>[];
 }>;
 
+// We use this function to omit properties without accessing getters
+function omit<T>(input: T, omit: (keyof T)[]) {
+  const json: Record<string, any> = {};
+
+  for (const key of Object.getOwnPropertyNames(input)) {
+    if (!omit.includes(key as keyof T)) {
+      json[key] = (input as any)[key];
+    }
+  }
+
+  return json;
+}
+
 function wrapInstruction(
   index: number[],
   instruction: Omit<
@@ -59,8 +72,7 @@ function wrapInstruction(
 
   // Implement this in order to calculate block size
   (res as any).toJSON = () => {
-    const { block, decodedData, transaction, ...rest } = res;
-    return rest;
+    return omit(res, ['block', 'decodedData', 'transaction']);
   };
 
   return res;
@@ -148,8 +160,7 @@ function wrapLogs(
   // Implement this in order to calculate block size
   res.forEach((r) => {
     (r as any).toJSON = () => {
-      const { decodedMessage, ...rest } = r;
-      return rest;
+      return omit(r, ['decodedMessage']);
     };
   });
 
@@ -186,8 +197,7 @@ function wrapDictionaryLogs(
 
     // Implement this in order to calculate block size
     (res as any).toJSON = () => {
-      const { decodedMessage, ...rest } = res;
-      return rest;
+      return omit(res, ['decodedMessage']);
     };
 
     return res;

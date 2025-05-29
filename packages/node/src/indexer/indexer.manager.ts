@@ -117,7 +117,6 @@ export class IndexerManager extends BaseIndexerManager<
     dataSources: SolanaProjectDs[],
     getVM: (d: SolanaProjectDs) => Promise<IndexerSandbox>,
   ): Promise<void> {
-    // console.time(`Indexed block ${block.blockHeight}`);
     await this.indexBlockContent(block, dataSources, getVM);
 
     for (const tx of block.transactions) {

@@ -3,19 +3,29 @@
 
 import { IdlV01 } from '@codama/nodes-from-anchor';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { SolanaBlock } from '@subql/types-solana';
+import { SolanaBlock, SolanaTransaction } from '@subql/types-solana';
 import bs58 from 'bs58';
 import { RootNode } from 'codama';
 import { SolanaApi } from './api.solana';
 import { SolanaDecoder } from './decoder';
-import { getProgramId } from './utils.solana';
+import { getProgramId, filterInstructionsProcessor } from './utils.solana';
 
 const HTTP_ENDPOINT =
   process.env.HTTP_ENDPOINT ?? 'https://solana.api.onfinality.io/public';
 
 const IDL_Jupiter: IdlV01 = require('../../test/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4.idl.json');
+const IDL_Meteora: RootNode = require('../../test/LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo.idl.json');
 const IDL_swap: IdlV01 = require('../../test/swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW.idl.json');
 const IDL_token: RootNode = require('../../test/TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA.idl.json');
+
+function findTx(
+  block: SolanaBlock,
+  sig: string,
+): SolanaTransaction | undefined {
+  return block.transactions.find((tx) =>
+    tx.transaction.signatures.find((s) => s === sig),
+  );
+}
 
 describe('SolanaDecoder', () => {
   let solanaApi: SolanaApi;
@@ -168,12 +178,9 @@ describe('SolanaDecoder', () => {
 
     it('can decode an instruction with an IDL file', async () => {
       //https://solscan.io/tx/3rf2sSMeJC1dd4t4TDvYPfvQjpL6DG6qdDcMnruDtATPbwjqt3xDnNvddtiTBESL8AWiFt2zENghqAh1h252bKQi
-      const tx = blockData.transactions.find((tx) =>
-        tx.transaction.signatures.find(
-          (s) =>
-            s ===
-            '3rf2sSMeJC1dd4t4TDvYPfvQjpL6DG6qdDcMnruDtATPbwjqt3xDnNvddtiTBESL8AWiFt2zENghqAh1h252bKQi',
-        ),
+      const tx = findTx(
+        blockData,
+        '3rf2sSMeJC1dd4t4TDvYPfvQjpL6DG6qdDcMnruDtATPbwjqt3xDnNvddtiTBESL8AWiFt2zENghqAh1h252bKQi',
       );
       const instruction = tx!.transaction.message.instructions[3];
 
@@ -187,13 +194,11 @@ describe('SolanaDecoder', () => {
     // Since removing anchor we don't have a way of fetching IDLS
     it.skip('can decode an instruction with an IDL found on chain', async () => {
       // https://solscan.io/tx/3rf2sSMeJC1dd4t4TDvYPfvQjpL6DG6qdDcMnruDtATPbwjqt3xDnNvddtiTBESL8AWiFt2zENghqAh1h252bKQi
-      const tx = blockData.transactions.find((tx) =>
-        tx.transaction.signatures.find(
-          (s) =>
-            s ===
-            '3rf2sSMeJC1dd4t4TDvYPfvQjpL6DG6qdDcMnruDtATPbwjqt3xDnNvddtiTBESL8AWiFt2zENghqAh1h252bKQi',
-        ),
+      const tx = findTx(
+        blockData,
+        '3rf2sSMeJC1dd4t4TDvYPfvQjpL6DG6qdDcMnruDtATPbwjqt3xDnNvddtiTBESL8AWiFt2zENghqAh1h252bKQi',
       );
+
       const instruction = tx!.transaction.message.instructions[3];
       const decoded = await decoder.decodeInstruction(instruction);
 
@@ -203,12 +208,9 @@ describe('SolanaDecoder', () => {
     });
 
     it('can decode SPL token program instructions', async () => {
-      const tx = blockData.transactions.find((tx) =>
-        tx.transaction.signatures.find(
-          (s) =>
-            s ===
-            '61vjnjBfvU3e2BqmatPd3uYi37woXS44oqcQ3gD1XoS4demqXSmT32vGpdYdXTHW5niePACTKQaDxipn6jhbTWDL',
-        ),
+      const tx = findTx(
+        blockData,
+        '61vjnjBfvU3e2BqmatPd3uYi37woXS44oqcQ3gD1XoS4demqXSmT32vGpdYdXTHW5niePACTKQaDxipn6jhbTWDL',
       );
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
@@ -248,12 +250,9 @@ describe('SolanaDecoder', () => {
 
     it('can decode a log with an Anchor IDL file', async () => {
       // https://solscan.io/tx/5Z18NZWUiDmxmVYncvuyACB9HRRYyzZfRPE9pfT2yaTpAveDTUwghWaYMPRk9Df5HsJy9yd6dBrndrmHz1zfsAig
-      const tx = blockData.transactions.find((tx) =>
-        tx.transaction.signatures.find(
-          (s) =>
-            s ===
-            '5Z18NZWUiDmxmVYncvuyACB9HRRYyzZfRPE9pfT2yaTpAveDTUwghWaYMPRk9Df5HsJy9yd6dBrndrmHz1zfsAig',
-        ),
+      const tx = findTx(
+        blockData,
+        '5Z18NZWUiDmxmVYncvuyACB9HRRYyzZfRPE9pfT2yaTpAveDTUwghWaYMPRk9Df5HsJy9yd6dBrndrmHz1zfsAig',
       );
 
       const programLogs = tx!.meta!.logs?.filter((l) =>
