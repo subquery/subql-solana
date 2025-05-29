@@ -67,7 +67,7 @@ function decodeData(
   const node = getEncodableNode(root, buffer);
   if (!node) {
     logger.warn(
-      `Failed to find instruction with discriminator ${data} in ${root.program.name}`,
+      `Failed to find instruction with discriminator in ${root.program.name}`,
     );
     return null;
   }
