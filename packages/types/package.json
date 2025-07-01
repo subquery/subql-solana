@@ -1,6 +1,6 @@
 {
   "name": "@subql/types-solana",
-  "version": "1.0.1-0",
+  "version": "1.0.1",
   "description": "",
   "homepage": "https://github.com/subquery/subql-solana",
   "repository": "github:subquery/subql-solana",
@@ -13,12 +13,20 @@
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "files": [
-    "src/global.d.ts",
-    "/dist"
+    "/dist",
+    "!/dist/**/*.spec.js",
+    "!/dist/**/*.spec.d.ts",
+    "!/dist/**/*.spec.js.map",
+    "!/dist/**/*.test.js",
+    "!/dist/**/*.test.d.ts",
+    "!/dist/**/*.test.js.map",
+    "package.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "dependencies": {
     "@solana/kit": "^2.1.0",
     "@subql/types-core": "^2.1.0"
-  },
-  "stableVersion": "1.0.0"
+  }
 }
