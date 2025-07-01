@@ -1,6 +1,6 @@
 {
   "name": "@subql/common-solana",
-  "version": "1.0.1-0",
+  "version": "1.0.1",
   "description": "",
   "scripts": {
     "build": "rm -rf dist && tsc -b",
@@ -36,5 +36,17 @@
     "ejs": "3.1.10",
     "lodash": "4.17.21"
   },
-  "stableVersion": "1.0.0"
+  "files": [
+    "/dist",
+    "!/dist/**/*.spec.js",
+    "!/dist/**/*.spec.d.ts",
+    "!/dist/**/*.spec.js.map",
+    "!/dist/**/*.test.js",
+    "!/dist/**/*.test.d.ts",
+    "!/dist/**/*.test.js.map",
+    "package.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ]
 }

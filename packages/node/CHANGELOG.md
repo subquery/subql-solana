@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [6.0.4] - 2025-07-01
 ### Changed
 - Update `@subql/common` and `@subql/node-core` (#12)
 
@@ -24,7 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Initial release
 
-[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.3...HEAD
+[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.4...HEAD
+[6.0.4]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.3...node-solana/6.0.4
 [6.0.3]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.2...node-solana/6.0.3
 [6.0.2]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.1...node-solana/6.0.2
 [6.0.1]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.0...node-solana/6.0.1
