@@ -27,6 +27,6 @@
   ],
   "dependencies": {
     "@solana/kit": "^2.1.0",
-    "@subql/types-core": "^2.1.0"
+    "@subql/types-core": "^2.1.1"
   }
 }

@@ -16,7 +16,7 @@
   "dependencies": {
     "@codama/nodes-from-anchor": "^1.1.11",
     "@codama/renderers-js": "^1.2.10",
-    "@subql/common": "^5.7.0",
+    "@subql/common": "^5.7.3",
     "@subql/types-solana": "workspace:*",
     "codama": "^1.2.11",
     "js-yaml": "^4.1.0",
@@ -44,6 +44,7 @@
     "!/dist/**/*.test.js",
     "!/dist/**/*.test.d.ts",
     "!/dist/**/*.test.js.map",
+    "/templates",
     "package.json",
     "README.md",
     "CHANGELOG.md",
