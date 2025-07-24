@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.5] - 2025-07-24
+### Changed
+- Update @subql dependencies (#14)
+
 ## [6.0.4] - 2025-07-01
 ### Changed
 - Update `@subql/common` and `@subql/node-core` (#12)
@@ -26,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Initial release
 
-[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.4...HEAD
+[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.5...HEAD
+[6.0.5]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.4...node-solana/6.0.5
 [6.0.4]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.3...node-solana/6.0.4
 [6.0.3]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.2...node-solana/6.0.3
 [6.0.2]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.1...node-solana/6.0.2
