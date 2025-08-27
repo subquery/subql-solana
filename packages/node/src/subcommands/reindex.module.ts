@@ -16,12 +16,12 @@ import {
   ConnectionPoolStateManager,
   DynamicDsService,
   DsProcessorService,
-  UnfinalizedBlocksService,
   MultiChainRewindService,
 } from '@subql/node-core';
 import { Sequelize } from '@subql/x-sequelize';
 import { BlockchainService } from '../blockchain.service';
 import { ConfigureModule } from '../configure/configure.module';
+import { UnfinalizedBlocksService } from '../indexer/unfinalizedBlocks.service';
 import { SolanaApiService } from '../solana';
 
 @Module({
