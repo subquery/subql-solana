@@ -100,9 +100,7 @@ export class SolanaApi {
     try {
       const height = await this.getFinalizedBlockHeight();
       // This needs retries becasue if the endpoint is load balanced you might get a different node that doesn't yet have this block
-      const header = await backoffRetry(() =>
-        this.getHeaderByHeightOrHash(height),
-      );
+      const header = await backoffRetry(() => this.getHeaderByHeight(height));
       return header;
     } catch (e) {
       throw new Error('Failed to get finalized header', { cause: e });
@@ -154,27 +152,20 @@ export class SolanaApi {
     return 'solana';
   }
 
-  async getHeaderByHeightOrHash(
-    heightOrHash: number | string | bigint,
-  ): Promise<Header> {
-    // if (typeof heightOrHash === 'number') {
-    //   heightOrHash = hexValue(heightOrHash);
-    // }
-    if (typeof heightOrHash === 'string') {
-      throw new Error('Hash not supported'); // TODO find a workaround
-    }
-    const slot =
-      typeof heightOrHash === 'number' ? BigInt(heightOrHash) : heightOrHash;
+  async getHeaderByHeight(height: number | bigint): Promise<Header> {
+    const slot = typeof height === 'number' ? BigInt(height) : height;
     const block = await this.#client
       .getBlock(slot, {
         maxSupportedTransactionVersion: 0,
         transactionDetails: 'none',
         rewards: false,
+        commitment: 'confirmed', // This is used by unfinalized blocks
       })
       .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
 
     if (!block) {
-      throw new Error(`Unable to get block: ${heightOrHash}`);
+      // No block for that slot
+      throw new BlockUnavailableError();
     }
 
     return solanaBlockToHeader(block);

@@ -84,12 +84,13 @@ export class BlockchainService
     // return 400; //Unit in MS
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async getHeaderForHash(hash: string): Promise<Header> {
-    return this.apiService.api.getHeaderByHeightOrHash(hash);
+    throw new Error('Solana doesnt support getting blocks by hash');
   }
 
   async getHeaderForHeight(height: number): Promise<Header> {
-    return this.apiService.api.getHeaderByHeightOrHash(height);
+    return this.apiService.api.getHeaderByHeight(height);
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await

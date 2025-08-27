@@ -18,7 +18,6 @@ import {
   DsProcessorService,
   FetchService,
   DictionaryService,
-  UnfinalizedBlocksService,
   blockDispatcherFactory,
   MultiChainRewindService,
 } from '@subql/node-core';
@@ -26,6 +25,7 @@ import { BlockchainService } from '../blockchain.service';
 import { SolanaApiService } from '../solana/api.service.solana';
 import { SolanaDictionaryService } from './dictionary/dictionary.service';
 import { IndexerManager } from './indexer.manager';
+import { UnfinalizedBlocksService } from './unfinalizedBlocks.service';
 
 @Module({
   imports: [CoreModule],

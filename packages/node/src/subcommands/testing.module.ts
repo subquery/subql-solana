@@ -13,11 +13,11 @@ import {
   ProjectService,
   TestRunner,
   TestingCoreModule,
-  UnfinalizedBlocksService,
 } from '@subql/node-core';
 import { BlockchainService } from '../blockchain.service';
 import { ConfigureModule } from '../configure/configure.module';
 import { IndexerManager } from '../indexer/indexer.manager';
+import { UnfinalizedBlocksService } from '../indexer/unfinalizedBlocks.service';
 import { SolanaApiService } from '../solana';
 
 @Module({

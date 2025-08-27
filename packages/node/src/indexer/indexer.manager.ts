@@ -22,7 +22,6 @@ import {
   SandboxService,
   DsProcessorService,
   DynamicDsService,
-  UnfinalizedBlocksService,
 } from '@subql/node-core';
 import {
   SolanaHandlerKind,
@@ -53,6 +52,7 @@ import {
   filterTransactionsProcessor,
 } from '../solana/utils.solana';
 import { BlockContent } from './types';
+import { UnfinalizedBlocksService } from './unfinalizedBlocks.service';
 
 @Injectable()
 export class IndexerManager extends BaseIndexerManager<
