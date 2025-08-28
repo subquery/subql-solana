@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [6.0.6] - 2025-08-28
 ### Fixed
 - Unfinalized blocks not working (#16)
 
@@ -32,7 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Initial release
 
-[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.5...HEAD
+[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.6...HEAD
+[6.0.6]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.5...node-solana/6.0.6
 [6.0.5]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.4...node-solana/6.0.5
 [6.0.4]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.3...node-solana/6.0.4
 [6.0.3]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.2...node-solana/6.0.3
