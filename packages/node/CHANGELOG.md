@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.7] - 2025-08-28
+### Fixed
+- Missing internal dependency from test subcommand
+
 ## [6.0.6] - 2025-08-28
 ### Fixed
 - Unfinalized blocks not working (#16)
@@ -34,7 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Initial release
 
-[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.6...HEAD
+[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.7...HEAD
+[6.0.7]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.6...node-solana/6.0.7
 [6.0.6]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.5...node-solana/6.0.6
 [6.0.5]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.4...node-solana/6.0.5
 [6.0.4]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.3...node-solana/6.0.4
