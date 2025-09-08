@@ -35,6 +35,7 @@ import {
   SolanaRuntimeHandlerInputMap,
   SolanaLogMessage,
   SolanaLogFilter,
+  Decoder,
 } from '@subql/types-solana';
 import { groupBy } from 'lodash';
 import { BlockchainService } from '../blockchain.service';
@@ -109,7 +110,21 @@ export class IndexerManager extends BaseIndexerManager<
     ds: SubqlSolanaDataSource,
     safeApi: SolanaSafeApi,
   ): IndexerSandbox {
-    return this.sandboxService.getDsProcessor(ds, safeApi, this.apiService.api);
+    const sandbox = (this as any).sandboxService as SandboxService<
+      SolanaSafeApi,
+      SolanaApi
+    >;
+    return sandbox.getDsProcessor(ds, safeApi, this.apiService.api, {
+      // Inject the decoder into the sandbox but create a new object to remove access to other methods
+      decoder: {
+        decodeInstruction: this.apiService.decoder.decodeInstruction.bind(
+          this.apiService.decoder,
+        ),
+        decodeLog: this.apiService.decoder.decodeLog.bind(
+          this.apiService.decoder,
+        ),
+      } satisfies Decoder,
+    });
   }
 
   protected async indexBlockData(

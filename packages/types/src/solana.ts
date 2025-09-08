@@ -63,7 +63,9 @@ type ReturnData = {
 };
 
 export type DecodedData<T = any> = {
+  /* The name of the instruction or log event as specified in the IDL */
   name: string;
+  /* The decoded data, structure depends on the instruction or event */
   data: T;
 };
 
@@ -256,4 +258,19 @@ export interface SolanaLogFilter {
    * programId: "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
    * */
   programId?: string;
+}
+
+export interface Decoder {
+  /**
+   * Decode the instruction data using any IDLs provided by the project
+   * @param instruction The instruction to decode data for
+   * @returns A promise that resolves to the decoded data or null if there is any error or it could not be decoded
+   */
+  decodeInstruction<T = any>(instruction: SolanaInstruction): Promise<DecodedData<T> | null>;
+  /**
+   * Decode the log data using any IDLs provided by the project
+   * @param log The log to decode data for
+   * @returns A promise that resolves to the decoded data or null if there is any error or it could not be decoded
+   */
+  decodeLog<T = any>(log: SolanaLogMessage): Promise<DecodedData<T> | null>;
 }

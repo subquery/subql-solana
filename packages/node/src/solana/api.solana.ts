@@ -3,7 +3,7 @@
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { assertIsAddress } from '@solana/addresses';
-import { createSolanaRpc, Rpc } from '@solana/kit';
+import { createSolanaRpc, Rpc } from '@solana/rpc';
 import { SolanaRpcApi } from '@solana/rpc-api';
 import {
   backoffRetry,

@@ -14,6 +14,7 @@ import {
 import { getLogger } from '@subql/node-core';
 import {
   DecodedData,
+  Decoder,
   SolanaInstruction,
   SolanaLogMessage,
   SubqlDatasource,
@@ -127,7 +128,7 @@ export function decodeLog(idl: Idl, message: string): DecodedData | null {
   });
 }
 
-export class SolanaDecoder {
+export class SolanaDecoder implements Decoder {
   idls: Record<string, Idl | null> = {};
 
   async loadIdls(ds: SubqlDatasource): Promise<void> {
