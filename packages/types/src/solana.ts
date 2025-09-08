@@ -22,7 +22,7 @@ type AddressTableLookup = Readonly<{
   /** public key for an address lookup table account. */
   accountKey: Address;
   /** List of indices used to load addresses of readonly accounts from a lookup table. */
-  readableIndexes: readonly number[];
+  readonlyIndexes: readonly number[];
   /** List of indices used to load addresses of writable accounts from a lookup table. */
   writableIndexes: readonly number[];
 }>;

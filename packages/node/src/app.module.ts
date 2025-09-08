@@ -9,7 +9,7 @@ import { ConfigureModule } from './configure/configure.module';
 import { FetchModule } from './indexer/fetch.module';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { version: ethersSdkVersion } = require('ethers/package.json');
+const { version: solanaSdkVersion } = require('@solana/kit/package.json');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { version: packageVersion } = require('../package.json');
 
@@ -23,7 +23,7 @@ const { version: packageVersion } = require('../package.json');
     FetchModule,
     MetaModule.forRoot({
       version: packageVersion,
-      sdkVersion: { name: 'ethers.js', version: ethersSdkVersion },
+      sdkVersion: { name: '@solana/kit', version: solanaSdkVersion },
     }),
   ],
   controllers: [],
