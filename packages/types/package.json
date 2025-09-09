@@ -1,6 +1,6 @@
 {
   "name": "@subql/types-solana",
-  "version": "1.0.3-0",
+  "version": "1.1.0",
   "description": "",
   "homepage": "https://github.com/subquery/subql-solana",
   "repository": "github:subquery/subql-solana",
@@ -28,6 +28,5 @@
   "dependencies": {
     "@solana/kit": "^3.0.2",
     "@subql/types-core": "^2.1.1"
-  },
-  "stableVersion": "1.0.2"
+  }
 }
