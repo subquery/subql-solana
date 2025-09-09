@@ -5,6 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Removed
+- ethersjs dependency and correct sdk version in meta (#19)
+
+### Changed
+- Update solana and codama dependencies (#19)
+
+### Fixed
+- dictionary being used when no handler filter was provided (#19)
+
+### Added
+- Provide decoder functions into the sandbox (#19)
 
 ## [6.0.7] - 2025-08-28
 ### Fixed

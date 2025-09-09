@@ -22,7 +22,7 @@ type AddressTableLookup = Readonly<{
   /** public key for an address lookup table account. */
   accountKey: Address;
   /** List of indices used to load addresses of readonly accounts from a lookup table. */
-  readableIndexes: readonly number[];
+  readonlyIndexes: readonly number[];
   /** List of indices used to load addresses of writable accounts from a lookup table. */
   writableIndexes: readonly number[];
 }>;
@@ -63,7 +63,9 @@ type ReturnData = {
 };
 
 export type DecodedData<T = any> = {
+  /* The name of the instruction or log event as specified in the IDL */
   name: string;
+  /* The decoded data, structure depends on the instruction or event */
   data: T;
 };
 
@@ -256,4 +258,23 @@ export interface SolanaLogFilter {
    * programId: "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
    * */
   programId?: string;
+}
+
+export interface Decoder {
+  /**
+   * Decode the instruction data using any IDLs provided by the project
+   * @param instruction The instruction to decode data for
+   * @param transaction The transaction the instruction belongs to, required to resolve the program ID
+   * @returns A promise that resolves to the decoded data or null if there is any error or it could not be decoded
+   */
+  decodeInstruction<T = any>(
+    instruction: TransactionForFullJson<0>['transaction']['message']['instructions'][number],
+    transaction: TransactionForFullJson<0>
+  ): Promise<DecodedData<T> | null>;
+  /**
+   * Decode the log data using any IDLs provided by the project
+   * @param logs The raw logs from transaction meta
+   * @returns A promise that resolves to the decoded data or null if there is any error or it could not be decoded
+   */
+  decodeLogs(logs: readonly string[] | null): SolanaLogMessage[] | null;
 }

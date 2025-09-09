@@ -117,6 +117,15 @@ function sanitiseDictionaryConditions(
     );
   }
 
+  if (!dictionaryConditions.instructions?.length) {
+    delete dictionaryConditions.instructions;
+  } else {
+    dictionaryConditions.instructions = uniqBy(
+      dictionaryConditions.instructions,
+      (inst) => JSON.stringify(inst),
+    );
+  }
+
   if (!dictionaryConditions.transactions?.length) {
     delete dictionaryConditions.transactions;
   } else {

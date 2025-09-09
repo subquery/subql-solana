@@ -3,7 +3,7 @@
 
 import fs from 'node:fs';
 import { getNodeCodec } from '@codama/dynamic-codecs';
-import { Base58EncodedBytes } from '@solana/kit';
+import { Base58EncodedBytes, TransactionForFullJson } from '@solana/kit';
 import {
   parseIdl,
   Idl,
@@ -14,6 +14,7 @@ import {
 import { getLogger } from '@subql/node-core';
 import {
   DecodedData,
+  Decoder,
   SolanaInstruction,
   SolanaLogMessage,
   SubqlDatasource,
@@ -22,7 +23,7 @@ import { isHex } from '@subql/utils';
 import bs58 from 'bs58';
 import { camelCase, DefinedTypeNode, InstructionNode, RootNode } from 'codama';
 import { Memoize } from '../utils/decorators';
-import { getProgramId } from './utils.solana';
+import { allAccounts, getProgramId } from './utils.solana';
 
 const logger = getLogger('SolanaDecoder');
 
@@ -180,11 +181,12 @@ export class SolanaDecoder {
     return discriminator;
   }
 
-  async decodeInstruction(
-    instruction: SolanaInstruction,
+  async decodeInstructionRaw(
+    instruction: TransactionForFullJson<0>['transaction']['message']['instructions'][number],
+    transaction: TransactionForFullJson<0>,
   ): Promise<DecodedData | null> {
     try {
-      const programId = getProgramId(instruction);
+      const programId = allAccounts(transaction)[instruction.programIdIndex];
 
       const idl =
         this.idls[programId] ?? (await this.getIdlFromChain(programId));
@@ -199,6 +201,12 @@ export class SolanaDecoder {
     }
 
     return null;
+  }
+
+  async decodeInstruction(
+    instruction: SolanaInstruction,
+  ): Promise<DecodedData | null> {
+    return this.decodeInstructionRaw(instruction, instruction.transaction);
   }
 
   async decodeLog(log: SolanaLogMessage): Promise<DecodedData | null> {

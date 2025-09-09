@@ -80,7 +80,7 @@ export async function generateIDLInterfaces(
 
     const output = path.join(projectPath, CODAMA_PATH, name);
 
-    await idl.accept(renderVisitor(output, {}));
+    await idl.accept(renderVisitor(output, {useGranularImports: true}));
 
     const instructionNames = idl.getRoot().program.instructions.map((inst) => pascalCase(inst.name));
 
