@@ -264,13 +264,17 @@ export interface Decoder {
   /**
    * Decode the instruction data using any IDLs provided by the project
    * @param instruction The instruction to decode data for
+   * @param transaction The transaction the instruction belongs to, required to resolve the program ID
    * @returns A promise that resolves to the decoded data or null if there is any error or it could not be decoded
    */
-  decodeInstruction<T = any>(instruction: SolanaInstruction): Promise<DecodedData<T> | null>;
+  decodeInstruction<T = any>(
+    instruction: TransactionForFullJson<0>['transaction']['message']['instructions'][number],
+    transaction: TransactionForFullJson<0>
+  ): Promise<DecodedData<T> | null>;
   /**
    * Decode the log data using any IDLs provided by the project
-   * @param log The log to decode data for
+   * @param logs The raw logs from transaction meta
    * @returns A promise that resolves to the decoded data or null if there is any error or it could not be decoded
    */
-  decodeLog<T = any>(log: SolanaLogMessage): Promise<DecodedData<T> | null>;
+  decodeLogs(logs: readonly string[] | null): SolanaLogMessage[] | null;
 }

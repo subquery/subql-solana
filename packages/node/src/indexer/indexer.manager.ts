@@ -46,6 +46,7 @@ import {
   SolanaDecoder,
   SolanaSafeApi,
 } from '../solana';
+import { wrapLogs } from '../solana/block.solana';
 import {
   filterBlocksProcessor,
   filterInstructionsProcessor,
@@ -117,12 +118,11 @@ export class IndexerManager extends BaseIndexerManager<
     return sandbox.getDsProcessor(ds, safeApi, this.apiService.api, {
       // Inject the decoder into the sandbox but create a new object to remove access to other methods
       decoder: {
-        decodeInstruction: this.apiService.decoder.decodeInstruction.bind(
+        decodeInstruction: this.apiService.decoder.decodeInstructionRaw.bind(
           this.apiService.decoder,
         ),
-        decodeLog: this.apiService.decoder.decodeLog.bind(
-          this.apiService.decoder,
-        ),
+        decodeLogs: (logs: readonly string[] | null) =>
+          wrapLogs(logs, this.apiService.decoder),
       } satisfies Decoder,
     });
   }

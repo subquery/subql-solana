@@ -3334,15 +3334,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@subql/node-core@npm:^18.3.0":
-  version: 18.3.0
-  resolution: "@subql/node-core@npm:18.3.0"
+"@subql/node-core@npm:^18.3.3":
+  version: 18.3.3
+  resolution: "@subql/node-core@npm:18.3.3"
   dependencies:
     "@apollo/client": ^3.11.2
     "@nestjs/common": ^11.0.16
     "@nestjs/event-emitter": ^3.0.0
     "@nestjs/schedule": ^5.0.1
-    "@subql/common": ~5.7.3
+    "@subql/common": ~5.7.5
     "@subql/testing": ~2.3.0
     "@subql/types": ~3.14.1
     "@subql/utils": ~2.21.1
@@ -3362,7 +3362,7 @@ __metadata:
     toposort-class: ^1.0.1
     vm2: ^3.9.19
     yargs: ^16.2.0
-  checksum: 774401869569afd7733ab2611fa04f69c1bd624b81d8ccd34f34157c7623e7b20abc926e30a092e1edd69704694405e9e706815bcfd43bfc2d3afc9d9a97f8c8
+  checksum: 5b53ce43c02db55054c8145236bbcbb72be4cf11f2d0e53a874c908f29d720d807760c413380a183a563365e11ed9b5e51217875489dc2f572973784e7676775
   languageName: node
   linkType: hard
 
@@ -3380,7 +3380,7 @@ __metadata:
     "@nestjs/testing": ^11.0.8
     "@solana/kit": ^3.0.2
     "@subql/common-solana": "workspace:*"
-    "@subql/node-core": ^18.3.0
+    "@subql/node-core": ^18.3.3
     "@subql/testing": ^2.2.1
     "@subql/types-solana": "workspace:*"
     "@types/bs58": ^5.0.0

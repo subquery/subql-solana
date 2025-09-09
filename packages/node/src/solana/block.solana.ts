@@ -78,7 +78,7 @@ function wrapInstruction(
   return res;
 }
 
-function wrapLogs(
+export function wrapLogs(
   logs: readonly string[] | null,
   decoder: SolanaDecoder,
 ): SolanaLogMessage[] | null {

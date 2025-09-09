@@ -1,7 +1,7 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
-import { TransactionForFullJson } from '@solana/kit';
+import { Address, TransactionForFullJson } from '@solana/kit';
 import { filterBlockTimestamp } from '@subql/node-core';
 import {
   SolanaLogMessage,
@@ -17,9 +17,9 @@ import bs58 from 'bs58';
 import { SubqlProjectBlockFilter } from '../configure/SubqueryProject';
 import { SolanaDecoder } from './decoder';
 
-function allAccounts(
+export function allAccounts(
   transaction: SolanaTransaction | TransactionForFullJson<0>,
-) {
+): Address[] {
   return [
     ...transaction.transaction.message.accountKeys,
     ...(transaction.meta?.loadedAddresses.writable ?? []),

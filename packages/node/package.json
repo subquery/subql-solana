@@ -27,7 +27,7 @@
     "@nestjs/schedule": "^5.0.1",
     "@solana/kit": "^3.0.2",
     "@subql/common-solana": "workspace:*",
-    "@subql/node-core": "^18.3.0",
+    "@subql/node-core": "^18.3.3",
     "@subql/testing": "^2.2.1",
     "@subql/types-solana": "workspace:*",
     "bs58": "^6.0.0",
