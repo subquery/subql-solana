@@ -1,6 +1,6 @@
 {
   "name": "@subql/node-solana",
-  "version": "6.0.8-0",
+  "version": "6.1.0",
   "description": "",
   "author": "Ian He",
   "license": "GPL-3.0",
@@ -72,6 +72,5 @@
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
-  ],
-  "stableVersion": "6.0.7"
+  ]
 }
