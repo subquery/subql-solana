@@ -192,12 +192,15 @@ export class SolanaDecoder {
         this.idls[programId] ?? (await this.getIdlFromChain(programId));
 
       if (!idl) {
+        logger.warn(
+          `Unable to decode instruction for program: ${programId}. No IDL.`,
+        );
         return null;
       }
 
       return decodeInstruction(idl, instruction.data);
     } catch (e) {
-      logger.debug(`Failed to decode instruction: ${e}`);
+      logger.warn(`Failed to decode instruction: ${e}`);
     }
 
     return null;
@@ -217,12 +220,13 @@ export class SolanaDecoder {
         this.idls[programId] ?? (await this.getIdlFromChain(programId));
 
       if (!idl) {
+        logger.warn(`Unable to decode log for program: ${programId}. No IDL.`);
         return null;
       }
 
       return decodeLog(idl, log.message);
     } catch (e) {
-      logger.debug(`Failed to decode log: ${e}`);
+      logger.warn(`Failed to decode log: ${e}`);
     }
     return null;
   }

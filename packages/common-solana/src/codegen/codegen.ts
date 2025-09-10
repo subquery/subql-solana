@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0
 
 import assert from 'node:assert';
+import {glob, readFile, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {renderVisitor} from '@codama/renderers-js';
 import {SolanaDatasourceKind, SolanaHandlerKind, SubqlDatasource, SubqlRuntimeDatasource} from '@subql/types-solana';
@@ -82,6 +83,8 @@ export async function generateIDLInterfaces(
 
     await idl.accept(renderVisitor(output, {useGranularImports: true}));
 
+    await fixTypeImports(output);
+
     const instructionNames = idl.getRoot().program.instructions.map((inst) => pascalCase(inst.name));
 
     await renderTemplate(INSTRUCTION_TEMPLATE_TS, path.join(projectPath, IDL_PATH, `${name}.ts`), {
@@ -92,5 +95,35 @@ export async function generateIDLInterfaces(
     });
 
     console.log(`* IDL ${name} generated`);
+  }
+}
+
+/**
+ * @codama/renderers.js@1.3.5 has a bug where useGranularImports is not applied to types
+ * It could be fixed by adding the option to this line https://github.com/codama-idl/codama/blob/d2372b07668e4ce288c4354e0be0379853c1df4a/packages/renderers-js/src/getRenderMapVisitor.ts#L220
+ * But there has been a large refactor since this release so its being patched here for now.
+ */
+async function fixTypeImports(output: string): Promise<void> {
+  for await (const path of glob(`${output}/types/*.ts`)) {
+    const content = await readFile(path, 'utf8');
+    const updated = content.replace(
+      `import {
+  combineCodec,
+  getEnumDecoder,
+  getEnumEncoder,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
+} from '@solana/kit';`,
+      `import {
+  combineCodec,
+  getEnumDecoder,
+  getEnumEncoder,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
+} from '@solana/codecs';`
+    );
+    await writeFile(path, updated);
   }
 }
