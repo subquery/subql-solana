@@ -21,7 +21,9 @@ import {
 
 // Add api key to work
 const HTTP_ENDPOINT =
-  process.env.HTTP_ENDPOINT ?? 'https://solana.api.onfinality.io/public';
+  process.env.HTTP_ENDPOINT ??
+  'https://api.mainnet-beta.solana.com' ??
+  'https://solana.api.onfinality.io/public';
 
 const IDL_swap: IdlV01 = require('../../test/swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW.idl.json');
 
@@ -37,8 +39,11 @@ describe('Api.solana', () => {
     block = await solanaApi.fetchBlock(325_922_873);
   }, 20_000);
 
-  function getTxBySig(sig: string): SolanaTransaction {
-    const tx = block.block.transactions.find((tx) =>
+  function getTxBySig(
+    sig: string,
+    specificBlock?: IBlock<SolanaBlock>,
+  ): SolanaTransaction {
+    const tx = (specificBlock ?? block).block.transactions.find((tx) =>
       tx.transaction.signatures.find((s) => s === sig),
     );
     if (!tx) {
@@ -260,6 +265,26 @@ describe('Api.solana', () => {
       );
       expect(txWError!.meta!.logs).toBeDefined();
       expect(txWError!.meta!.logs!.length).toBeGreaterThan(0);
+    });
+
+    it('can parse a block with a transaction that has "null" innerTransactions', async () => {
+      // The problem transaction: https://solscan.io/tx/3mSAfK9hm4wgMw5kzKpVz73viBftapNLwECN9rmG5Q6qWPyARognZsyoosB4XjYf5nFRtcEmrKGVgLGLRN7tnmWN?cluster=devnet
+      const solanaApi = await SolanaApi.create(
+        'https://api.devnet.solana.com',
+        eventEmitter,
+        decoder,
+      );
+
+      const block = await solanaApi.fetchBlock(405433240);
+
+      expect(block).toBeDefined();
+
+      expect(
+        getTxBySig(
+          '3mSAfK9hm4wgMw5kzKpVz73viBftapNLwECN9rmG5Q6qWPyARognZsyoosB4XjYf5nFRtcEmrKGVgLGLRN7tnmWN',
+          block,
+        ),
+      ).toBeDefined();
     });
   });
 

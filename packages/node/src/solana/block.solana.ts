@@ -231,7 +231,7 @@ export function transformBlock(
           meta: tx.meta
             ? {
                 ...tx.meta,
-                innerInstructions: tx.meta.innerInstructions.map(
+                innerInstructions: (tx.meta.innerInstructions ?? []).map(
                   (innerInstruction) => ({
                     ...innerInstruction,
                     instructions: innerInstruction.instructions.map(
