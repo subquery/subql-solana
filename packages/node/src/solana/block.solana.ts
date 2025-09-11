@@ -254,7 +254,6 @@ export function transformBlock(
             : null,
         };
       } catch (e) {
-        console.log('ERRRRR', e);
         throw new Error(
           `Failed to transform transaction: ${tx.transaction.signatures[0]}`,
           { cause: e },
