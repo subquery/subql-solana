@@ -137,7 +137,7 @@ export class SolanaApi {
         return 'mainnet';
       case 'EKLxEB4xoEDq9AAn5HhFiP5WqdhNVc4An2HvJyzHzx7u': // Not tested
         return 'testnet;';
-      case 'GH7ome3EiwEr7tu9JuTh2dpYWBJK3z69Xm1ZE3MEE6JC':
+      case 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG':
         return 'devnet';
       default:
         return 'unknown';

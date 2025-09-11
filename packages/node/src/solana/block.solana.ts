@@ -231,7 +231,7 @@ export function transformBlock(
           meta: tx.meta
             ? {
                 ...tx.meta,
-                innerInstructions: tx.meta.innerInstructions.map(
+                innerInstructions: (tx.meta.innerInstructions ?? []).map(
                   (innerInstruction) => ({
                     ...innerInstruction,
                     instructions: innerInstruction.instructions.map(
@@ -254,6 +254,7 @@ export function transformBlock(
             : null,
         };
       } catch (e) {
+        console.log('ERRRRR', e);
         throw new Error(
           `Failed to transform transaction: ${tx.transaction.signatures[0]}`,
           { cause: e },
