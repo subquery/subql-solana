@@ -1,6 +1,7 @@
 // Copyright 2020-2025 SubQuery Pte Ltd authors & contributors
 // SPDX-License-Identifier: GPL-3.0
 
+import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 import {AnchorIdl, IdlV01, rootNodeFromAnchor} from '@codama/nodes-from-anchor';
 import {getBase16Encoder, getBase58Encoder, getBase64Encoder, getUtf8Encoder} from '@solana/codecs-strings';
@@ -86,4 +87,10 @@ export function findInstructionDiscriminatorByName(rootNode: RootNode, name: str
     // );
     return undefined;
   }
+}
+
+// Discriminator are the first 8 bytes of the sha256 over the event's name
+export function getDiscriminator(name: string): Uint8Array {
+  const hash = createHash('sha256').update(`event:${name}`).digest();
+  return new Uint8Array(hash.subarray(0, 8));
 }

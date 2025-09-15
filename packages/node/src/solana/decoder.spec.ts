@@ -11,8 +11,11 @@ import { SolanaDecoder } from './decoder';
 import { getProgramId, filterInstructionsProcessor } from './utils.solana';
 
 const HTTP_ENDPOINT =
-  process.env.HTTP_ENDPOINT ?? 'https://solana.api.onfinality.io/public';
+  process.env.HTTP_ENDPOINT ??
+  'https://api.mainnet-beta.solana.com' ??
+  'https://solana.api.onfinality.io/public';
 
+const IDL_codama_0_1_0: IdlV01 = require('../../test/8t2R21V3vjS1ucZzmX2memtGptjYZi2yGY3cYVa8dak7.idl.json');
 const IDL_Jupiter: IdlV01 = require('../../test/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4.idl.json');
 const IDL_swap: IdlV01 = require('../../test/swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW.idl.json');
 const IDL_token: RootNode = require('../../test/TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA.idl.json');
@@ -47,6 +50,9 @@ describe('SolanaDecoder', () => {
     decoder.idls['swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW'] = IDL_swap;
     // eslint-disable-next-line @typescript-eslint/dot-notation
     decoder.idls['TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'] = IDL_token;
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    decoder.idls['8t2R21V3vjS1ucZzmX2memtGptjYZi2yGY3cYVa8dak7'] =
+      IDL_codama_0_1_0;
   };
 
   describe('caching IDLs', () => {
@@ -264,6 +270,45 @@ describe('SolanaDecoder', () => {
       expect(decoded).not.toBeNull();
       expect(decoded!.name).toBe('poolBalanceUpdatedEvent');
       expect(decoded!.data).toEqual(logData);
+    });
+
+    it('can decode codama 0.1.0 spec idl events', async () => {
+      const solanaApi = await SolanaApi.create(
+        'https://api.devnet.solana.com',
+        new EventEmitter2(),
+        decoder,
+      );
+
+      const block = await solanaApi.fetchBlock(405402294);
+
+      const tx = findTx(
+        block.block,
+        '4xHLJtomvuF2DAwtDoHgGqABv47kmqMCvd691bRe9XhiAP99grjvpAdvNQGnA4PETZSvhXdfHvvHUNWu2SNM3aqE',
+      );
+
+      expect(tx).toBeDefined();
+
+      const programLogs = tx!.meta!.logs?.filter((l) =>
+        l.message.startsWith('Program data:'),
+      );
+      console.log('PROGRAM LOGS', programLogs);
+      expect(programLogs).toBeDefined();
+      const decoded = await programLogs![0].decodedMessage;
+      expect(decoded).not.toBeNull();
+      expect(decoded!.name).toEqual('createCampaign');
+      expect(decoded!.data).toMatchObject({
+        aggregateAmount: 10000n,
+        campaign: 'BjYpCVaiksvD8Dw4LixUJVNaCptefKk86nDtw419b7Y5',
+        campaignName: 'HODL or Nothing',
+        campaignStartTime: 1754142441n,
+        creator: 'HTtnrJ5iq9HVVypJZxFKMCcR6JDiUqT6yaE7c6BvfeTp',
+        expirationTime: 1757776469n,
+        ipfsCid: 'bafkreiecpwdhvkmw4y6iihfndk7jhwjas3m5htm7nczovt6m37mucwgsrq',
+        merkleRoot: ['base64', '1SVJywcqH80FJBL8gPZ47/6Sru7czRyuYyxcbh3ok3k='],
+        recipientCount: 100,
+        tokenDecimals: 6,
+        tokenMint: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+      });
     });
   });
 });

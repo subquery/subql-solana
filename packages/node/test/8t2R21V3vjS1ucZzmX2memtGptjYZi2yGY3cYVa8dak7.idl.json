@@ -1,0 +1,2239 @@
+{
+  "kind": "rootNode",
+  "standard": "codama",
+  "version": "1.3.4",
+  "program": {
+    "kind": "programNode",
+    "name": "sablierMerkleInstant",
+    "publicKey": "8t2R21V3vjS1ucZzmX2memtGptjYZi2yGY3cYVa8dak7",
+    "version": "0.1.0",
+    "origin": "anchor",
+    "docs": [],
+    "accounts": [
+      {
+        "kind": "accountNode",
+        "name": "campaign",
+        "docs": [],
+        "data": {
+          "kind": "structTypeNode",
+          "fields": [
+            {
+              "kind": "structFieldTypeNode",
+              "name": "discriminator",
+              "defaultValueStrategy": "omitted",
+              "docs": [],
+              "type": {
+                "kind": "fixedSizeTypeNode",
+                "size": 8,
+                "type": { "kind": "bytesTypeNode" }
+              },
+              "defaultValue": {
+                "kind": "bytesValueNode",
+                "data": "3228310b9ddce5c0",
+                "encoding": "base16"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "airdropTokenMint",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "bump",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u8",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "campaignStartTime",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u64",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "creator",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "expirationTime",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u64",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "firstClaimTime",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u64",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "ipfsCid",
+              "docs": [],
+              "type": {
+                "kind": "sizePrefixTypeNode",
+                "type": { "kind": "stringTypeNode", "encoding": "utf8" },
+                "prefix": {
+                  "kind": "numberTypeNode",
+                  "format": "u32",
+                  "endian": "le"
+                }
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "merkleRoot",
+              "docs": [],
+              "type": {
+                "kind": "fixedSizeTypeNode",
+                "size": 32,
+                "type": { "kind": "bytesTypeNode" }
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "name",
+              "docs": [],
+              "type": {
+                "kind": "sizePrefixTypeNode",
+                "type": { "kind": "stringTypeNode", "encoding": "utf8" },
+                "prefix": {
+                  "kind": "numberTypeNode",
+                  "format": "u32",
+                  "endian": "le"
+                }
+              }
+            }
+          ]
+        },
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "accountNode",
+        "name": "claimReceipt",
+        "size": 8,
+        "docs": [],
+        "data": {
+          "kind": "structTypeNode",
+          "fields": [
+            {
+              "kind": "structFieldTypeNode",
+              "name": "discriminator",
+              "defaultValueStrategy": "omitted",
+              "docs": [],
+              "type": {
+                "kind": "fixedSizeTypeNode",
+                "size": 8,
+                "type": { "kind": "bytesTypeNode" }
+              },
+              "defaultValue": {
+                "kind": "bytesValueNode",
+                "data": "dfe90be57ca5cf1c",
+                "encoding": "base16"
+              }
+            }
+          ]
+        },
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "accountNode",
+        "name": "treasury",
+        "size": 105,
+        "docs": [],
+        "data": {
+          "kind": "structTypeNode",
+          "fields": [
+            {
+              "kind": "structFieldTypeNode",
+              "name": "discriminator",
+              "defaultValueStrategy": "omitted",
+              "docs": [],
+              "type": {
+                "kind": "fixedSizeTypeNode",
+                "size": 8,
+                "type": { "kind": "bytesTypeNode" }
+              },
+              "defaultValue": {
+                "kind": "bytesValueNode",
+                "data": "eeef7bee5901a8fd",
+                "encoding": "base16"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "bump",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u8",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "feeCollector",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "chainlinkProgram",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "chainlinkSolUsdFeed",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            }
+          ]
+        },
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      }
+    ],
+    "instructions": [
+      {
+        "kind": "instructionNode",
+        "name": "campaignView",
+        "docs": [
+          "Retrieves the campaign details.",
+          "",
+          "# Accounts Expected",
+          "",
+          "- `campaign` The account that stores the campaign details."
+        ],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "campaign",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the account storing the campaign data."]
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 8,
+              "type": { "kind": "bytesTypeNode" }
+            },
+            "defaultValue": {
+              "kind": "bytesValueNode",
+              "data": "bc7e6e05b7719e03",
+              "encoding": "base16"
+            }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "claim",
+        "docs": [
+          "Claims airdrop on behalf of eligible recipient and transfers it to the recipient ATA.",
+          "",
+          "# Accounts Expected",
+          "",
+          "- `claimer` The transaction signer.",
+          "- `campaign` The account that stores the campaign details.",
+          "- `recipient` The address of the airdrop recipient.",
+          "- `airdrop_token_mint` The mint of the airdropped token.",
+          "- `airdrop_token_program` The Token Program of the airdropped token.",
+          "- `chainlink_program`: The Chainlink program used to retrieve on-chain price feeds.",
+          "- `chainlink_sol_usd_feed`: The account providing the SOL/USD price feed data.",
+          "",
+          "# Parameters",
+          "",
+          "- `index` The index of the recipient in the Merkle tree.",
+          "- `amount` The amount allocated to the recipient.",
+          "- `merkle_proof` The proof of inclusion in the Merkle tree.",
+          "",
+          "# Notes",
+          "",
+          "- The instruction charges a fee in the native token (SOL), equivalent to $2 USD.",
+          "- Emits a [`crate::utils::events::Claim`] event.",
+          "",
+          "# Requirements",
+          "",
+          "- The current time must be greater than or equal to the campaign start time.",
+          "",
+          "- The campaign must not have expired.",
+          "- The recipient's airdrop has not been claimed yet.",
+          "- The Merkle proof must be valid.",
+          "- `chainlink_program` and `chainlink_sol_usd_feed` must match the ones stored in the treasury."
+        ],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "claimer",
+            "isWritable": true,
+            "isSigner": true,
+            "isOptional": false,
+            "docs": [
+              "Write account: the signer of the claim who will pay the claim fee."
+            ]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "recipient",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the recipient of the airdrop."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "recipientAta",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Create if needed account: the ATA for airdrop token owned by the recipient."
+            ],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "recipientAta",
+                "docs": [],
+                "programId": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+                "seeds": [
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "recipient",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "airdropTokenProgram",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "airdropTokenMint",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  }
+                ]
+              },
+              "seeds": [
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "recipient",
+                  "value": { "kind": "accountValueNode", "name": "recipient" }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "airdropTokenProgram",
+                  "value": {
+                    "kind": "accountValueNode",
+                    "name": "airdropTokenProgram"
+                  }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "airdropTokenMint",
+                  "value": {
+                    "kind": "accountValueNode",
+                    "name": "airdropTokenMint"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "treasury",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Write account: the treasury account that will receive the claim fee."
+            ],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "treasury",
+                "docs": [],
+                "seeds": [
+                  {
+                    "kind": "constantPdaSeedNode",
+                    "type": { "kind": "bytesTypeNode" },
+                    "value": {
+                      "kind": "bytesValueNode",
+                      "data": "7472656173757279",
+                      "encoding": "base16"
+                    }
+                  }
+                ]
+              },
+              "seeds": []
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "airdropTokenMint",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the mint account of the airdrop token."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "campaign",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Write account: the account storing the campaign data."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "campaignAta",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Write account: the campaign's ATA for the airdrop token."
+            ],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "campaignAta",
+                "docs": [],
+                "programId": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+                "seeds": [
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "campaign",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "airdropTokenProgram",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "airdropTokenMint",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  }
+                ]
+              },
+              "seeds": [
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "campaign",
+                  "value": { "kind": "accountValueNode", "name": "campaign" }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "airdropTokenProgram",
+                  "value": {
+                    "kind": "accountValueNode",
+                    "name": "airdropTokenProgram"
+                  }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "airdropTokenMint",
+                  "value": {
+                    "kind": "accountValueNode",
+                    "name": "airdropTokenMint"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "claimReceipt",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Create account: the claim receipt."],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "claimReceipt",
+                "docs": [],
+                "seeds": [
+                  {
+                    "kind": "constantPdaSeedNode",
+                    "type": { "kind": "bytesTypeNode" },
+                    "value": {
+                      "kind": "bytesValueNode",
+                      "data": "636c61696d5f72656365697074",
+                      "encoding": "base16"
+                    }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "campaign",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "index",
+                    "docs": [],
+                    "type": {
+                      "kind": "numberTypeNode",
+                      "format": "u32",
+                      "endian": "le"
+                    }
+                  }
+                ]
+              },
+              "seeds": [
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "campaign",
+                  "value": { "kind": "accountValueNode", "name": "campaign" }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "index",
+                  "value": { "kind": "argumentValueNode", "name": "index" }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "airdropTokenProgram",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Program account: the Token program of the airdrop token."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "associatedTokenProgram",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Program account: the Associated Token program."],
+            "defaultValue": {
+              "kind": "publicKeyValueNode",
+              "publicKey": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+              "identifier": "associatedTokenProgram"
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "chainlinkProgram",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Read account: The Chainlink program used to retrieve on-chain price feeds."
+            ]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "chainlinkSolUsdFeed",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Read account: The account providing the SOL/USD price feed data."
+            ]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "systemProgram",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Program account: the System program."],
+            "defaultValue": {
+              "kind": "publicKeyValueNode",
+              "publicKey": "11111111111111111111111111111111",
+              "identifier": "systemProgram"
+            }
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 8,
+              "type": { "kind": "bytesTypeNode" }
+            },
+            "defaultValue": {
+              "kind": "bytesValueNode",
+              "data": "3ec6d6c1d59f6cd2",
+              "encoding": "base16"
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "index",
+            "docs": [],
+            "type": {
+              "kind": "numberTypeNode",
+              "format": "u32",
+              "endian": "le"
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "amount",
+            "docs": [],
+            "type": {
+              "kind": "numberTypeNode",
+              "format": "u64",
+              "endian": "le"
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "merkleProof",
+            "docs": [],
+            "type": {
+              "kind": "arrayTypeNode",
+              "item": {
+                "kind": "fixedSizeTypeNode",
+                "size": 32,
+                "type": { "kind": "bytesTypeNode" }
+              },
+              "count": {
+                "kind": "prefixedCountNode",
+                "prefix": {
+                  "kind": "numberTypeNode",
+                  "format": "u32",
+                  "endian": "le"
+                }
+              }
+            }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "claimFeeInLamports",
+        "docs": [
+          "Calculates the claim fee in lamports, which is equivalent to $2 USD.",
+          "",
+          "# Accounts Expected:",
+          "",
+          "- `chainlink_program`: The Chainlink program used to retrieve on-chain price feeds.",
+          "- `chainlink_sol_usd_feed`: The account providing the SOL/USD price feed data."
+        ],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "treasury",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Read account: the treasury account that receives the claim fee."
+            ],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "treasury",
+                "docs": [],
+                "seeds": [
+                  {
+                    "kind": "constantPdaSeedNode",
+                    "type": { "kind": "bytesTypeNode" },
+                    "value": {
+                      "kind": "bytesValueNode",
+                      "data": "7472656173757279",
+                      "encoding": "base16"
+                    }
+                  }
+                ]
+              },
+              "seeds": []
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "chainlinkProgram",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Read account: The Chainlink program used to retrieve on-chain price feeds."
+            ]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "chainlinkSolUsdFeed",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Read account: The account providing the SOL/USD price feed data."
+            ]
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 8,
+              "type": { "kind": "bytesTypeNode" }
+            },
+            "defaultValue": {
+              "kind": "bytesValueNode",
+              "data": "ffc792de91b43ae7",
+              "encoding": "base16"
+            }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "clawback",
+        "docs": [
+          "Claws back the unclaimed tokens from the campaign.",
+          "",
+          "# Accounts Expected",
+          "",
+          "- `campaign` The account that stores the campaign details.",
+          "- `campaign_creator` The transaction signer.",
+          "- `airdrop_token_mint` The mint of the airdropped token.",
+          "- `airdrop_token_program` The Token Program of the airdropped token.",
+          "",
+          "# Parameters",
+          "",
+          "- `amount` The amount to claw back.",
+          "",
+          "# Notes",
+          "",
+          "- Emits a [`crate::utils::events::Clawback`] event.",
+          "",
+          "# Requirements",
+          "",
+          "- The signer must be the actual campaign creator.",
+          "- No claim must be made, OR the current timestamp must not exceed 7 days after the first claim, OR the campaign",
+          "must be expired."
+        ],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "campaignCreator",
+            "isWritable": true,
+            "isSigner": true,
+            "isOptional": false,
+            "docs": [
+              "Write account: the campaign creator who will claw back the tokens."
+            ]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "clawbackRecipient",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the clawback recipient."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "clawbackRecipientAta",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Create if needed account: the clawback recipient's ATA for the airdrop token."
+            ],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "clawbackRecipientAta",
+                "docs": [],
+                "programId": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+                "seeds": [
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "clawbackRecipient",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "airdropTokenProgram",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "airdropTokenMint",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  }
+                ]
+              },
+              "seeds": [
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "clawbackRecipient",
+                  "value": {
+                    "kind": "accountValueNode",
+                    "name": "clawbackRecipient"
+                  }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "airdropTokenProgram",
+                  "value": {
+                    "kind": "accountValueNode",
+                    "name": "airdropTokenProgram"
+                  }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "airdropTokenMint",
+                  "value": {
+                    "kind": "accountValueNode",
+                    "name": "airdropTokenMint"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "airdropTokenMint",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the mint account of the airdrop token."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "campaign",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the account storing the campaign data."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "campaignAta",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Write account: the campaign's ATA for the airdrop token."
+            ],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "campaignAta",
+                "docs": [],
+                "programId": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+                "seeds": [
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "campaign",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "airdropTokenProgram",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "airdropTokenMint",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  }
+                ]
+              },
+              "seeds": [
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "campaign",
+                  "value": { "kind": "accountValueNode", "name": "campaign" }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "airdropTokenProgram",
+                  "value": {
+                    "kind": "accountValueNode",
+                    "name": "airdropTokenProgram"
+                  }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "airdropTokenMint",
+                  "value": {
+                    "kind": "accountValueNode",
+                    "name": "airdropTokenMint"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "airdropTokenProgram",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Program account: the Token program of the airdrop token."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "associatedTokenProgram",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Program account: the Associated Token program."],
+            "defaultValue": {
+              "kind": "publicKeyValueNode",
+              "publicKey": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+              "identifier": "associatedTokenProgram"
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "systemProgram",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Program account: the System program."],
+            "defaultValue": {
+              "kind": "publicKeyValueNode",
+              "publicKey": "11111111111111111111111111111111",
+              "identifier": "systemProgram"
+            }
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 8,
+              "type": { "kind": "bytesTypeNode" }
+            },
+            "defaultValue": {
+              "kind": "bytesValueNode",
+              "data": "6f5c8e4f21ea521b",
+              "encoding": "base16"
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "amount",
+            "docs": [],
+            "type": {
+              "kind": "numberTypeNode",
+              "format": "u64",
+              "endian": "le"
+            }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "collectFees",
+        "docs": [
+          "Collects the fees accumulated in the treasury by transferring them to the fee recipient.",
+          "",
+          "# Accounts Expected",
+          "",
+          "- `fee_collector` The transaction signer and the fee collector.",
+          "- `fee_recipient` The address receiving the collected fees.",
+          "",
+          "# Notes",
+          "",
+          "- To calculate the \"collectable amount\", the rent-exempt minimum balance and a 0.001 SOL buffer are deducted",
+          "from the treasury SOL balance.",
+          "- Emits a [`crate::utils::events::FeesCollected`] event.",
+          "",
+          "# Requirements",
+          "",
+          "- `fee_collector` must be authorized for fee collection.",
+          "- The \"collectable amount\" must be greater than zero."
+        ],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "feeCollector",
+            "isWritable": false,
+            "isSigner": true,
+            "isOptional": false,
+            "docs": [
+              "Write account: the account authorized to collect fees from the treasury."
+            ]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "feeRecipient",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Write account: the address that will receive the collected fees."
+            ]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "treasury",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Write account: the treasury account that holds the fees."
+            ],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "treasury",
+                "docs": [],
+                "seeds": [
+                  {
+                    "kind": "constantPdaSeedNode",
+                    "type": { "kind": "bytesTypeNode" },
+                    "value": {
+                      "kind": "bytesValueNode",
+                      "data": "7472656173757279",
+                      "encoding": "base16"
+                    }
+                  }
+                ]
+              },
+              "seeds": []
+            }
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 8,
+              "type": { "kind": "bytesTypeNode" }
+            },
+            "defaultValue": {
+              "kind": "bytesValueNode",
+              "data": "a498cf631eba13b6",
+              "encoding": "base16"
+            }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "createCampaign",
+        "docs": [
+          "Creates a Merkle Instant airdrop campaign.",
+          "",
+          "# Accounts Expected",
+          "",
+          "- `creator` The transaction signer and the campaign creator.",
+          "- `airdrop_token_mint` The mint of the airdropped token.",
+          "- `airdrop_token_program` The Token Program of the airdropped token.",
+          "",
+          "# Parameters",
+          "",
+          "- `merkle_root` The Merkle root of the claim data.",
+          "- `campaign_start_time` The time when the campaign starts, in seconds since the Unix epoch.",
+          "- `expiration_time` The time when the campaign expires, in seconds since the Unix epoch.",
+          "A value of zero means the campaign does not expire.",
+          "- `name` The name of the campaign.",
+          "- `ipfs_cid` The content identifier for indexing the campaign on IPFS. An empty value may break some UI",
+          "features that depend upon the IPFS CID.",
+          "- `aggregate_amount` The total amount of tokens to be distributed to all recipients.",
+          "- `recipient_count` The total number of recipient addresses eligible for the airdrop.",
+          "",
+          "# Notes",
+          "",
+          "- Emits a [`crate::utils::events::CreateCampaign`] event."
+        ],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "creator",
+            "isWritable": true,
+            "isSigner": true,
+            "isOptional": false,
+            "docs": ["Write account: the creator of the campaign."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "airdropTokenMint",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the mint account of the airdrop token."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "campaign",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Create account: the account storing the campaign data."],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "campaign",
+                "docs": [],
+                "seeds": [
+                  {
+                    "kind": "constantPdaSeedNode",
+                    "type": { "kind": "bytesTypeNode" },
+                    "value": {
+                      "kind": "bytesValueNode",
+                      "data": "63616d706169676e",
+                      "encoding": "base16"
+                    }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "creator",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "merkleRoot",
+                    "docs": [],
+                    "type": {
+                      "kind": "fixedSizeTypeNode",
+                      "size": 32,
+                      "type": { "kind": "bytesTypeNode" }
+                    }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "campaignStartTime",
+                    "docs": [],
+                    "type": {
+                      "kind": "numberTypeNode",
+                      "format": "u64",
+                      "endian": "le"
+                    }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "expirationTime",
+                    "docs": [],
+                    "type": {
+                      "kind": "numberTypeNode",
+                      "format": "u64",
+                      "endian": "le"
+                    }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "name",
+                    "docs": [],
+                    "type": {
+                      "kind": "sizePrefixTypeNode",
+                      "type": { "kind": "stringTypeNode", "encoding": "utf8" },
+                      "prefix": {
+                        "kind": "numberTypeNode",
+                        "format": "u32",
+                        "endian": "le"
+                      }
+                    }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "airdropTokenMint",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  }
+                ]
+              },
+              "seeds": [
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "creator",
+                  "value": { "kind": "accountValueNode", "name": "creator" }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "merkleRoot",
+                  "value": { "kind": "argumentValueNode", "name": "merkleRoot" }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "campaignStartTime",
+                  "value": {
+                    "kind": "argumentValueNode",
+                    "name": "campaignStartTime"
+                  }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "expirationTime",
+                  "value": {
+                    "kind": "argumentValueNode",
+                    "name": "expirationTime"
+                  }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "name",
+                  "value": { "kind": "argumentValueNode", "name": "name" }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "airdropTokenMint",
+                  "value": {
+                    "kind": "accountValueNode",
+                    "name": "airdropTokenMint"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "campaignAta",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Create account: the campaign's ATA for the airdrop token."
+            ],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "campaignAta",
+                "docs": [],
+                "programId": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+                "seeds": [
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "campaign",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "airdropTokenProgram",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "airdropTokenMint",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  }
+                ]
+              },
+              "seeds": [
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "campaign",
+                  "value": { "kind": "accountValueNode", "name": "campaign" }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "airdropTokenProgram",
+                  "value": {
+                    "kind": "accountValueNode",
+                    "name": "airdropTokenProgram"
+                  }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "airdropTokenMint",
+                  "value": {
+                    "kind": "accountValueNode",
+                    "name": "airdropTokenMint"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "airdropTokenProgram",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Program account: the Token program of the airdrop token."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "associatedTokenProgram",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Program account: the Associated Token program."],
+            "defaultValue": {
+              "kind": "publicKeyValueNode",
+              "publicKey": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+              "identifier": "associatedTokenProgram"
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "systemProgram",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Program account: the System program."],
+            "defaultValue": {
+              "kind": "publicKeyValueNode",
+              "publicKey": "11111111111111111111111111111111",
+              "identifier": "systemProgram"
+            }
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 8,
+              "type": { "kind": "bytesTypeNode" }
+            },
+            "defaultValue": {
+              "kind": "bytesValueNode",
+              "data": "6f83bb62a0c172f4",
+              "encoding": "base16"
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "merkleRoot",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 32,
+              "type": { "kind": "bytesTypeNode" }
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "campaignStartTime",
+            "docs": [],
+            "type": {
+              "kind": "numberTypeNode",
+              "format": "u64",
+              "endian": "le"
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "expirationTime",
+            "docs": [],
+            "type": {
+              "kind": "numberTypeNode",
+              "format": "u64",
+              "endian": "le"
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "name",
+            "docs": [],
+            "type": {
+              "kind": "sizePrefixTypeNode",
+              "type": { "kind": "stringTypeNode", "encoding": "utf8" },
+              "prefix": {
+                "kind": "numberTypeNode",
+                "format": "u32",
+                "endian": "le"
+              }
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "ipfsCid",
+            "docs": [],
+            "type": {
+              "kind": "sizePrefixTypeNode",
+              "type": { "kind": "stringTypeNode", "encoding": "utf8" },
+              "prefix": {
+                "kind": "numberTypeNode",
+                "format": "u32",
+                "endian": "le"
+              }
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "aggregateAmount",
+            "docs": [],
+            "type": {
+              "kind": "numberTypeNode",
+              "format": "u64",
+              "endian": "le"
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "recipientCount",
+            "docs": [],
+            "type": {
+              "kind": "numberTypeNode",
+              "format": "u32",
+              "endian": "le"
+            }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "hasCampaignStarted",
+        "docs": [
+          "Returns a flag indicating whether the campaign has started.",
+          "",
+          "# Accounts expected:",
+          "",
+          "- `campaign` The account that stores the campaign details."
+        ],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "campaign",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the account storing the campaign data."]
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 8,
+              "type": { "kind": "bytesTypeNode" }
+            },
+            "defaultValue": {
+              "kind": "bytesValueNode",
+              "data": "8765abdc566168c7",
+              "encoding": "base16"
+            }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "hasClaimed",
+        "docs": [
+          "Returns a flag indicating whether a claim has been made for the given index.",
+          "",
+          "# Accounts Expected",
+          "",
+          "- `campaign` The account that stores the campaign details.",
+          "",
+          "# Parameters",
+          "",
+          "- `_index` The index of the recipient in the Merkle tree."
+        ],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "campaign",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the account storing the campaign data."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "claimReceipt",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the claim receipt."],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "claimReceipt",
+                "docs": [],
+                "seeds": [
+                  {
+                    "kind": "constantPdaSeedNode",
+                    "type": { "kind": "bytesTypeNode" },
+                    "value": {
+                      "kind": "bytesValueNode",
+                      "data": "636c61696d5f72656365697074",
+                      "encoding": "base16"
+                    }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "campaign",
+                    "docs": [],
+                    "type": { "kind": "publicKeyTypeNode" }
+                  },
+                  {
+                    "kind": "variablePdaSeedNode",
+                    "name": "index",
+                    "docs": [],
+                    "type": {
+                      "kind": "numberTypeNode",
+                      "format": "u32",
+                      "endian": "le"
+                    }
+                  }
+                ]
+              },
+              "seeds": [
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "campaign",
+                  "value": { "kind": "accountValueNode", "name": "campaign" }
+                },
+                {
+                  "kind": "pdaSeedValueNode",
+                  "name": "index",
+                  "value": { "kind": "argumentValueNode", "name": "index" }
+                }
+              ]
+            }
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 8,
+              "type": { "kind": "bytesTypeNode" }
+            },
+            "defaultValue": {
+              "kind": "bytesValueNode",
+              "data": "b6c3a738e803df66",
+              "encoding": "base16"
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "index",
+            "docs": [],
+            "type": {
+              "kind": "numberTypeNode",
+              "format": "u32",
+              "endian": "le"
+            }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "hasExpired",
+        "docs": [
+          "Returns a flag indicating whether the campaign has expired.",
+          "",
+          "# Accounts Expected",
+          "",
+          "- `campaign` The account that stores the campaign details."
+        ],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "campaign",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the account storing the campaign data."]
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 8,
+              "type": { "kind": "bytesTypeNode" }
+            },
+            "defaultValue": {
+              "kind": "bytesValueNode",
+              "data": "188a1e565c268f81",
+              "encoding": "base16"
+            }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "hasGracePeriodPassed",
+        "docs": [
+          "Returns a flag indicating whether the grace period of the campaign has passed.",
+          "",
+          "# Accounts Expected",
+          "",
+          "- `campaign` The account that stores the campaign details.",
+          "",
+          "# Notes",
+          "",
+          "- A return value of `false` indicates: No claim has been made yet, OR the current timestamp does not exceed",
+          "seven days after the first claim."
+        ],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "campaign",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the account storing the campaign data."]
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 8,
+              "type": { "kind": "bytesTypeNode" }
+            },
+            "defaultValue": {
+              "kind": "bytesValueNode",
+              "data": "df96b520f08849ec",
+              "encoding": "base16"
+            }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "initialize",
+        "docs": [
+          "Initializes the program with the provided fee collector address.",
+          "",
+          "# Accounts Expected",
+          "",
+          "- `initializer` The transaction signer.",
+          "",
+          "# Parameters",
+          "",
+          "- `fee_collector` The address that will have the authority to collect fees.",
+          "- `chainlink_program`: The Chainlink program used to retrieve on-chain price feeds.",
+          "- `chainlink_sol_usd_feed`: The account providing the SOL/USD price feed data."
+        ],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "initializer",
+            "isWritable": true,
+            "isSigner": true,
+            "isOptional": false,
+            "docs": ["Write account: the initializer of the program."]
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "treasury",
+            "isWritable": true,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": [
+              "Create account: the treasury account that will hold the fees."
+            ],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "treasury",
+                "docs": [],
+                "seeds": [
+                  {
+                    "kind": "constantPdaSeedNode",
+                    "type": { "kind": "bytesTypeNode" },
+                    "value": {
+                      "kind": "bytesValueNode",
+                      "data": "7472656173757279",
+                      "encoding": "base16"
+                    }
+                  }
+                ]
+              },
+              "seeds": []
+            }
+          },
+          {
+            "kind": "instructionAccountNode",
+            "name": "systemProgram",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Program account: the System program."],
+            "defaultValue": {
+              "kind": "publicKeyValueNode",
+              "publicKey": "11111111111111111111111111111111",
+              "identifier": "systemProgram"
+            }
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 8,
+              "type": { "kind": "bytesTypeNode" }
+            },
+            "defaultValue": {
+              "kind": "bytesValueNode",
+              "data": "afaf6d1f0d989bed",
+              "encoding": "base16"
+            }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "feeCollector",
+            "docs": [],
+            "type": { "kind": "publicKeyTypeNode" }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "chainlinkProgram",
+            "docs": [],
+            "type": { "kind": "publicKeyTypeNode" }
+          },
+          {
+            "kind": "instructionArgumentNode",
+            "name": "chainlinkSolUsdFeed",
+            "docs": [],
+            "type": { "kind": "publicKeyTypeNode" }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "kind": "instructionNode",
+        "name": "treasuryView",
+        "docs": ["Returns the treasury details."],
+        "optionalAccountStrategy": "programId",
+        "accounts": [
+          {
+            "kind": "instructionAccountNode",
+            "name": "treasury",
+            "isWritable": false,
+            "isSigner": false,
+            "isOptional": false,
+            "docs": ["Read account: the account storing the treasury details."],
+            "defaultValue": {
+              "kind": "pdaValueNode",
+              "pda": {
+                "kind": "pdaNode",
+                "name": "treasury",
+                "docs": [],
+                "seeds": [
+                  {
+                    "kind": "constantPdaSeedNode",
+                    "type": { "kind": "bytesTypeNode" },
+                    "value": {
+                      "kind": "bytesValueNode",
+                      "data": "7472656173757279",
+                      "encoding": "base16"
+                    }
+                  }
+                ]
+              },
+              "seeds": []
+            }
+          }
+        ],
+        "arguments": [
+          {
+            "kind": "instructionArgumentNode",
+            "name": "discriminator",
+            "defaultValueStrategy": "omitted",
+            "docs": [],
+            "type": {
+              "kind": "fixedSizeTypeNode",
+              "size": 8,
+              "type": { "kind": "bytesTypeNode" }
+            },
+            "defaultValue": {
+              "kind": "bytesValueNode",
+              "data": "f7a0d5edf779a452",
+              "encoding": "base16"
+            }
+          }
+        ],
+        "discriminators": [
+          {
+            "kind": "fieldDiscriminatorNode",
+            "name": "discriminator",
+            "offset": 0
+          }
+        ]
+      }
+    ],
+    "definedTypes": [
+      {
+        "kind": "definedTypeNode",
+        "name": "claim",
+        "docs": [],
+        "type": {
+          "kind": "structTypeNode",
+          "fields": [
+            {
+              "kind": "structFieldTypeNode",
+              "name": "amount",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u64",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "campaign",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "claimer",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "claimReceipt",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "feeInLamports",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u64",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "index",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u32",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "recipient",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "definedTypeNode",
+        "name": "clawback",
+        "docs": [],
+        "type": {
+          "kind": "structTypeNode",
+          "fields": [
+            {
+              "kind": "structFieldTypeNode",
+              "name": "amount",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u64",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "campaign",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "campaignCreator",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "clawbackRecipient",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "definedTypeNode",
+        "name": "createCampaign",
+        "docs": [],
+        "type": {
+          "kind": "structTypeNode",
+          "fields": [
+            {
+              "kind": "structFieldTypeNode",
+              "name": "aggregateAmount",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u64",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "campaign",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "campaignName",
+              "docs": [],
+              "type": {
+                "kind": "sizePrefixTypeNode",
+                "type": { "kind": "stringTypeNode", "encoding": "utf8" },
+                "prefix": {
+                  "kind": "numberTypeNode",
+                  "format": "u32",
+                  "endian": "le"
+                }
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "campaignStartTime",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u64",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "creator",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "expirationTime",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u64",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "ipfsCid",
+              "docs": [],
+              "type": {
+                "kind": "sizePrefixTypeNode",
+                "type": { "kind": "stringTypeNode", "encoding": "utf8" },
+                "prefix": {
+                  "kind": "numberTypeNode",
+                  "format": "u32",
+                  "endian": "le"
+                }
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "merkleRoot",
+              "docs": [],
+              "type": {
+                "kind": "fixedSizeTypeNode",
+                "size": 32,
+                "type": { "kind": "bytesTypeNode" }
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "recipientCount",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u32",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "tokenDecimals",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u8",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "tokenMint",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "definedTypeNode",
+        "name": "feesCollected",
+        "docs": [],
+        "type": {
+          "kind": "structTypeNode",
+          "fields": [
+            {
+              "kind": "structFieldTypeNode",
+              "name": "feeAmount",
+              "docs": [],
+              "type": {
+                "kind": "numberTypeNode",
+                "format": "u64",
+                "endian": "le"
+              }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "feeCollector",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            },
+            {
+              "kind": "structFieldTypeNode",
+              "name": "feeRecipient",
+              "docs": [],
+              "type": { "kind": "publicKeyTypeNode" }
+            }
+          ]
+        }
+      }
+    ],
+    "pdas": [],
+    "errors": [
+      {
+        "kind": "errorNode",
+        "name": "campaignExpired",
+        "code": 6000,
+        "message": "Campaign has expired!",
+        "docs": ["CampaignExpired: Campaign has expired!"]
+      },
+      {
+        "kind": "errorNode",
+        "name": "invalidMerkleProof",
+        "code": 6001,
+        "message": "Invalid Merkle proof!",
+        "docs": ["InvalidMerkleProof: Invalid Merkle proof!"]
+      },
+      {
+        "kind": "errorNode",
+        "name": "campaignNotStarted",
+        "code": 6002,
+        "message": "Campaign has not started yet!",
+        "docs": ["CampaignNotStarted: Campaign has not started yet!"]
+      },
+      {
+        "kind": "errorNode",
+        "name": "clawbackNotAllowed",
+        "code": 6003,
+        "message": "Clawback not allowed past the grace period and before campaign expiration!",
+        "docs": [
+          "ClawbackNotAllowed: Clawback not allowed past the grace period and before campaign expiration!"
+        ]
+      },
+      {
+        "kind": "errorNode",
+        "name": "cantCollectZeroFees",
+        "code": 6004,
+        "message": "Can't collect zero fees!",
+        "docs": ["CantCollectZeroFees: Can't collect zero fees!"]
+      }
+    ]
+  },
+  "additionalPrograms": []
+}
