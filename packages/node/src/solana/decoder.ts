@@ -10,6 +10,9 @@ import {
   isAnchorIdlV01,
   getInstructionDiscriminatorBytes,
   findInstructionDiscriminatorByName,
+  getDiscriminator,
+  isRootNode,
+  isAnchorIdl,
 } from '@subql/common-solana';
 import { getLogger } from '@subql/node-core';
 import {
@@ -21,7 +24,14 @@ import {
 } from '@subql/types-solana';
 import { isHex } from '@subql/utils';
 import bs58 from 'bs58';
-import { camelCase, DefinedTypeNode, InstructionNode, RootNode } from 'codama';
+import {
+  camelCase,
+  DefinedTypeNode,
+  InstructionNode,
+  pascalCase,
+  RootNode,
+  titleCase,
+} from 'codama';
 import { Memoize } from '../utils/decorators';
 import { allAccounts, getProgramId } from './utils.solana';
 
@@ -99,13 +109,35 @@ export function decodeInstruction(
 
 // Codama doesn't support Logs so extra work is required to decode logs
 export function decodeLog(idl: Idl, message: string): DecodedData | null {
+  const msgData = message.replace('Program data: ', '');
+  const msgBuffer = basedToBuffer(msgData);
+
+  // Codama IDL, doesn't include events in the IDL but it should decoded to a definedType in the IDL
+  if (!isAnchorIdl(idl)) {
+    if (msgBuffer.length < 8) {
+      // Not enough data for a discriminator
+      return null;
+    }
+
+    // Split the discriminator and data
+    const logDisc = msgBuffer.subarray(0, 8);
+    const data = msgBuffer.subarray(8);
+
+    // Attempt to find the matching type by discriminator and decode the data
+    return decodeData(idl, data.toString('base64'), (root) => {
+      return root.program.definedTypes.find(
+        (t) =>
+          // Warning this is fragile as there can be various casings of the type names, but because it requires hashing data we can only go one way
+          logDisc.indexOf(getDiscriminator(t.name)) === 0 ||
+          logDisc.indexOf(getDiscriminator(pascalCase(t.name))) === 0,
+      );
+    });
+  }
+
   // Older versions don't support events
   if (!isAnchorIdlV01(idl)) {
     throw new Error('Only Anchor IDL v0.1.0 is supported for decoding logs');
   }
-
-  const msgData = message.replace('Program data: ', '') as any;
-  const msgBuffer = basedToBuffer(msgData);
 
   // Codama doesn't include events so we have to find it manually
   const event = idl.events?.find(
@@ -121,7 +153,7 @@ export function decodeLog(idl: Idl, message: string): DecodedData | null {
     .subarray(event.discriminator.length)
     .toString('base64');
 
-  return decodeData(idl, input as any, (root, data) => {
+  return decodeData(idl, input, (root) => {
     return root.program.definedTypes.find(
       (t) => t.name === event.name || t.name === camelCase(event.name),
     );
