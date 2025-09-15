@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [6.2.0] - 2025-09-15
 ### Added
 - Support for decoding codama program logs (#25)
 
@@ -61,7 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Initial release
 
-[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.1.2...HEAD
+[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.2.0...HEAD
+[6.2.0]: https://github.com/subquery/subql-solana/compare/node-solana/6.1.2...node-solana/6.2.0
 [6.1.2]: https://github.com/subquery/subql-solana/compare/node-solana/6.1.1...node-solana/6.1.2
 [6.1.1]: https://github.com/subquery/subql-solana/compare/node-solana/6.1.0...node-solana/6.1.1
 [6.1.0]: https://github.com/subquery/subql-solana/compare/node-solana/6.0.7...node-solana/6.1.0
