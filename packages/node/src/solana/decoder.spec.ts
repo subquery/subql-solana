@@ -291,7 +291,6 @@ describe('SolanaDecoder', () => {
       const programLogs = tx!.meta!.logs?.filter((l) =>
         l.message.startsWith('Program data:'),
       );
-      console.log('PROGRAM LOGS', programLogs);
       expect(programLogs).toBeDefined();
       const decoded = await programLogs![0].decodedMessage;
       expect(decoded).not.toBeNull();
