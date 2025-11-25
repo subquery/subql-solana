@@ -65,7 +65,7 @@ jobs:
 
     steps:
       #Check out
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 100
           token: ${{ secrets.REPO_TOKEN }}
@@ -82,12 +82,12 @@ jobs:
           echo "::set-output name=network-endpoint::${NETWORK_ENDPOINT}"
           echo "::add-mask::${NETWORK_ENDPOINT}"
           # Store the prepared NETWORK_ENDPOINT in an environment variable
-          echo "NETWORK_ENDPOINT=${NETWORK_ENDPOINT}" >> $GITHUB_ENV 
+          echo "NETWORK_ENDPOINT=${NETWORK_ENDPOINT}" >> $GITHUB_ENV
 
       - name: Install Docker inside the container
         run: |
           apt-get update
-          apt-get install -y docker.io  
+          apt-get install -y docker.io
 
       - name: Install PostgreSQL client
         run: |
@@ -201,4 +201,3 @@ jobs:
             }
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-
