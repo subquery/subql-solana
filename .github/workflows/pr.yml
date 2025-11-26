@@ -12,9 +12,9 @@ jobs:
       SUBQL_ACCESS_TOKEN_TEST: ${{ secrets.SUBQL_ACCESS_TOKEN_TEST }}
       SUBQL_ORG_TEST: ${{ secrets.SUBQL_ORG_TEST }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup Node.js environment
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: lts/*
       - run: yarn
@@ -46,10 +46,10 @@ jobs:
       DB_PORT: 5432
       HTTP_ENDPOINT: ${{ secrets.HTTP_ENDPOINT }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: lts/*
 
