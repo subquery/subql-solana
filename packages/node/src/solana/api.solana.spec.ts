@@ -21,9 +21,7 @@ import {
 
 // Add api key to work
 const HTTP_ENDPOINT =
-  process.env.HTTP_ENDPOINT ??
-  'https://api.mainnet-beta.solana.com' ??
-  'https://solana.api.onfinality.io/public';
+  process.env.HTTP_ENDPOINT ?? 'https://api.mainnet-beta.solana.com';
 
 const IDL_swap: IdlV01 = require('../../test/swapFpHZwjELNnjvThjajtiVmkz3yPQEHjLtka2fwHW.idl.json');
 

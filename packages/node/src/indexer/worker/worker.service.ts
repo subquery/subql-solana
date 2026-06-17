@@ -21,6 +21,10 @@ import { BlockContent, getBlockSize } from '../types';
 
 export type FetchBlockResponse = Header;
 
+// The base class unwraps IBlock to BlockContent before calling toBlockResponse, losing the slot
+// that was used to fetch it. Track it here so the header reflects the requested slot, not parentSlot + 1.
+const blockSlots = new WeakMap<BlockContent, number>();
+
 export type WorkerStatusResponse = {
   threadId: number;
   isIndexing: boolean;
@@ -57,11 +61,12 @@ export class WorkerService extends BaseWorkerService<
     extra: {},
   ): Promise<IBlock<BlockContent>> {
     const [block] = await this.apiService.fetchBlocks([heights]);
+    blockSlots.set(block.block, heights);
     return block;
   }
 
   protected toBlockResponse(block: BlockContent): Header {
-    return solanaBlockToHeader(block);
+    return solanaBlockToHeader(block, blockSlots.get(block));
   }
 
   protected async processFetchedBlock(
