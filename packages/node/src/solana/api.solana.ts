@@ -5,8 +5,6 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { assertIsAddress } from '@solana/addresses';
 import {
   isSolanaError,
-  SOLANA_ERROR__JSON_RPC__SERVER_ERROR_BLOCK_NOT_AVAILABLE,
-  SOLANA_ERROR__JSON_RPC__SERVER_ERROR_LONG_TERM_STORAGE_SLOT_SKIPPED,
   SOLANA_ERROR__JSON_RPC__SERVER_ERROR_SLOT_SKIPPED,
 } from '@solana/errors';
 import { createSolanaRpc, Rpc } from '@solana/rpc';
@@ -36,19 +34,11 @@ export type SolanaSafeApi = undefined;
 
 const REQUEST_TIMEOUT = 30_000;
 
-// Solana doesn't produce a block for every slot. The RPC throws rather than returning null for these slots.
+// Solana doesn't produce a block for every slot. For a skipped slot the RPC throws rather than returning null.
+// Other "not available" RPC errors (e.g. block not yet rooted on this node, or missing from long-term storage)
+// don't reliably mean the slot was skipped, so they're intentionally not treated as a skip here.
 function isSkippedSlotError(e: unknown): boolean {
-  return (
-    isSolanaError(
-      e,
-      SOLANA_ERROR__JSON_RPC__SERVER_ERROR_BLOCK_NOT_AVAILABLE,
-    ) ||
-    isSolanaError(e, SOLANA_ERROR__JSON_RPC__SERVER_ERROR_SLOT_SKIPPED) ||
-    isSolanaError(
-      e,
-      SOLANA_ERROR__JSON_RPC__SERVER_ERROR_LONG_TERM_STORAGE_SLOT_SKIPPED,
-    )
-  );
+  return isSolanaError(e, SOLANA_ERROR__JSON_RPC__SERVER_ERROR_SLOT_SKIPPED);
 }
 
 export class SolanaApi {
