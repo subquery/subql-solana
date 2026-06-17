@@ -187,7 +187,7 @@ export class SolanaApi {
       throw new BlockUnavailableError();
     }
 
-    return solanaBlockToHeader(block);
+    return solanaBlockToHeader(block, Number(slot));
   }
 
   async fetchBlock(blockNumber: number): Promise<IBlock<SolanaBlock>> {
@@ -206,7 +206,10 @@ export class SolanaApi {
       }
 
       this.eventEmitter.emit('fetchBlock');
-      return formatBlockUtil(transformBlock(rawBlock, this.decoder));
+      return formatBlockUtil(
+        transformBlock(rawBlock, this.decoder),
+        blockNumber,
+      );
     } catch (e: any) {
       if (isSkippedSlotError(e)) {
         throw new BlockUnavailableError();

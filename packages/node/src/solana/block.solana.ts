@@ -265,16 +265,22 @@ export function transformBlock(
 
 export function formatBlockUtil<B extends SolanaBlock = SolanaBlock>(
   block: B,
+  slot?: number,
 ): IBlock<B> {
   return {
     block,
-    getHeader: () => solanaBlockToHeader(block),
+    getHeader: () => solanaBlockToHeader(block, slot),
   };
 }
 
-export function solanaBlockToHeader(block: BaseSolanaBlock): Header {
+export function solanaBlockToHeader(
+  block: BaseSolanaBlock,
+  slot?: number,
+): Header {
   return {
-    blockHeight: Number(block.parentSlot) + 1, // The blocks don't include the slot because they assume you know that when making the request
+    // The response doesn't include its own slot, so callers that know the slot they requested
+    // should pass it in. Falling back to parentSlot + 1 is wrong when the previous slot was skipped.
+    blockHeight: slot ?? Number(block.parentSlot) + 1,
     blockHash: block.blockhash,
     parentHash: block.previousBlockhash,
     timestamp: new Date(Number(block.blockTime) * 1000),
