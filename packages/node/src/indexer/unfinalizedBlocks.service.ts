@@ -121,11 +121,13 @@ export class UnfinalizedBlocksService<B = any>
   async processUnfinalizedBlockHeader(
     header?: Header,
   ): Promise<Header | undefined> {
+    let forkedHeader: Header | undefined;
+
     if (header) {
-      await this.registerUnfinalizedBlock(header);
+      forkedHeader = await this.registerUnfinalizedBlock(header);
     }
 
-    const forkedHeader = await this.hasForked();
+    forkedHeader ??= await this.hasForked();
 
     if (!forkedHeader) {
       // Remove blocks that are now confirmed finalized
@@ -156,11 +158,13 @@ export class UnfinalizedBlocksService<B = any>
     this._finalizedHeader = header;
   }
 
-  private async registerUnfinalizedBlock(header: Header): Promise<void> {
+  private async registerUnfinalizedBlock(
+    header: Header,
+  ): Promise<Header | undefined> {
     if (header.blockHeight <= this.finalizedBlockNumber) return;
 
-    // Ensure order, Solana can skip slots so blocks aren't always consecutive
-    const lastUnfinalizedHeight = last(this.unfinalizedBlocks)?.blockHeight;
+    const lastUnfinalized = last(this.unfinalizedBlocks);
+    const lastUnfinalizedHeight = lastUnfinalized?.blockHeight;
     if (
       lastUnfinalizedHeight !== undefined &&
       lastUnfinalizedHeight >= header.blockHeight
@@ -171,8 +175,67 @@ export class UnfinalizedBlocksService<B = any>
       );
     }
 
+    if (!lastUnfinalized) {
+      this.unfinalizedBlocks.push(header);
+      await this.saveUnfinalizedBlocks(this.unfinalizedBlocks);
+      return;
+    }
+
+    const lastProducedHeight = lastUnfinalized.blockHeight;
+    if (lastProducedHeight + 1 !== header.blockHeight) {
+      const forkedHeader = await this.backfillSkippedSlots(
+        lastProducedHeight + 1,
+        header.blockHeight - 1,
+      );
+
+      if (forkedHeader) {
+        return forkedHeader;
+      }
+    }
+
+    const latestUnfinalized = last(this.unfinalizedBlocks);
+    if (
+      latestUnfinalized &&
+      header.parentHash !== latestUnfinalized.blockHash
+    ) {
+      logger.warn(
+        `Block fork found, enqueued un-finalized block at ${header.blockHeight} with parent hash ${header.parentHash}, expected parent hash is ${latestUnfinalized.blockHash}.`,
+      );
+      return header;
+    }
+
     this.unfinalizedBlocks.push(header);
     await this.saveUnfinalizedBlocks(this.unfinalizedBlocks);
+    return;
+  }
+
+  private async backfillSkippedSlots(
+    startHeight: number,
+    endHeight: number,
+  ): Promise<Header | undefined> {
+    for (let height = startHeight; height <= endHeight; height++) {
+      let header: Header;
+      try {
+        header = await this.blockchainService.getHeaderForHeight(height);
+      } catch (e) {
+        if (e instanceof BlockUnavailableError) {
+          continue;
+        }
+        throw e;
+      }
+
+      const previousHeader = last(this.unfinalizedBlocks);
+      if (previousHeader && header.parentHash !== previousHeader.blockHash) {
+        logger.warn(
+          `Block fork found while rebuilding un-finalized chain at ${header.blockHeight} with parent hash ${header.parentHash}, expected parent hash is ${previousHeader.blockHash}.`,
+        );
+        return header;
+      }
+
+      this.unfinalizedBlocks.push(header);
+    }
+
+    return;
   }
 
   private async deleteFinalizedBlock(): Promise<void> {

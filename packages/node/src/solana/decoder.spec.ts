@@ -11,9 +11,7 @@ import { SolanaDecoder } from './decoder';
 import { getProgramId, filterInstructionsProcessor } from './utils.solana';
 
 const HTTP_ENDPOINT =
-  process.env.HTTP_ENDPOINT ??
-  'https://api.mainnet-beta.solana.com' ??
-  'https://solana.api.onfinality.io/public';
+  process.env.HTTP_ENDPOINT ?? 'https://api.mainnet-beta.solana.com';
 
 const IDL_codama_0_1_0: IdlV01 = require('../../test/8t2R21V3vjS1ucZzmX2memtGptjYZi2yGY3cYVa8dak7.idl.json');
 const IDL_Jupiter: IdlV01 = require('../../test/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4.idl.json');
