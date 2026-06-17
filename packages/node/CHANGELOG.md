@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.3.1] - 2026-06-18
+### Fixed
+- Node still crashing on Solana skipped slots reported via `SOLANA_ERROR__JSON_RPC__SERVER_ERROR_LONG_TERM_STORAGE_SLOT_SKIPPED`, by treating it the same as a confirmed skipped slot by default (opt-out via a new `treatLongTermStorageSkipAsSkipped` startup flag) (#32)
+
 ## [6.3.0] - 2026-06-18
 ### Fixed
 - Node crashing when Solana skips a slot, by converting `SolanaError`s for unavailable/skipped slots into `BlockUnavailableError` and allowing non-consecutive heights when registering unfinalized blocks (#30)
@@ -68,7 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Initial release
 
-[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.3.0...HEAD
+[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.3.1...HEAD
+[6.3.1]: https://github.com/subquery/subql-solana/compare/node-solana/6.3.0...node-solana/6.3.1
 [6.3.0]: https://github.com/subquery/subql-solana/compare/node-solana/6.2.0...node-solana/6.3.0
 [6.2.0]: https://github.com/subquery/subql-solana/compare/node-solana/6.1.2...node-solana/6.2.0
 [6.1.2]: https://github.com/subquery/subql-solana/compare/node-solana/6.1.1...node-solana/6.1.2
