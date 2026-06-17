@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.3.0] - 2026-06-18
+### Fixed
+- Node crashing when Solana skips a slot, by converting `SolanaError`s for unavailable/skipped slots into `BlockUnavailableError` and allowing non-consecutive heights when registering unfinalized blocks (#30)
+- Block headers using `parentSlot + 1` instead of the requested slot (#30)
+
 ## [6.2.0] - 2025-09-15
 ### Added
 - Support for decoding codama program logs (#25)
@@ -63,7 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Initial release
 
-[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.2.0...HEAD
+[Unreleased]: https://github.com/subquery/subql-solana/compare/node-solana/6.3.0...HEAD
+[6.3.0]: https://github.com/subquery/subql-solana/compare/node-solana/6.2.0...node-solana/6.3.0
 [6.2.0]: https://github.com/subquery/subql-solana/compare/node-solana/6.1.2...node-solana/6.2.0
 [6.1.2]: https://github.com/subquery/subql-solana/compare/node-solana/6.1.1...node-solana/6.1.2
 [6.1.1]: https://github.com/subquery/subql-solana/compare/node-solana/6.1.0...node-solana/6.1.1
