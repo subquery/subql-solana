@@ -159,11 +159,11 @@ export class UnfinalizedBlocksService<B = any>
   private async registerUnfinalizedBlock(header: Header): Promise<void> {
     if (header.blockHeight <= this.finalizedBlockNumber) return;
 
-    // Ensure order
+    // Ensure order, Solana can skip slots so blocks aren't always consecutive
     const lastUnfinalizedHeight = last(this.unfinalizedBlocks)?.blockHeight;
     if (
       lastUnfinalizedHeight !== undefined &&
-      lastUnfinalizedHeight + 1 !== header.blockHeight
+      lastUnfinalizedHeight >= header.blockHeight
     ) {
       exitWithError(
         `Unfinalized block is not sequential, lastUnfinalizedBlock='${lastUnfinalizedHeight}', newUnfinalizedBlock='${header.blockHeight}'`,

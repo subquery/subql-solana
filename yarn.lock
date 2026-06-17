@@ -2872,6 +2872,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@solana/errors@npm:^3.0.2":
+  version: 3.0.3
+  resolution: "@solana/errors@npm:3.0.3"
+  dependencies:
+    chalk: "npm:5.6.2"
+    commander: "npm:14.0.0"
+  peerDependencies:
+    typescript: ">=5.3.3"
+  bin:
+    errors: bin/cli.mjs
+  checksum: 10/33f08313dc3101d41aa4465f747ba4b4caec4db7745f3b651c7c436c2df1ec2d128b25ff676be548747916a5532bdefa859acde729f259b8f56de83b2ed43e05
+  languageName: node
+  linkType: hard
+
 "@solana/fast-stable-stringify@npm:3.0.2":
   version: 3.0.2
   resolution: "@solana/fast-stable-stringify@npm:3.0.2"
@@ -3378,6 +3392,7 @@ __metadata:
     "@nestjs/schedule": "npm:^5.0.1"
     "@nestjs/schematics": "npm:^11.0.0"
     "@nestjs/testing": "npm:^11.0.8"
+    "@solana/errors": "npm:^3.0.2"
     "@solana/kit": "npm:^3.0.2"
     "@subql/common-solana": "workspace:*"
     "@subql/node-core": "npm:^18.3.3"
@@ -5209,6 +5224,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"chalk@npm:5.6.2":
+  version: 5.6.2
+  resolution: "chalk@npm:5.6.2"
+  checksum: 10/1b2f48f6fba1370670d5610f9cd54c391d6ede28f4b7062dd38244ea5768777af72e5be6b74fb6c6d54cb84c4a2dff3f3afa9b7cb5948f7f022cfd3d087989e0
+  languageName: node
+  linkType: hard
+
 "chalk@npm:^2.0.0, chalk@npm:^2.3.2":
   version: 2.4.2
   resolution: "chalk@npm:2.4.2"
@@ -5521,7 +5543,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"commander@npm:^14.0.0":
+"commander@npm:14.0.0, commander@npm:^14.0.0":
   version: 14.0.0
   resolution: "commander@npm:14.0.0"
   checksum: 10/c05418bfc35a3e8b5c67bd9f75f5b773f386f9b85f83e70e7c926047f270929cb06cf13cd68f387dd6e7e23c6157de8171b28ba606abd3e6256028f1f789becf

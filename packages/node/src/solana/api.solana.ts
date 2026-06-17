@@ -3,6 +3,12 @@
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { assertIsAddress } from '@solana/addresses';
+import {
+  isSolanaError,
+  SOLANA_ERROR__JSON_RPC__SERVER_ERROR_BLOCK_NOT_AVAILABLE,
+  SOLANA_ERROR__JSON_RPC__SERVER_ERROR_LONG_TERM_STORAGE_SLOT_SKIPPED,
+  SOLANA_ERROR__JSON_RPC__SERVER_ERROR_SLOT_SKIPPED,
+} from '@solana/errors';
 import { createSolanaRpc, Rpc } from '@solana/rpc';
 import { SolanaRpcApi } from '@solana/rpc-api';
 import {
@@ -29,6 +35,21 @@ const logger = getLogger('api.ethereum');
 export type SolanaSafeApi = undefined;
 
 const REQUEST_TIMEOUT = 30_000;
+
+// Solana doesn't produce a block for every slot. The RPC throws rather than returning null for these slots.
+function isSkippedSlotError(e: unknown): boolean {
+  return (
+    isSolanaError(
+      e,
+      SOLANA_ERROR__JSON_RPC__SERVER_ERROR_BLOCK_NOT_AVAILABLE,
+    ) ||
+    isSolanaError(e, SOLANA_ERROR__JSON_RPC__SERVER_ERROR_SLOT_SKIPPED) ||
+    isSolanaError(
+      e,
+      SOLANA_ERROR__JSON_RPC__SERVER_ERROR_LONG_TERM_STORAGE_SLOT_SKIPPED,
+    )
+  );
+}
 
 export class SolanaApi {
   #client: Rpc<SolanaRpcApi>;
@@ -154,14 +175,22 @@ export class SolanaApi {
 
   async getHeaderByHeight(height: number | bigint): Promise<Header> {
     const slot = typeof height === 'number' ? BigInt(height) : height;
-    const block = await this.#client
-      .getBlock(slot, {
-        maxSupportedTransactionVersion: 0,
-        transactionDetails: 'none',
-        rewards: false,
-        commitment: 'confirmed', // This is used by unfinalized blocks
-      })
-      .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
+    let block;
+    try {
+      block = await this.#client
+        .getBlock(slot, {
+          maxSupportedTransactionVersion: 0,
+          transactionDetails: 'none',
+          rewards: false,
+          commitment: 'confirmed', // This is used by unfinalized blocks
+        })
+        .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
+    } catch (e) {
+      if (isSkippedSlotError(e)) {
+        throw new BlockUnavailableError();
+      }
+      throw e;
+    }
 
     if (!block) {
       // No block for that slot
@@ -189,6 +218,9 @@ export class SolanaApi {
       this.eventEmitter.emit('fetchBlock');
       return formatBlockUtil(transformBlock(rawBlock, this.decoder));
     } catch (e: any) {
+      if (isSkippedSlotError(e)) {
+        throw new BlockUnavailableError();
+      }
       console.log('Failed to fetch block', blockNumber, e.message);
       throw this.handleError(e);
     }
