@@ -29,5 +29,12 @@ export const yargsOptions = yargsBuilder({
       type: 'number',
       required: false,
     },
+    treatLongTermStorageSkipAsSkipped: {
+      description:
+        'Treat a SOLANA_ERROR__JSON_RPC__SERVER_ERROR_LONG_TERM_STORAGE_SLOT_SKIPPED (-32009) RPC error the same as a confirmed skipped slot, instead of crashing the node',
+      default: true,
+      type: 'boolean',
+      required: false,
+    },
   },
 });

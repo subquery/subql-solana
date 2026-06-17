@@ -47,8 +47,15 @@ export class SolanaApiConnection
     eventEmitter: EventEmitter2,
     decoder: SolanaDecoder,
     config?: ISolanaEndpointConfig,
+    treatLongTermStorageSkipAsSkipped?: boolean,
   ): Promise<SolanaApiConnection> {
-    const api = await SolanaApi.create(endpoint, eventEmitter, decoder, config);
+    const api = await SolanaApi.create(
+      endpoint,
+      eventEmitter,
+      decoder,
+      config,
+      treatLongTermStorageSkipAsSkipped,
+    );
 
     return new SolanaApiConnection(api, fetchBlocksBatches);
   }

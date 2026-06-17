@@ -87,6 +87,12 @@ web_modules/
 # TypeScript cache
 *.tsbuildinfo
 
+# Stray tsc output if it ever lands next to source instead of dist/ (e.g. from a stale
+# incremental build info predating outDir, or a non-project-mode tsc invocation)
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+
 # Optional npm cache directory
 .npm
 
