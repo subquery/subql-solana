@@ -280,15 +280,6 @@ export interface ISolanaEndpointConfig extends IEndpointConfig {
    * @default 30_000
    */
   requestTimeout?: number;
-  /**
-   * Some RPC providers report a skipped slot as "missing in long-term storage"
-   * (SOLANA_ERROR__JSON_RPC__SERVER_ERROR_LONG_TERM_STORAGE_SLOT_SKIPPED, -32009) once it falls outside
-   * their local blockstore retention window, instead of the usual slot-skipped error.
-   * When true, this is treated the same as a confirmed skipped slot. Set to false to instead
-   * crash the node so a genuine gap in archival data isn't silently skipped.
-   * @default true
-   */
-  treatLongTermStorageSkipAsSkipped?: boolean;
 }
 
 /**

@@ -19,6 +19,7 @@ import {
   ISolanaEndpointConfig,
   SolanaBlock,
 } from '@subql/types-solana';
+import { SolanaNodeConfig } from '../configure/NodeConfig';
 import { SubqueryProject } from '../configure/SubqueryProject';
 import { SolanaApiConnection, FetchFunc, GetFetchFunc } from './api.connection';
 import { SolanaApi, SolanaSafeApi } from './api.solana';
@@ -78,6 +79,9 @@ export class SolanaApiService extends ApiService<
 
     apiService.updateBlockFetching();
 
+    const treatLongTermStorageSkipAsSkipped = new SolanaNodeConfig(nodeConfig)
+      .treatLongTermStorageSkipAsSkipped;
+
     await apiService.createConnections(network, (endpoint, config) =>
       SolanaApiConnection.create(
         endpoint,
@@ -85,6 +89,7 @@ export class SolanaApiService extends ApiService<
         eventEmitter,
         decoder,
         config,
+        treatLongTermStorageSkipAsSkipped,
       ),
     );
 

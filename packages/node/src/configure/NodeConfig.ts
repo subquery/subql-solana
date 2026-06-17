@@ -3,8 +3,9 @@
 
 import { IConfig, NodeConfig } from '@subql/node-core';
 
-// NOTE to extend IConfig, change the type to interface
-export type ISolanaConfig = IConfig;
+export interface ISolanaConfig extends IConfig {
+  treatLongTermStorageSkipAsSkipped: boolean;
+}
 
 export class SolanaNodeConfig extends NodeConfig<ISolanaConfig> {
   /**
@@ -21,5 +22,9 @@ export class SolanaNodeConfig extends NodeConfig<ISolanaConfig> {
   constructor(config: NodeConfig) {
     // Rebuild with internal config
     super((config as any)._config, (config as any)._isTest);
+  }
+
+  get treatLongTermStorageSkipAsSkipped(): boolean {
+    return this._config.treatLongTermStorageSkipAsSkipped ?? true;
   }
 }

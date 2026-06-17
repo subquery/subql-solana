@@ -41,7 +41,8 @@ const REQUEST_TIMEOUT = 30_000;
 // LONG_TERM_STORAGE_SLOT_SKIPPED fires once a slot falls outside an RPC's local blockstore retention window and
 // its archival (e.g. bigtable) lookup returns not-found. This is ambiguous in general (could be a genuine
 // archival gap), but in practice recently-skipped slots commonly surface this way, so it's treated as a skip
-// unless the endpoint config opts out.
+// unless disabled via the network-level config. This isn't endpoint-specific (it's about how to interpret an
+// RPC response, not the endpoint itself), so it applies uniformly across every endpoint in the pool.
 function isSkippedSlotError(
   e: unknown,
   treatLongTermStorageSkipAsSkipped: boolean,
@@ -91,6 +92,7 @@ export class SolanaApi {
     eventEmitter: EventEmitter2,
     decoder: SolanaDecoder,
     config?: ISolanaEndpointConfig,
+    treatLongTermStorageSkipAsSkipped = true,
   ): Promise<SolanaApi> {
     try {
       // Keep-Alive is enabled by default, for more details see:
@@ -120,7 +122,7 @@ export class SolanaApi {
         eventEmitter,
         decoder,
         config?.requestTimeout,
-        config?.treatLongTermStorageSkipAsSkipped,
+        treatLongTermStorageSkipAsSkipped,
       );
     } catch (e) {
       console.error('CrateSoalana API', e);

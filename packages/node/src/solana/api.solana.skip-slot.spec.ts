@@ -69,7 +69,7 @@ describe('SolanaApi skipped slot handling', () => {
     );
   });
 
-  it('does not treat LONG_TERM_STORAGE_SLOT_SKIPPED as a skip when disabled via endpoint config', async () => {
+  it('does not treat LONG_TERM_STORAGE_SLOT_SKIPPED as a skip when disabled at startup', async () => {
     const rpcError = new SolanaError(
       SOLANA_ERROR__JSON_RPC__SERVER_ERROR_LONG_TERM_STORAGE_SLOT_SKIPPED,
       {
@@ -81,9 +81,8 @@ describe('SolanaApi skipped slot handling', () => {
       'http://localhost',
       eventEmitter,
       decoder,
-      {
-        treatLongTermStorageSkipAsSkipped: false,
-      },
+      undefined,
+      false,
     );
     await expect(api.fetchBlock(1)).rejects.toBe(rpcError);
   });
