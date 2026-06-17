@@ -5,6 +5,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { assertIsAddress } from '@solana/addresses';
 import {
   isSolanaError,
+  SOLANA_ERROR__JSON_RPC__SERVER_ERROR_LONG_TERM_STORAGE_SLOT_SKIPPED,
   SOLANA_ERROR__JSON_RPC__SERVER_ERROR_SLOT_SKIPPED,
 } from '@solana/errors';
 import { createSolanaRpc, Rpc } from '@solana/rpc';
@@ -35,10 +36,26 @@ export type SolanaSafeApi = undefined;
 const REQUEST_TIMEOUT = 30_000;
 
 // Solana doesn't produce a block for every slot. For a skipped slot the RPC throws rather than returning null.
-// Other "not available" RPC errors (e.g. block not yet rooted on this node, or missing from long-term storage)
-// don't reliably mean the slot was skipped, so they're intentionally not treated as a skip here.
-function isSkippedSlotError(e: unknown): boolean {
-  return isSolanaError(e, SOLANA_ERROR__JSON_RPC__SERVER_ERROR_SLOT_SKIPPED);
+// BLOCK_NOT_AVAILABLE (block not yet rooted on this node) is intentionally not treated as a skip here, since
+// it's often just this endpoint lagging behind and not a confirmed skip.
+// LONG_TERM_STORAGE_SLOT_SKIPPED fires once a slot falls outside an RPC's local blockstore retention window and
+// its archival (e.g. bigtable) lookup returns not-found. This is ambiguous in general (could be a genuine
+// archival gap), but in practice recently-skipped slots commonly surface this way, so it's treated as a skip
+// unless the endpoint config opts out.
+function isSkippedSlotError(
+  e: unknown,
+  treatLongTermStorageSkipAsSkipped: boolean,
+): boolean {
+  if (isSolanaError(e, SOLANA_ERROR__JSON_RPC__SERVER_ERROR_SLOT_SKIPPED)) {
+    return true;
+  }
+  return (
+    treatLongTermStorageSkipAsSkipped &&
+    isSolanaError(
+      e,
+      SOLANA_ERROR__JSON_RPC__SERVER_ERROR_LONG_TERM_STORAGE_SLOT_SKIPPED,
+    )
+  );
 }
 
 export class SolanaApi {
@@ -47,6 +64,7 @@ export class SolanaApi {
   // This is used within the sandbox when HTTP is used
   #genesisBlockHash: string;
   #requestTimeout: number;
+  #treatLongTermStorageSkipAsSkipped: boolean;
 
   /**
    * @param {string} endpoint - The endpoint of the RPC provider
@@ -60,10 +78,12 @@ export class SolanaApi {
     private eventEmitter: EventEmitter2,
     readonly decoder: SolanaDecoder,
     requestTimeout: number = REQUEST_TIMEOUT,
+    treatLongTermStorageSkipAsSkipped = true,
   ) {
     this.#client = client;
     this.#genesisBlockHash = genesisHash;
     this.#requestTimeout = requestTimeout;
+    this.#treatLongTermStorageSkipAsSkipped = treatLongTermStorageSkipAsSkipped;
   }
 
   static async create(
@@ -100,6 +120,7 @@ export class SolanaApi {
         eventEmitter,
         decoder,
         config?.requestTimeout,
+        config?.treatLongTermStorageSkipAsSkipped,
       );
     } catch (e) {
       console.error('CrateSoalana API', e);
@@ -176,7 +197,7 @@ export class SolanaApi {
         })
         .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
     } catch (e) {
-      if (isSkippedSlotError(e)) {
+      if (isSkippedSlotError(e, this.#treatLongTermStorageSkipAsSkipped)) {
         throw new BlockUnavailableError();
       }
       throw e;
@@ -211,7 +232,7 @@ export class SolanaApi {
         blockNumber,
       );
     } catch (e: any) {
-      if (isSkippedSlotError(e)) {
+      if (isSkippedSlotError(e, this.#treatLongTermStorageSkipAsSkipped)) {
         throw new BlockUnavailableError();
       }
       console.log('Failed to fetch block', blockNumber, e.message);
