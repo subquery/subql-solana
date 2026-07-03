@@ -18,6 +18,7 @@ import type {
 import { SolanaDecoder } from './decoder';
 
 const logger = getLogger('SolanaBlock');
+const SLOT = Symbol('slot');
 
 type RawSolanaBlock = Readonly<{
   /** The number of blocks beneath this block */
@@ -209,9 +210,10 @@ function wrapDictionaryLogs(
 export function transformBlock(
   block: RawSolanaBlock,
   decoder: SolanaDecoder,
+  slot?: number | bigint,
 ): SolanaBlock {
   const { transactions, ...baseBlock } = block;
-  return {
+  const transformedBlock = {
     ...baseBlock,
     transactions: transactions.map((tx) => {
       try {
@@ -261,20 +263,34 @@ export function transformBlock(
       }
     }),
   };
+
+  if (slot !== undefined) {
+    Object.defineProperty(transformedBlock, SLOT, {
+      value: Number(slot),
+    });
+  }
+
+  return transformedBlock;
 }
 
 export function formatBlockUtil<B extends SolanaBlock = SolanaBlock>(
   block: B,
+  slot?: number | bigint,
 ): IBlock<B> {
   return {
     block,
-    getHeader: () => solanaBlockToHeader(block),
+    getHeader: () => solanaBlockToHeader(block, slot),
   };
 }
 
-export function solanaBlockToHeader(block: BaseSolanaBlock): Header {
+export function solanaBlockToHeader(
+  block: BaseSolanaBlock,
+  slot?: number | bigint,
+): Header {
   return {
-    blockHeight: Number(block.parentSlot) + 1, // The blocks don't include the slot because they assume you know that when making the request
+    blockHeight: Number(
+      slot ?? (block as any)[SLOT] ?? Number(block.parentSlot) + 1,
+    ),
     blockHash: block.blockhash,
     parentHash: block.previousBlockhash,
     timestamp: new Date(Number(block.blockTime) * 1000),

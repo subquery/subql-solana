@@ -4,7 +4,7 @@
 import { IdlV01 } from '@codama/nodes-from-anchor';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TransactionFilter } from '@subql/common-solana';
-import { IBlock } from '@subql/node-core';
+import { IBlock, BlockUnavailableError } from '@subql/node-core';
 import {
   SolanaBlock,
   SolanaBlockFilter,
@@ -286,6 +286,16 @@ describe('Api.solana', () => {
         ),
       ).toBeDefined();
     });
+
+    it('treats a real skipped mainnet slot as BlockUnavailableError', async () => {
+      await expect(solanaApi.fetchBlock(394_555_688)).rejects.toBeInstanceOf(
+        BlockUnavailableError,
+      );
+
+      await expect(
+        solanaApi.getHeaderByHeight(394_555_688),
+      ).rejects.toBeInstanceOf(BlockUnavailableError);
+    }, 30_000);
   });
 
   // Tests that data types can be stringified, this is important to test because of circular references

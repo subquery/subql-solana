@@ -8,7 +8,6 @@ import { SolanaRpcApi } from '@solana/rpc-api';
 import {
   backoffRetry,
   BlockUnavailableError,
-  delay,
   getLogger,
   Header,
   IBlock,
@@ -29,6 +28,7 @@ const logger = getLogger('api.ethereum');
 export type SolanaSafeApi = undefined;
 
 const REQUEST_TIMEOUT = 30_000;
+const SKIPPED_SLOT_ERROR = 'was skipped';
 
 export class SolanaApi {
   #client: Rpc<SolanaRpcApi>;
@@ -153,22 +153,26 @@ export class SolanaApi {
   }
 
   async getHeaderByHeight(height: number | bigint): Promise<Header> {
-    const slot = typeof height === 'number' ? BigInt(height) : height;
-    const block = await this.#client
-      .getBlock(slot, {
-        maxSupportedTransactionVersion: 0,
-        transactionDetails: 'none',
-        rewards: false,
-        commitment: 'confirmed', // This is used by unfinalized blocks
-      })
-      .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
+    try {
+      const slot = typeof height === 'number' ? BigInt(height) : height;
+      const block = await this.#client
+        .getBlock(slot, {
+          maxSupportedTransactionVersion: 0,
+          transactionDetails: 'none',
+          rewards: false,
+          commitment: 'confirmed', // This is used by unfinalized blocks
+        })
+        .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
 
-    if (!block) {
-      // No block for that slot
-      throw new BlockUnavailableError();
+      if (!block) {
+        // No block for that slot
+        throw new BlockUnavailableError();
+      }
+
+      return solanaBlockToHeader(block, slot);
+    } catch (e: any) {
+      throw this.handleError(e);
     }
-
-    return solanaBlockToHeader(block);
   }
 
   async fetchBlock(blockNumber: number): Promise<IBlock<SolanaBlock>> {
@@ -187,7 +191,10 @@ export class SolanaApi {
       }
 
       this.eventEmitter.emit('fetchBlock');
-      return formatBlockUtil(transformBlock(rawBlock, this.decoder));
+      return formatBlockUtil(
+        transformBlock(rawBlock, this.decoder, blockNumber),
+        blockNumber,
+      );
     } catch (e: any) {
       console.log('Failed to fetch block', blockNumber, e.message);
       throw this.handleError(e);
@@ -248,6 +255,10 @@ export class SolanaApi {
     if ((e as any)?.context?.statusCode === 429) {
       const { hostname } = new URL(this.endpoint);
       return new Error(`Rate Limited at endpoint: ${hostname}`);
+    }
+
+    if (e.message?.includes(SKIPPED_SLOT_ERROR)) {
+      return new BlockUnavailableError();
     }
 
     return e;
