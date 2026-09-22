@@ -9,6 +9,7 @@ import {
   ProcessBlockResponse,
   ApiService,
   BaseWorkerService,
+  BlockUnavailableError,
   IProjectUpgradeService,
   IBlock,
   Header,
@@ -61,6 +62,11 @@ export class WorkerService extends BaseWorkerService<
     extra: {},
   ): Promise<IBlock<BlockContent>> {
     const [block] = await this.apiService.fetchBlocks([heights]);
+
+    if (!block) {
+      throw new BlockUnavailableError();
+    }
+
     blockSlots.set(block.block, heights);
     return block;
   }

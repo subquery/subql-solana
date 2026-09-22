@@ -34,6 +34,8 @@ const logger = getLogger('api.ethereum');
 export type SolanaSafeApi = undefined;
 
 const REQUEST_TIMEOUT = 30_000;
+// Keep block discovery and fetching aligned with createSolanaRpc's default commitment.
+const BLOCK_COMMITMENT = 'confirmed' as const;
 
 // Solana doesn't produce a block for every slot. For a skipped slot the RPC throws rather than returning null.
 // BLOCK_NOT_AVAILABLE (block not yet rooted on this node) is intentionally not treated as a skip here, since
@@ -220,6 +222,7 @@ export class SolanaApi {
           encoding: 'json',
           transactionDetails: 'full',
           maxSupportedTransactionVersion: 0,
+          commitment: BLOCK_COMMITMENT,
         })
         .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
 
@@ -243,7 +246,27 @@ export class SolanaApi {
   }
 
   async fetchBlocks(bufferBlocks: number[]): Promise<IBlock<SolanaBlock>[]> {
-    return Promise.all(bufferBlocks.map(async (num) => this.fetchBlock(num)));
+    if (!bufferBlocks.length) {
+      return [];
+    }
+
+    const startSlot = Math.min(...bufferBlocks);
+    const endSlot = Math.max(...bufferBlocks);
+    const availableSlots = await this.#client
+      .getBlocks(BigInt(startSlot), BigInt(endSlot), {
+        commitment: BLOCK_COMMITMENT,
+      })
+      .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
+
+    const availableSlotSet = new Set(
+      availableSlots.map((slot) => Number(slot)),
+    );
+
+    return Promise.all(
+      bufferBlocks
+        .filter((slot) => availableSlotSet.has(slot))
+        .map((slot) => this.fetchBlock(slot)),
+    );
   }
 
   get api(): Rpc<SolanaRpcApi> {
