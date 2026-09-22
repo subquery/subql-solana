@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.3.2] - 2026-09-22
+### Fixed
+- Batch skip solana skipped slots.
+
 ## [6.3.1] - 2026-06-18
 ### Fixed
 - Node still crashing on Solana skipped slots reported via `SOLANA_ERROR__JSON_RPC__SERVER_ERROR_LONG_TERM_STORAGE_SLOT_SKIPPED`, by treating it the same as a confirmed skipped slot by default (opt-out via a new `treatLongTermStorageSkipAsSkipped` startup flag) (#32)
