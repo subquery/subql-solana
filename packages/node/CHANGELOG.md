@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [6.3.2] - 2026-09-22
 ### Fixed
-- Batch skip solana skipped slots.
+- Batch skip solana skipped slots..
 
 ## [6.3.1] - 2026-06-18
 ### Fixed
