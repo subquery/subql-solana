@@ -36,6 +36,13 @@ export type SolanaSafeApi = undefined;
 const REQUEST_TIMEOUT = 30_000;
 // Keep block discovery and fetching aligned with createSolanaRpc's default commitment.
 const BLOCK_COMMITMENT = 'confirmed' as const;
+// Do not retain a negative availability result forever near the chain head.
+const SLOT_AVAILABILITY_CACHE_TTL = 5_000;
+
+type SlotAvailabilityCacheEntry = {
+  availableSlots: Set<number>;
+  expiresAt: number;
+};
 
 // Solana doesn't produce a block for every slot. For a skipped slot the RPC throws rather than returning null.
 // BLOCK_NOT_AVAILABLE (block not yet rooted on this node) is intentionally not treated as a skip here, since
@@ -68,6 +75,9 @@ export class SolanaApi {
   #genesisBlockHash: string;
   #requestTimeout: number;
   #treatLongTermStorageSkipAsSkipped: boolean;
+  #availabilityBatchSize: number;
+  #slotAvailabilityCache = new Map<number, SlotAvailabilityCacheEntry>();
+  #slotAvailabilityRequests = new Map<number, Promise<Set<number>>>();
 
   /**
    * @param {string} endpoint - The endpoint of the RPC provider
@@ -82,11 +92,16 @@ export class SolanaApi {
     readonly decoder: SolanaDecoder,
     requestTimeout: number = REQUEST_TIMEOUT,
     treatLongTermStorageSkipAsSkipped = true,
+    availabilityBatchSize = 1,
   ) {
     this.#client = client;
     this.#genesisBlockHash = genesisHash;
     this.#requestTimeout = requestTimeout;
     this.#treatLongTermStorageSkipAsSkipped = treatLongTermStorageSkipAsSkipped;
+    this.#availabilityBatchSize =
+      Number.isFinite(availabilityBatchSize) && availabilityBatchSize > 0
+        ? Math.floor(availabilityBatchSize)
+        : 1;
   }
 
   static async create(
@@ -95,6 +110,7 @@ export class SolanaApi {
     decoder: SolanaDecoder,
     config?: ISolanaEndpointConfig,
     treatLongTermStorageSkipAsSkipped = true,
+    availabilityBatchSize = 1,
   ): Promise<SolanaApi> {
     try {
       // Keep-Alive is enabled by default, for more details see:
@@ -125,6 +141,7 @@ export class SolanaApi {
         decoder,
         config?.requestTimeout,
         treatLongTermStorageSkipAsSkipped,
+        availabilityBatchSize,
       );
     } catch (e) {
       console.error('CrateSoalana API', e);
@@ -217,6 +234,7 @@ export class SolanaApi {
 
   async fetchBlock(blockNumber: number): Promise<IBlock<SolanaBlock>> {
     try {
+      logger.debug(`Fetching Solana slot ${blockNumber} with getBlock`);
       const rawBlock = await this.#client
         .getBlock(BigInt(blockNumber), {
           encoding: 'json',
@@ -245,13 +263,27 @@ export class SolanaApi {
     }
   }
 
-  async fetchBlocks(bufferBlocks: number[]): Promise<IBlock<SolanaBlock>[]> {
-    if (!bufferBlocks.length) {
-      return [];
-    }
+  private getAvailabilityWindow(blockNumber: number): {
+    startSlot: number;
+    endSlot: number;
+  } {
+    const startSlot =
+      Math.floor(blockNumber / this.#availabilityBatchSize) *
+      this.#availabilityBatchSize;
 
-    const startSlot = Math.min(...bufferBlocks);
-    const endSlot = Math.max(...bufferBlocks);
+    return {
+      startSlot,
+      endSlot: startSlot + this.#availabilityBatchSize - 1,
+    };
+  }
+
+  private async requestAvailableSlots(
+    startSlot: number,
+    endSlot: number,
+  ): Promise<Set<number>> {
+    logger.debug(
+      `Checking Solana slot availability with getBlocks(${startSlot}, ${endSlot}) at ${BLOCK_COMMITMENT} commitment`,
+    );
     const availableSlots = await this.#client
       .getBlocks(BigInt(startSlot), BigInt(endSlot), {
         commitment: BLOCK_COMMITMENT,
@@ -262,11 +294,98 @@ export class SolanaApi {
       availableSlots.map((slot) => Number(slot)),
     );
 
-    return Promise.all(
-      bufferBlocks
-        .filter((slot) => availableSlotSet.has(slot))
-        .map((slot) => this.fetchBlock(slot)),
+    logger.debug(
+      `Solana getBlocks(${startSlot}, ${endSlot}) returned ${availableSlots.length} available slot(s)`,
     );
+
+    return availableSlotSet;
+  }
+
+  private async getAvailableSlotsForWindow(
+    startSlot: number,
+    endSlot: number,
+  ): Promise<Set<number>> {
+    const cached = this.#slotAvailabilityCache.get(startSlot);
+    if (cached && cached.expiresAt > Date.now()) {
+      logger.debug(
+        `Using cached Solana slot availability for getBlocks(${startSlot}, ${endSlot})`,
+      );
+      return cached.availableSlots;
+    }
+
+    this.#slotAvailabilityCache.delete(startSlot);
+
+    const pending = this.#slotAvailabilityRequests.get(startSlot);
+    if (pending !== undefined) {
+      logger.debug(
+        `Waiting for in-flight Solana slot availability request for getBlocks(${startSlot}, ${endSlot})`,
+      );
+      return pending;
+    }
+
+    const request = this.requestAvailableSlots(startSlot, endSlot).then(
+      (availableSlots) => {
+        this.#slotAvailabilityCache.set(startSlot, {
+          availableSlots,
+          expiresAt: Date.now() + SLOT_AVAILABILITY_CACHE_TTL,
+        });
+        return availableSlots;
+      },
+    );
+
+    this.#slotAvailabilityRequests.set(startSlot, request);
+    const clearPending = () => {
+      if (this.#slotAvailabilityRequests.get(startSlot) === request) {
+        this.#slotAvailabilityRequests.delete(startSlot);
+      }
+    };
+    void request.then(clearPending, clearPending);
+
+    return request;
+  }
+
+  async fetchBlocks(bufferBlocks: number[]): Promise<IBlock<SolanaBlock>[]> {
+    if (!bufferBlocks.length) {
+      return [];
+    }
+
+    const requestedStartSlot = Math.min(...bufferBlocks);
+    const requestedEndSlot = Math.max(...bufferBlocks);
+    let availabilityStartSlot = requestedStartSlot;
+    let availabilityEndSlot = requestedEndSlot;
+    let availableSlotSet: Set<number>;
+
+    if (bufferBlocks.length === 1) {
+      const availabilityWindow = this.getAvailabilityWindow(bufferBlocks[0]);
+      availabilityStartSlot = availabilityWindow.startSlot;
+      availabilityEndSlot = availabilityWindow.endSlot;
+      availableSlotSet = await this.getAvailableSlotsForWindow(
+        availabilityStartSlot,
+        availabilityEndSlot,
+      );
+    } else {
+      availableSlotSet = await this.requestAvailableSlots(
+        availabilityStartSlot,
+        availabilityEndSlot,
+      );
+    }
+
+    const skippedSlots = bufferBlocks.filter(
+      (slot) => !availableSlotSet.has(slot),
+    );
+    const slotsToFetch = bufferBlocks.filter((slot) =>
+      availableSlotSet.has(slot),
+    );
+
+    logger.debug(
+      `Solana slot availability from getBlocks(${availabilityStartSlot}, ${availabilityEndSlot}) for requested slots [${bufferBlocks.join(
+        ', ',
+      )}]; skipped: [${skippedSlots.join(
+        ', ',
+      )}]; fetching with getBlock: [${slotsToFetch.join(', ')}]`,
+    );
+
+    return Promise.all(slotsToFetch.map((slot) => this.fetchBlock(slot)));
   }
 
   get api(): Rpc<SolanaRpcApi> {
