@@ -48,6 +48,7 @@ export class SolanaApiConnection
     decoder: SolanaDecoder,
     config?: ISolanaEndpointConfig,
     treatLongTermStorageSkipAsSkipped?: boolean,
+    availabilityBatchSize = 1,
   ): Promise<SolanaApiConnection> {
     const api = await SolanaApi.create(
       endpoint,
@@ -55,6 +56,7 @@ export class SolanaApiConnection
       decoder,
       config,
       treatLongTermStorageSkipAsSkipped,
+      availabilityBatchSize,
     );
 
     return new SolanaApiConnection(api, fetchBlocksBatches);

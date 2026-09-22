@@ -90,6 +90,7 @@ export class SolanaApiService extends ApiService<
         decoder,
         config,
         treatLongTermStorageSkipAsSkipped,
+        nodeConfig.batchSize,
       ),
     );
 
