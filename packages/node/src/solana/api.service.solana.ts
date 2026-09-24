@@ -27,6 +27,52 @@ import { SolanaDecoder } from './decoder';
 
 const logger = getLogger('api');
 
+const CONNECTION_POOL_NOT_READY_ERROR =
+  'All endpoints in the pool are either suspended due to rate limits or attempting to reconnect';
+const CONNECTION_POOL_READY_TIMEOUT = 30_000;
+const CONNECTION_POOL_READY_POLL_INTERVAL = 10;
+
+export async function waitForConnectionPoolReady(
+  getApi: () => unknown,
+  timeoutMs = CONNECTION_POOL_READY_TIMEOUT,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  let lastError: Error | undefined;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      getApi();
+      if (lastError) {
+        logger.debug('Solana API connection pool is ready');
+      }
+      return;
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        !error.message.startsWith(CONNECTION_POOL_NOT_READY_ERROR)
+      ) {
+        throw error;
+      }
+
+      if (!lastError) {
+        logger.debug('Waiting for Solana API connection pool registration');
+      }
+      lastError = error;
+      if (Date.now() >= deadline) {
+        throw new Error(
+          'Timed out waiting for the Solana API connection pool to become ready',
+          { cause: lastError },
+        );
+      }
+
+      await new Promise<void>((resolve) =>
+        setTimeout(resolve, CONNECTION_POOL_READY_POLL_INTERVAL),
+      );
+    }
+  }
+}
+
 @Injectable()
 export class SolanaApiService extends ApiService<
   SolanaApi,
@@ -93,6 +139,13 @@ export class SolanaApiService extends ApiService<
         nodeConfig.batchSize,
       ),
     );
+
+    // ConnectionPoolService.addToConnections is not awaited by node-core's
+    // createConnections(). In worker threads, registering the pool state uses
+    // the host message bridge and can still be pending when createConnections
+    // resolves. Wait until an endpoint is selectable before exposing the API
+    // service to worker initialization/fetching.
+    await waitForConnectionPoolReady(() => apiService.api);
 
     return apiService;
   }
