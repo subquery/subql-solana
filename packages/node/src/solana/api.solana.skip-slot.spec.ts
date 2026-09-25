@@ -34,8 +34,15 @@ describe('SolanaApi skipped slot handling', () => {
   const eventEmitter = new EventEmitter2();
   const decoder = new SolanaDecoder();
 
-  it('filters skipped slots with getBlocks before calling getBlock', async () => {
-    const getBlock = jest.fn();
+  it('confirms slots beyond the getBlocks high-water mark with getBlock', async () => {
+    const getBlock = jest.fn(() => ({
+      send: () =>
+        Promise.reject(
+          new SolanaError(SOLANA_ERROR__JSON_RPC__SERVER_ERROR_SLOT_SKIPPED, {
+            __serverMessage: 'Slot 1 was skipped',
+          }),
+        ),
+    }));
     const getBlocks = jest.fn(() => ({
       send: () => Promise.resolve([]),
     }));
@@ -55,11 +62,17 @@ describe('SolanaApi skipped slot handling', () => {
     expect(getBlocks).toHaveBeenCalledWith(1n, 1n, {
       commitment: 'confirmed',
     });
-    expect(getBlock).not.toHaveBeenCalled();
+    expect(getBlock).toHaveBeenCalledWith(
+      1n,
+      expect.objectContaining({
+        transactionDetails: 'full',
+        commitment: 'confirmed',
+      }),
+    );
   });
 
-  it('fetches only requested slots returned by getBlocks', async () => {
-    createSolanaRpc.mockReturnValue(mockRpcClient(undefined, [1n]));
+  it('skips missing slots below the getBlocks high-water mark', async () => {
+    createSolanaRpc.mockReturnValue(mockRpcClient(undefined, [1n, 3n]));
     const api = await SolanaApi.create(
       'http://localhost',
       eventEmitter,
@@ -68,9 +81,10 @@ describe('SolanaApi skipped slot handling', () => {
     const block = {} as IBlock<SolanaBlock>;
     const fetchBlock = jest.spyOn(api, 'fetchBlock').mockResolvedValue(block);
 
-    await expect(api.fetchBlocks([1, 2])).resolves.toEqual([block]);
-    expect(fetchBlock).toHaveBeenCalledTimes(1);
+    await expect(api.fetchBlocks([1, 2, 3])).resolves.toEqual([block, block]);
+    expect(fetchBlock).toHaveBeenCalledTimes(2);
     expect(fetchBlock).toHaveBeenCalledWith(1);
+    expect(fetchBlock).toHaveBeenCalledWith(3);
   });
 
   it('caches slot availability for the configured batch size', async () => {
@@ -109,6 +123,37 @@ describe('SolanaApi skipped slot handling', () => {
     expect(fetchBlock).toHaveBeenCalledTimes(2);
     expect(fetchBlock).toHaveBeenCalledWith(10);
     expect(fetchBlock).toHaveBeenCalledWith(11);
+  });
+
+  it('fetches newer slots omitted by a cached getBlocks snapshot', async () => {
+    const getBlocks = jest.fn(() => ({
+      send: () => Promise.resolve([9n, 10n]),
+    }));
+    createSolanaRpc.mockReturnValue({
+      getGenesisHash: () => ({ send: () => Promise.resolve('genesis-hash') }),
+      getBlock: jest.fn(),
+      getBlocks,
+    });
+
+    const api = await SolanaApi.create(
+      'http://localhost',
+      eventEmitter,
+      decoder,
+      undefined,
+      true,
+      3,
+    );
+    const block = {} as IBlock<SolanaBlock>;
+    const fetchBlock = jest.spyOn(api, 'fetchBlock').mockResolvedValue(block);
+
+    await expect(api.fetchBlocks([10])).resolves.toEqual([block]);
+    // Slot 11 is outside the cached snapshot's high-water mark. It must be
+    // verified directly rather than incorrectly classified as skipped.
+    await expect(api.fetchBlocks([11])).resolves.toEqual([block]);
+
+    expect(getBlocks).toHaveBeenCalledTimes(1);
+    expect(fetchBlock).toHaveBeenNthCalledWith(1, 10);
+    expect(fetchBlock).toHaveBeenNthCalledWith(2, 11);
   });
 
   it('treats SOLANA_ERROR__JSON_RPC__SERVER_ERROR_SLOT_SKIPPED as a confirmed skip', async () => {

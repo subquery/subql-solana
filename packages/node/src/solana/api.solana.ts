@@ -40,8 +40,19 @@ const BLOCK_COMMITMENT = 'confirmed' as const;
 const SLOT_AVAILABILITY_CACHE_TTL = 5_000;
 
 type SlotAvailabilityCacheEntry = {
-  availableSlots: Set<number>;
+  availability: SlotAvailability;
   expiresAt: number;
+};
+
+type SlotAvailability = {
+  availableSlots: Set<number>;
+  /**
+   * getBlocks only tells us that omitted slots are skipped up to the last
+   * returned slot. Slots after it may have been produced since the RPC
+   * snapshot (or may not have been produced yet), so they must be verified
+   * with getBlock instead of being treated as skipped.
+   */
+  highestAvailableSlot?: number;
 };
 
 // Solana doesn't produce a block for every slot. For a skipped slot the RPC throws rather than returning null.
@@ -77,7 +88,7 @@ export class SolanaApi {
   #treatLongTermStorageSkipAsSkipped: boolean;
   #availabilityBatchSize: number;
   #slotAvailabilityCache = new Map<number, SlotAvailabilityCacheEntry>();
-  #slotAvailabilityRequests = new Map<number, Promise<Set<number>>>();
+  #slotAvailabilityRequests = new Map<number, Promise<SlotAvailability>>();
 
   /**
    * @param {string} endpoint - The endpoint of the RPC provider
@@ -280,7 +291,7 @@ export class SolanaApi {
   private async requestAvailableSlots(
     startSlot: number,
     endSlot: number,
-  ): Promise<Set<number>> {
+  ): Promise<SlotAvailability> {
     logger.debug(
       `Checking Solana slot availability with getBlocks(${startSlot}, ${endSlot}) at ${BLOCK_COMMITMENT} commitment`,
     );
@@ -290,27 +301,33 @@ export class SolanaApi {
       })
       .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
 
-    const availableSlotSet = new Set(
-      availableSlots.map((slot) => Number(slot)),
-    );
+    const availableSlotSet = new Set(availableSlots.map(Number));
+    const highestAvailableSlot =
+      availableSlotSet.size > 0 ? Math.max(...availableSlotSet) : undefined;
 
     logger.debug(
-      `Solana getBlocks(${startSlot}, ${endSlot}) returned ${availableSlots.length} available slot(s)`,
+      `Solana getBlocks(${startSlot}, ${endSlot}) returned ${
+        availableSlots.length
+      } available slot(s)${
+        highestAvailableSlot === undefined
+          ? ''
+          : `; highest available slot: ${highestAvailableSlot}`
+      }`,
     );
 
-    return availableSlotSet;
+    return { availableSlots: availableSlotSet, highestAvailableSlot };
   }
 
   private async getAvailableSlotsForWindow(
     startSlot: number,
     endSlot: number,
-  ): Promise<Set<number>> {
+  ): Promise<SlotAvailability> {
     const cached = this.#slotAvailabilityCache.get(startSlot);
     if (cached && cached.expiresAt > Date.now()) {
       logger.debug(
         `Using cached Solana slot availability for getBlocks(${startSlot}, ${endSlot})`,
       );
-      return cached.availableSlots;
+      return cached.availability;
     }
 
     this.#slotAvailabilityCache.delete(startSlot);
@@ -324,12 +341,12 @@ export class SolanaApi {
     }
 
     const request = this.requestAvailableSlots(startSlot, endSlot).then(
-      (availableSlots) => {
+      (availability) => {
         this.#slotAvailabilityCache.set(startSlot, {
-          availableSlots,
+          availability,
           expiresAt: Date.now() + SLOT_AVAILABILITY_CACHE_TTL,
         });
-        return availableSlots;
+        return availability;
       },
     );
 
@@ -353,28 +370,34 @@ export class SolanaApi {
     const requestedEndSlot = Math.max(...bufferBlocks);
     let availabilityStartSlot = requestedStartSlot;
     let availabilityEndSlot = requestedEndSlot;
-    let availableSlotSet: Set<number>;
+    let availability: SlotAvailability;
 
     if (bufferBlocks.length === 1) {
       const availabilityWindow = this.getAvailabilityWindow(bufferBlocks[0]);
       availabilityStartSlot = availabilityWindow.startSlot;
       availabilityEndSlot = availabilityWindow.endSlot;
-      availableSlotSet = await this.getAvailableSlotsForWindow(
+      availability = await this.getAvailableSlotsForWindow(
         availabilityStartSlot,
         availabilityEndSlot,
       );
     } else {
-      availableSlotSet = await this.requestAvailableSlots(
+      availability = await this.requestAvailableSlots(
         availabilityStartSlot,
         availabilityEndSlot,
       );
     }
 
     const skippedSlots = bufferBlocks.filter(
-      (slot) => !availableSlotSet.has(slot),
+      (slot) =>
+        !availability.availableSlots.has(slot) &&
+        availability.highestAvailableSlot !== undefined &&
+        slot < availability.highestAvailableSlot,
     );
-    const slotsToFetch = bufferBlocks.filter((slot) =>
-      availableSlotSet.has(slot),
+    const slotsToFetch = bufferBlocks.filter(
+      (slot) =>
+        availability.availableSlots.has(slot) ||
+        availability.highestAvailableSlot === undefined ||
+        slot > availability.highestAvailableSlot,
     );
 
     logger.debug(
@@ -385,7 +408,28 @@ export class SolanaApi {
       )}]; fetching with getBlock: [${slotsToFetch.join(', ')}]`,
     );
 
-    return Promise.all(slotsToFetch.map((slot) => this.fetchBlock(slot)));
+    const fetchedBlocks = await Promise.all(
+      slotsToFetch.map(async (slot) => {
+        try {
+          return await this.fetchBlock(slot);
+        } catch (e) {
+          // A slot beyond getBlocks' high-water mark is uncertain, not
+          // skipped. Let getBlock decide; a confirmed skipped-slot response
+          // is safe to omit from the batch result.
+          if (e instanceof BlockUnavailableError) {
+            logger.debug(
+              `Solana getBlock confirmed slot ${slot} is unavailable`,
+            );
+            return undefined;
+          }
+          throw e;
+        }
+      }),
+    );
+
+    return fetchedBlocks.filter(
+      (block): block is IBlock<SolanaBlock> => block !== undefined,
+    );
   }
 
   get api(): Rpc<SolanaRpcApi> {
