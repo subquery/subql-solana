@@ -32,6 +32,14 @@ const UNFINALIZED_THRESHOLD = 200;
 
 type UnfinalizedBlocks = Header[];
 
+type RecoveryProgress = {
+  phase: string;
+  startedAt: number;
+  currentSlot?: number;
+  headerRequests: number;
+  skippedSlots: number;
+};
+
 // export interface IUnfinalizedBlocksService<B> extends IUnfinalizedBlocksServiceUtil {
 //   init(reindex: (targetHeader: Header) => Promise<void>): Promise<Header | undefined>;
 //   processUnfinalizedBlocks(block: IBlock<B> | undefined): Promise<Header | undefined>;
@@ -52,6 +60,7 @@ export class UnfinalizedBlocksService<B = any>
   private _unfinalizedBlocks?: UnfinalizedBlocks;
   private _finalizedHeader?: Header;
   protected lastCheckedBlockHeight?: number;
+  private recoveryProgress?: RecoveryProgress;
 
   @mainThreadOnly()
   private blockToHeader(block: IBlock<B>): Header {
@@ -91,25 +100,91 @@ export class UnfinalizedBlocksService<B = any>
       }`,
     );
 
+    logger.debug('Loading persisted unfinalized block metadata');
     this._unfinalizedBlocks = await this.getMetadataUnfinalizedBlocks();
     this.lastCheckedBlockHeight = await this.getLastFinalizedVerifiedHeight();
+    logger.debug(
+      `Loaded ${
+        this.unfinalizedBlocks.length
+      } unfinalized block(s), firstSlot=${
+        this.unfinalizedBlocks[0]?.blockHeight ?? 'none'
+      }, lastSlot=${
+        last(this.unfinalizedBlocks)?.blockHeight ?? 'none'
+      }, lastFinalizedVerifiedHeight=${this.lastCheckedBlockHeight ?? 'none'}`,
+    );
+    logger.debug(
+      'Fetching finalized header before validating unfinalized blocks',
+    );
     this._finalizedHeader = await this.blockchainService.getFinalizedHeader();
+    logger.debug(
+      `Finalized header: slot=${this.finalizedBlockNumber}, hash=${this.finalizedHeader.blockHash}`,
+    );
 
     if (this.unfinalizedBlocks.length) {
-      logger.info('Processing unfinalized blocks');
-      // Validate any previously unfinalized blocks
-
-      const rewindHeight = await this.processUnfinalizedBlocks();
-      if (rewindHeight !== undefined) {
+      logger.info(
+        `Processing unfinalized blocks: count=${
+          this.unfinalizedBlocks.length
+        }, firstSlot=${this.unfinalizedBlocks[0].blockHeight}, lastSlot=${
+          last(this.unfinalizedBlocks)?.blockHeight
+        }, finalizedSlot=${
+          this.finalizedBlockNumber
+        }, lastFinalizedVerifiedHeight=${
+          this.lastCheckedBlockHeight ?? 'none'
+        }`,
+      );
+      const progress: RecoveryProgress = (this.recoveryProgress = {
+        phase: 'verify-chain',
+        startedAt: Date.now(),
+        headerRequests: 0,
+        skippedSlots: 0,
+      });
+      // Keep startup progress visible at INFO level even when an RPC stalls.
+      const progressTimer = setInterval(() => {
         logger.info(
-          `Found un-finalized blocks from previous indexing but unverified, rolling back to last finalized block ${rewindHeight}`,
+          `Unfinalized recovery in progress: phase=${
+            progress.phase
+          }, currentSlot=${progress.currentSlot ?? 'none'}, headerRequests=${
+            progress.headerRequests
+          }, skippedSlots=${progress.skippedSlots}, elapsedMs=${
+            Date.now() - progress.startedAt
+          }`,
         );
-        await reindex(rewindHeight);
-        logger.info(`Successful rewind to block ${rewindHeight.blockHeight}!`);
-        return rewindHeight;
-      } else {
-        await this.resetUnfinalizedBlocks();
-        await this.resetLastFinalizedVerifiedHeight();
+      }, 10_000);
+      progressTimer.unref();
+      try {
+        const rewindHeight = await this.processUnfinalizedBlocks();
+        if (rewindHeight !== undefined) {
+          progress.phase = 'reindex';
+          progress.currentSlot = rewindHeight.blockHeight;
+          logger.info(
+            `Found un-finalized blocks from previous indexing but unverified, rolling back to last finalized block ${rewindHeight.blockHeight}`,
+          );
+          await reindex(rewindHeight);
+          logger.info(
+            `Successful rewind to block ${
+              rewindHeight.blockHeight
+            }! elapsedMs=${Date.now() - progress.startedAt}`,
+          );
+          return rewindHeight;
+        } else {
+          progress.phase = 'reset-metadata';
+          progress.currentSlot = undefined;
+          logger.debug(
+            'Validation completed without a fork; resetting unfinalized metadata',
+          );
+          await this.resetUnfinalizedBlocks();
+          await this.resetLastFinalizedVerifiedHeight();
+          logger.info(
+            `Unfinalized block validation completed: headerRequests=${
+              progress.headerRequests
+            }, skippedSlots=${progress.skippedSlots}, elapsedMs=${
+              Date.now() - progress.startedAt
+            }`,
+          );
+        }
+      } finally {
+        clearInterval(progressTimer);
+        this.recoveryProgress = undefined;
       }
     }
   }
@@ -273,8 +348,19 @@ export class UnfinalizedBlocksService<B = any>
 
     // No unfinalized blocks
     if (!lastVerifiableBlock) {
+      logger.debug(
+        `No saved unfinalized block at or below finalized slot ${this.finalizedBlockNumber}`,
+      );
       return;
     }
+
+    logger.debug(
+      `Checking saved block: slot=${lastVerifiableBlock.blockHeight}, hash=${
+        lastVerifiableBlock.blockHash
+      }, finalizedSlot=${this.finalizedBlockNumber}, slotGap=${
+        this.finalizedBlockNumber - lastVerifiableBlock.blockHeight
+      }`,
+    );
 
     // Unfinalized blocks beyond finalized block
     if (lastVerifiableBlock.blockHeight === this.finalizedBlockNumber) {
@@ -296,11 +382,17 @@ export class UnfinalizedBlocksService<B = any>
         header.blockHeight - lastVerifiableBlock.blockHeight >
         UNFINALIZED_THRESHOLD
       ) {
-        header = await this.blockchainService.getHeaderForHeight(
+        logger.debug(
+          `Verifying saved slot ${lastVerifiableBlock.blockHeight} with a direct header lookup`,
+        );
+        header = await this.getParentHeaderByHeight(
           lastVerifiableBlock.blockHeight,
         );
       } else {
-        while (lastVerifiableBlock.blockHeight !== header.blockHeight) {
+        logger.debug(
+          `Walking backward from finalized slot ${header.blockHeight} to saved slot ${lastVerifiableBlock.blockHeight}`,
+        );
+        while (header.blockHeight > lastVerifiableBlock.blockHeight) {
           assert(
             header.parentHash,
             'When iterate back parent hashes to find matching height, we expect parentHash to be exist',
@@ -310,9 +402,12 @@ export class UnfinalizedBlocksService<B = any>
         }
       }
 
-      if (header.blockHash !== lastVerifiableBlock.blockHash) {
+      if (
+        header.blockHeight !== lastVerifiableBlock.blockHeight ||
+        header.blockHash !== lastVerifiableBlock.blockHash
+      ) {
         logger.warn(
-          `Block fork found, enqueued un-finalized block at ${lastVerifiableBlock.blockHeight} with hash ${lastVerifiableBlock.blockHash}, actual hash is ${header.blockHash}`,
+          `Block fork found, enqueued un-finalized block at ${lastVerifiableBlock.blockHeight} with hash ${lastVerifiableBlock.blockHash}, actual block is at ${header.blockHeight} with hash ${header.blockHash}`,
         );
         return header;
       }
@@ -329,34 +424,54 @@ export class UnfinalizedBlocksService<B = any>
     );
 
     let checkingHeader = forkedHeader;
+    if (this.recoveryProgress) {
+      this.recoveryProgress.phase = 'find-rewind-point';
+    }
+    logger.debug(
+      `Searching for a rewind point: chainSlot=${
+        checkingHeader.blockHeight
+      }, savedCandidates=${
+        bestVerifiableBlocks.length
+      }, lastFinalizedVerifiedHeight=${this.lastCheckedBlockHeight ?? 'none'}`,
+    );
 
     // Work backwards through the blocks until we find a matching hash
     for (const bestHeader of bestVerifiableBlocks.reverse()) {
-      if (
-        bestHeader.blockHash === checkingHeader.blockHash ||
-        bestHeader.blockHash === checkingHeader.parentHash
-      ) {
-        return bestHeader;
+      logger.debug(
+        `Checking rewind candidate: savedSlot=${bestHeader.blockHeight}, savedHash=${bestHeader.blockHash}, chainSlot=${checkingHeader.blockHeight}`,
+      );
+      // Align heights before comparing hashes: a skipped saved slot must not
+      // match a header from an earlier slot, even if its saved hash is identical.
+      while (checkingHeader.blockHeight > bestHeader.blockHeight) {
+        checkingHeader = await this.getParentHeaderByHeight(
+          checkingHeader.blockHeight - 1,
+        );
       }
 
-      // Get the new parent
-      assert(
-        checkingHeader.parentHash,
-        'Expect checking header parentHash to be exist',
-      );
-      // Solana doesn't support getting blocks by hash, so we use the previous block height
-      checkingHeader = await this.getParentHeaderByHeight(
-        checkingHeader.blockHeight - 1,
+      if (
+        bestHeader.blockHeight === checkingHeader.blockHeight &&
+        bestHeader.blockHash === checkingHeader.blockHash
+      ) {
+        logger.debug(
+          `Matched rewind candidate at slot ${checkingHeader.blockHeight}, hash=${checkingHeader.blockHash}`,
+        );
+        return checkingHeader;
+      }
+    }
+
+    if (
+      this.lastCheckedBlockHeight === undefined ||
+      this.lastCheckedBlockHeight === null
+    ) {
+      throw new Error(
+        'Unable to find a verified finalized block to rewind to. Reindex the project to an earlier available slot.',
       );
     }
 
-    if (!this.lastCheckedBlockHeight) {
-      return undefined;
-    }
-
-    return this.blockchainService.getHeaderForHeight(
-      this.lastCheckedBlockHeight,
+    logger.debug(
+      `No saved header matched; checking last finalized checkpoint at slot ${this.lastCheckedBlockHeight}`,
     );
+    return this.getParentHeaderByHeight(this.lastCheckedBlockHeight);
   }
 
   // Finds the last POI that had a correct block hash, this is used with the Eth sdk
@@ -461,13 +576,47 @@ export class UnfinalizedBlocksService<B = any>
 
   // Solana does not support getBlockHash and can skip blocks, so we work backwards
   private async getParentHeaderByHeight(height: number): Promise<Header> {
-    try {
-      return await this.blockchainService.getHeaderForHeight(height);
-    } catch (e) {
-      if (e instanceof BlockUnavailableError) {
-        return this.getParentHeaderByHeight(height - 1);
+    for (let slot = height; slot >= 0; slot--) {
+      const startedAt = Date.now();
+      if (this.recoveryProgress) {
+        this.recoveryProgress.currentSlot = slot;
+        this.recoveryProgress.headerRequests++;
       }
-      throw e;
+      logger.debug(
+        `Requesting Solana header for slot ${slot} while verifying unfinalized blocks (searchStartSlot=${height})`,
+      );
+      try {
+        const header = await this.blockchainService.getHeaderForHeight(slot);
+        logger.debug(
+          `Received Solana header: requestedSlot=${slot}, blockSlot=${
+            header.blockHeight
+          }, hash=${header.blockHash}, parentHash=${
+            header.parentHash
+          }, elapsedMs=${Date.now() - startedAt}`,
+        );
+        return header;
+      } catch (e) {
+        if (!(e instanceof BlockUnavailableError)) {
+          logger.error(
+            e instanceof Error ? e : new Error(String(e)),
+            `Solana header lookup failed: slot=${slot}, elapsedMs=${
+              Date.now() - startedAt
+            }`,
+          );
+          throw e;
+        }
+        if (this.recoveryProgress) {
+          this.recoveryProgress.skippedSlots++;
+        }
+        logger.debug(
+          `Skipping unavailable Solana slot ${slot} while verifying unfinalized blocks, elapsedMs=${
+            Date.now() - startedAt
+          }`,
+        );
+      }
     }
+    throw new Error(
+      `Unable to find an available Solana block at or below slot ${height}`,
+    );
   }
 }

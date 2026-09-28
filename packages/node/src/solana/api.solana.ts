@@ -161,10 +161,18 @@ export class SolanaApi {
   }
 
   async getFinalizedBlockHeader(): Promise<Header> {
+    const startedAt = Date.now();
+    logger.debug('Requesting finalized Solana slot');
     try {
       const height = await this.getFinalizedBlockHeight();
+      logger.debug(`Fetching finalized Solana header at slot ${height}`);
       // This needs retries becasue if the endpoint is load balanced you might get a different node that doesn't yet have this block
       const header = await backoffRetry(() => this.getHeaderByHeight(height));
+      logger.debug(
+        `Received finalized Solana header: slot=${
+          header.blockHeight
+        }, elapsedMs=${Date.now() - startedAt}`,
+      );
       return header;
     } catch (e) {
       throw new Error('Failed to get finalized header', { cause: e });
@@ -218,6 +226,12 @@ export class SolanaApi {
 
   async getHeaderByHeight(height: number | bigint): Promise<Header> {
     const slot = typeof height === 'number' ? BigInt(height) : height;
+    const startedAt = Date.now();
+    logger.debug(
+      `Solana getBlock header request: slot=${slot}, commitment=confirmed, host=${
+        new URL(this.endpoint).hostname
+      }, timeoutMs=${this.#requestTimeout}`,
+    );
     let block;
     try {
       block = await this.#client
@@ -230,17 +244,38 @@ export class SolanaApi {
         .send({ abortSignal: AbortSignal.timeout(this.#requestTimeout) });
     } catch (e) {
       if (isSkippedSlotError(e, this.#treatLongTermStorageSkipAsSkipped)) {
+        logger.debug(
+          `Solana getBlock header response: slot=${slot}, status=skipped, elapsedMs=${
+            Date.now() - startedAt
+          }`,
+        );
         throw new BlockUnavailableError();
       }
+      logger.debug(
+        `Solana getBlock header response: slot=${slot}, status=error, elapsedMs=${
+          Date.now() - startedAt
+        }`,
+      );
       throw e;
     }
 
     if (!block) {
+      logger.debug(
+        `Solana getBlock header response: slot=${slot}, status=null, elapsedMs=${
+          Date.now() - startedAt
+        }`,
+      );
       // No block for that slot
       throw new BlockUnavailableError();
     }
 
-    return solanaBlockToHeader(block, Number(slot));
+    const header = solanaBlockToHeader(block, Number(slot));
+    logger.debug(
+      `Solana getBlock header response: slot=${slot}, status=ok, hash=${
+        header.blockHash
+      }, elapsedMs=${Date.now() - startedAt}`,
+    );
+    return header;
   }
 
   async fetchBlock(blockNumber: number): Promise<IBlock<SolanaBlock>> {

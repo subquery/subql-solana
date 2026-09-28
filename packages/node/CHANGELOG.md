@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Recover across skipped slots when validating persisted unfinalized blocks, and resume after the preserved rollback target on startup.
+
+### Added
+- Log unfinalized recovery progress every 10 seconds, with debug details for header RPCs, skipped slots, rewind candidates, and startup phases.
 
 ## [6.3.3] - 2026-09-25
 ### Fixed
