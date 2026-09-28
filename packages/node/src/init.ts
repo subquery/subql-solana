@@ -10,6 +10,7 @@ import {
   getValidPort,
   NestLogger,
   ProjectService,
+  StoreService,
 } from '@subql/node-core';
 import { AppModule } from './app.module';
 import { yargsOptions } from './yargs';
@@ -43,8 +44,27 @@ export async function bootstrap(): Promise<void> {
     const fetchService = app.get(FetchService);
 
     // Initialise async services, we do this here rather than in factories, so we can capture one off eventss
+    logger.debug(
+      'Initializing project service, including unfinalized block recovery',
+    );
     await projectService.init();
-    await fetchService.init(projectService.startHeight);
+    logger.debug('Project service initialization completed');
+    const storeService = app.get(StoreService);
+    const { height: lastProcessedHeight } =
+      await storeService.getLastProcessedBlock();
+    // A startup rewind preserves its target block. Resume after that block,
+    // even when node-core reports the rewind target as the project start height.
+    const startHeight =
+      lastProcessedHeight === undefined
+        ? projectService.startHeight
+        : Math.max(projectService.startHeight, lastProcessedHeight + 1);
+    logger.debug(
+      `Initializing fetch service: startSlot=${startHeight}, projectStartSlot=${
+        projectService.startHeight
+      }, lastProcessedHeight=${lastProcessedHeight ?? 'none'}`,
+    );
+    await fetchService.init(startHeight);
+    logger.debug('Fetch service initialization completed');
 
     app.enableShutdownHooks();
 
