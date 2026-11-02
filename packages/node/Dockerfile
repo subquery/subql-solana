@@ -31,7 +31,6 @@ RUN npm i -g app.tgz
 
 # Clean up unused deps
 RUN rm /app.tgz && \
-    yarn cache clean && \
     rm -rf /root/.npm /root/.cache
 
 # Create ./.monitor directory and set permissions
